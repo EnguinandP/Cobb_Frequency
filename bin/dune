@@ -1,0 +1,4 @@
+(executable
+ (public_name Cobb_Frequency)
+ (name main)
+ (libraries Cobb_Frequency))

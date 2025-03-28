@@ -1,0 +1,16 @@
+# dune exec Cobb_Frequency
+# OCAMLPARAM: unset
+# Shared cache: enabled-except-user-rules
+# Shared cache location: /Users/francille/.cache/dune/db
+# Workspace root: /Users/francille/Documents/GitHub/Cobb_Frequency
+# Auto-detected concurrency: 8
+# Dune context:
+#  { name = "default"
+#  ; kind = "default"
+#  ; profile = Dev
+#  ; merlin = true
+#  ; fdo_target_exe = None
+#  ; build_dir = In_build_dir "default"
+#  ; instrument_with = []
+#  }
+$ /Users/francille/.opam/firstOCaml/bin/ocamlc.opt -config > /var/folders/tt/bf02sshn3l79cwpxhk4l88nc0000gn/T/dune_22b327_output

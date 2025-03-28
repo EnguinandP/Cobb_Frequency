@@ -1,0 +1,11 @@
+lib: [
+  "_build/install/default/lib/Cobb_Frequency/META"
+  "_build/install/default/lib/Cobb_Frequency/dune-package"
+  "_build/install/default/lib/Cobb_Frequency/opam"
+]
+bin: [
+  "_build/install/default/bin/Cobb_Frequency"
+]
+doc: [
+  "_build/install/default/doc/Cobb_Frequency/README.md"
+]
