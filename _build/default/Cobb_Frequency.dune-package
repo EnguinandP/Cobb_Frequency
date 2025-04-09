@@ -1,4 +1,4 @@
-(lang dune 3.17)
+(lang dune 3.18)
 (name Cobb_Frequency)
 (sections (lib .) (bin ../../bin) (doc ../../doc/Cobb_Frequency))
 (files

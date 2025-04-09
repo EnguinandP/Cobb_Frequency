@@ -1,0 +1,4 @@
+(lang dune 3.18)
+(name Cobb_PBT)
+(sections (lib .) (bin ../../bin))
+(files (lib (META dune-package opam)) (bin (Cobb_PBT enumeration)))

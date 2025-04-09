@@ -1,4 +1,12 @@
+;(vendored_dirs Cobb)
+; (dirs *)
+
 (executable
  (public_name Cobb_Frequency)
  (name main)
- (libraries Cobb_Frequency))
+ (libraries 
+    Cobb_Frequency 
+    underapproximation_type.preprocessing 
+    underapproximation_type.commands 
+    Cobb.postprocess
+  ))
