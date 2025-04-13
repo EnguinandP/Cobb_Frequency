@@ -1,7 +1,0 @@
-(lang dune 3.18)
-(name Cobb_Frequency)
-(sections (lib .) (bin ../../bin) (doc ../../doc/Cobb_Frequency))
-(files
- (lib (META dune-package opam))
- (bin (Cobb_Frequency))
- (doc (README.md)))

@@ -1,1 +1,0 @@
-../../../../../default/Cobb/language_utils/metalang/mkcompare.ml

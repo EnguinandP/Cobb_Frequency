@@ -1,9 +1,0 @@
-lib: [
-  "_build/install/default/lib/Cobb_PBT/META"
-  "_build/install/default/lib/Cobb_PBT/dune-package"
-  "_build/install/default/lib/Cobb_PBT/opam"
-]
-bin: [
-  "_build/install/default/bin/Cobb_PBT"
-  "_build/install/default/bin/enumeration"
-]
