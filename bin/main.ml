@@ -3,13 +3,97 @@ open Term
 module Env = Zzenv
 (* open Language.FrontendTyped *)
 
+(* calls poirot to get AST of source_file *)
 let process meta_config_file source_file () =
   let () = Env.load_meta meta_config_file in
   let code = Commands.Cre.preprocess source_file () in
   code
 
+
+let replace_bool_gen_string (s : ('t, string) typed) : ('t, string) typed = 
+  s #-> (function _ -> "frequency_gen")
+
+let is_bool_gen (s : ('t, string) typed) : bool =
+  s.x = "bool_gen"
+
+(* TODO: should recursively search in term until bool_gen *)
+(* matches for value *)
+let rec replace_bool_gen_value (v : 't value) =
+  match v with 
+  | VConst _ -> v
+  (* bool_gen is a VVar *)
+  | VVar s -> 
+    if is_bool_gen s then
+      VVar (replace_bool_gen_string s)
+    else
+      VVar s
+  | VLam {lamarg; body} -> 
+    VLam  {
+      lamarg;
+      body = replace_bool_gen body;
+    }
+  | VFix { fixname; fixarg; body } -> 
+    VFix {
+      fixname;
+      fixarg;
+      body = replace_bool_gen body;
+    }
+  | VTu l -> 
+    VTu (List.map (function y -> y #-> replace_bool_gen_value ) l)
+
+(* #-> applies function to arg, returning it as `typed` *)
+
+(* matched for term *)
+and replace_bool_gen (t : ('t, 't term) typed) : ('t, 't term) typed = 
+  t #-> ( function
+  | CErr -> CErr
+  | CVal t -> CVal t #-> replace_bool_gen_value
+  | CLetE { lhs; rhs; body} ->
+    CLetE {
+      lhs;
+      rhs = replace_bool_gen rhs;
+      body = replace_bool_gen body
+    }
+  | CLetDeTu { turhs; tulhs; body} ->
+    CLetDeTu {
+      turhs = turhs #-> replace_bool_gen_value;
+      tulhs; 
+      body = replace_bool_gen body;
+    }
+  | CApp { appf; apparg} ->
+    CApp {
+      appf = appf #-> replace_bool_gen_value;
+      apparg = apparg #-> replace_bool_gen_value;
+    }
+  | CAppOp {op; appopargs} -> 
+    CAppOp {
+      op;
+      appopargs = (List.map (function y -> y #-> replace_bool_gen_value ) appopargs)
+    }
+  | CMatch { matched; match_cases } ->
+    CMatch {
+      matched = matched #-> replace_bool_gen_value;
+      match_cases =
+        List.map (function (CMatchcase {constructor; args; exp}) -> 
+          CMatchcase {
+            constructor;
+            args;
+            exp = replace_bool_gen exp;
+          }
+        )
+        match_cases
+    }
+  )
+
+(* gets the body of the function *)
+let get_body = function
+| Language.MFuncImp {body; _} -> body
+| _ -> failwith "Unsupported variant for extracting body"
+
+(* some initial code for understanding the AST *)
 let example_term_1 : 't term = CErr
 let example_term_2 : (('t, 't term) typed) = { x = CVal {x = VConst (I 42); ty = 0}; ty = 0}
+let example_term_3 : (('t, 't term) typed) = { x = CErr; ty = 0}
 
 let get_value_constructor (v : 't value) =
   match v with 
@@ -19,22 +103,10 @@ let get_value_constructor (v : 't value) =
   | VFix _ -> "fix"
   | VTu _ -> "tu"
 
-(* TODO: should recursively search in term until bool_gen *)
-let find_bool_gen (v : 't value) =
-  match v with 
-  | VFix { fixname; fixarg; body } -> 
-    VFix {
-      fixname;
-      fixarg;
-      body = example_term_2;
-    }
-  | _ -> v
-
 (* finds what type of term bool_gen is (CVal) *)
+(* matches for term *)
 let peek (t : ('t, 't term) typed) =
   match t.x with 
-  (* | CVal v -> typed_fv_value_id v *)
-  (* | CVal {x = value;_} -> fv_value value *)
   | CVal {x = value;_} -> get_value_constructor value
   | _ -> failwith "not CVal"
 
@@ -43,11 +115,8 @@ let peek (t : ('t, 't term) typed) =
 let print_string_list l = List.iter print_endline l
 let print_string_typed (s : ('t, string) typed ) = print_endline s.x
 let print_string_typed_list (l : ('t, string) typed list) = List.iter print_string_typed l
-  
-let print_code (config:string) (source:string) =
 
-  (* let config = Array.get Sys.argv 1 in
-  let source = Array.get Sys.argv 2 in *)
+let print_code (config:string) (source:string) =
 
   (* calls poirot preprocess to get AST of source file *)
   let code = process config source () in
@@ -68,27 +137,48 @@ let print_code (config:string) (source:string) =
   in
   (* let term = if is_mtydecl then "True" else "False" *)
 
-  (* gets the body of the function *)
-  let get_body = function
-    | Language.MFuncImp {body; _} -> body
-    | _ -> failwith "Unsupported variant for extracting body"
-  in
-
+  (* converts the body into terms *)
   let body = get_body first_item in
 
-  (* prints out body *)
+  (* gets string of AST *)
   let body_str = Language.FrontendTyped.layout_typed_term body in
 
+  
   print_endline name;
   print_endline body_str;
-  let () = print_endline (peek body)
-  (* let () = print_string_typed_list (peek body) *)
-  (* let () = print_string_list (peek body) *)
-  (* print_string_list (find_bool_gen body) *)
+  print_endline (peek body);
+
+  (* replaces bool_gen with frequency_gen*)
+  let new_body = replace_bool_gen body in
+  (* prints new body *)
+  let () = print_endline (Language.FrontendTyped.layout_typed_term new_body)
+
   in ()
 
+let alter_ast (config : string) (source : string ) = 
+  
+  let code = process config source () in
+
+  (* gets the first item, (gets the function and ignores the type annotation) *)
+  let first_item = (Array.get (Array.of_list code) 0) in
+
+    (* converts the body into terms *)
+    let body = get_body first_item in
+
+    (* replaces bool_gen with frequency_gen*)
+    let new_body = replace_bool_gen body in
+    
+    (* prints new body *)
+    let () = print_endline (Language.FrontendTyped.layout_typed_term new_body)
+  in ()
+
+    
+
+
+
+
 let () = 
-  print_code "meta-config.json" "bin/source_file_ex.ml";
+  alter_ast "meta-config.json" "bin/source_file_ex.ml";
 
 
 
