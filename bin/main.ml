@@ -3,48 +3,21 @@ open Term
 module Env = Zzenv
 (* open Language.FrontendTyped *)
 
-(* calls poirot to get AST of source_file *)
+(** calls poirot to get AST of source_file *)
 let process meta_config_file source_file () =
   let () = Env.load_meta meta_config_file in
   let code = Commands.Cre.preprocess source_file () in
   code
 
-
+(** returns "frequency_gen" as ('t, string) typed *)
 let replace_bool_gen_string (s : ('t, string) typed) : ('t, string) typed = 
   s #-> (function _ -> "frequency_gen")
 
 let is_bool_gen (s : ('t, string) typed) : bool =
   s.x = "bool_gen"
 
-(* TODO: should recursively search in term until bool_gen *)
-(* matches for value *)
-let rec replace_bool_gen_value (v : 't value) =
-  match v with 
-  | VConst _ -> v
-  (* bool_gen is a VVar *)
-  | VVar s -> 
-    if is_bool_gen s then
-      VVar (replace_bool_gen_string s)
-    else
-      VVar s
-  | VLam {lamarg; body} -> 
-    VLam  {
-      lamarg;
-      body = replace_bool_gen body;
-    }
-  | VFix { fixname; fixarg; body } -> 
-    VFix {
-      fixname;
-      fixarg;
-      body = replace_bool_gen body;
-    }
-  | VTu l -> 
-    VTu (List.map (function y -> y #-> replace_bool_gen_value ) l)
-
-(* #-> applies function to arg, returning it as `typed` *)
-
-(* matched for term *)
-and replace_bool_gen (t : ('t, 't term) typed) : ('t, 't term) typed = 
+(** recursively traverses through AST to find and replace bool_gen with frequency_gen *)
+let rec replace_bool_gen (t : ('t, 't term) typed) : ('t, 't term) typed = 
   t #-> ( function
   | CErr -> CErr
   | CVal t -> CVal t #-> replace_bool_gen_value
@@ -84,10 +57,34 @@ and replace_bool_gen (t : ('t, 't term) typed) : ('t, 't term) typed =
         match_cases
     }
   )
+and replace_bool_gen_value (v : 't value) =
+  match v with 
+  | VConst _ -> v
+  (* bool_gen is a VVar *)
+  | VVar s -> 
+    if is_bool_gen s then
+      VVar (replace_bool_gen_string s)
+    else
+      VVar s
+  | VLam {lamarg; body} -> 
+    VLam  {
+      lamarg;
+      body = replace_bool_gen body;
+    }
+  | VFix { fixname; fixarg; body } -> 
+    VFix {
+      fixname;
+      fixarg;
+      body = replace_bool_gen body;
+    }
+  | VTu l -> 
+    VTu (List.map (function y -> y #-> replace_bool_gen_value ) l)
 
-(* gets the body of the function *)
-let get_body = function
-| Language.MFuncImp {body; _} -> body
+(* #-> applies function to arg, returning it as `typed` *)
+
+(** gets the body of the function *)
+let get_name_rec_body = function
+| Language.MFuncImp {name; if_rec;body; _} -> (name, if_rec, body) 
 | _ -> failwith "Unsupported variant for extracting body"
 
 (* some initial code for understanding the AST *)
@@ -125,7 +122,7 @@ let print_code (config:string) (source:string) =
   let first_item = (Array.get (Array.of_list code) 0) in
 
   (* finds which type of item (MFuncImp) *)
-  let name =
+  (* let name =
     match first_item with
     | Language.MTyDecl {type_name;_} -> "type dec " ^ type_name
     | Language.MValDecl {x = name; _} -> "val dec" ^ name
@@ -134,26 +131,34 @@ let print_code (config:string) (source:string) =
     | Language.MFuncImpRaw {name = {x = name; _};_} -> "Function Imp Raw" ^ name
     | Language.MFuncImp {name = {x = name; _};_} -> "Function Imp "^ name
     | Language.MRty {name;_} -> "Rty " ^ name
-  in
+  in *)
   (* let term = if is_mtydecl then "True" else "False" *)
 
   (* converts the body into terms *)
-  let body = get_body first_item in
+  let (name, if_rec, body) = get_name_rec_body first_item in
 
   (* gets string of AST *)
   let body_str = Language.FrontendTyped.layout_typed_term body in
 
   
-  print_endline name;
+  print_endline name.x;
   print_endline body_str;
-  print_endline (peek body);
+  let () = print_endline (peek body) 
+in ()
 
-  (* replaces bool_gen with frequency_gen*)
-  let new_body = replace_bool_gen body in
-  (* prints new body *)
-  let () = print_endline (Language.FrontendTyped.layout_typed_term new_body)
 
-  in ()
+let final_program_to_string name if_rec new_body : string = 
+  let body_as_item = 
+    Item.MFuncImp
+      {
+        name = name;
+        if_rec = if_rec;
+        body = new_body;
+      }
+  in
+  let reconstructed_body = Item.map_item (fun x -> None) body_as_item in
+  Frontend_opt.To_item.layout_item reconstructed_body
+
 
 let alter_ast (config : string) (source : string ) = 
   
@@ -162,23 +167,35 @@ let alter_ast (config : string) (source : string ) =
   (* gets the first item, (gets the function and ignores the type annotation) *)
   let first_item = (Array.get (Array.of_list code) 0) in
 
-    (* converts the body into terms *)
-    let body = get_body first_item in
 
-    (* replaces bool_gen with frequency_gen*)
-    let new_body = replace_bool_gen body in
+  (* converts the body into terms *)
+  let (name, if_rec, body) = get_name_rec_body first_item in
+
+  (* replaces bool_gen with frequency_gen*)
+  let new_body = replace_bool_gen body in
+
+  let new_code = final_program_to_string name if_rec new_body in
+  
+  (* prints new body *)
+  (* let () = print_endline (Language.FrontendTyped.layout_typed_term new_body) in
+  let () = print_endline "" in *)
+
+  let () = print_endline new_code in
+
+  let filename = String.sub source 0 ( (String.length source) - 3) ^ "_edited.ml" in
+
+  let oc = open_out filename in
+  output_string oc new_code;
+  close_out oc
+
+
     
-    (* prints new body *)
-    let () = print_endline (Language.FrontendTyped.layout_typed_term new_body)
-  in ()
-
-    
-
-
 
 
 let () = 
-  alter_ast "meta-config.json" "bin/source_file_ex.ml";
+
+  (* print_code "meta-config.json" "bin/examples/sortedlist.ml"; *)
+  alter_ast "meta-config.json" "bin/examples/sortedlist.ml";
 
 
 
