@@ -12,6 +12,7 @@
     underapproximation_type.commands 
     underapproximation_type.language
     underapproximation_type.syntax
+    language_utils.metalang
     Cobb.postprocess
     Cobb.tracking
   ))
@@ -22,3 +23,11 @@
   (libraries 
     qcheck
   ))
+
+(env
+ (dev
+  (flags
+   (:standard -w -32-27)))
+ (release
+  (ocamlopt_flags
+   (:standard -O3))))
