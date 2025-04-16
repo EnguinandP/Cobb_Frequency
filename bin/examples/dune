@@ -1,0 +1,10 @@
+(library
+ (name examples)
+ (libraries 
+  Cobb_PBT.combinators
+  frequency_combinators)
+ (modules
+  sizedlist_syn
+  ; sizedlist
+  rbtree_syn
+  ))

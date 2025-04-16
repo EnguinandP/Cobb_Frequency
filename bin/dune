@@ -1,5 +1,3 @@
-;(vendored_dirs Cobb)
-; (dirs *)
 
 (executable
  (public_name Cobb_Frequency)
@@ -16,11 +14,15 @@
     language_utils.metalang
     Cobb.postprocess
     Cobb.tracking
+    Cobb_PBT.combinators
+    Cobb_PBT.precondition
+    Cobb_PBT.arbitary_builder
+    examples
   ))
 
 (library
-  (name frequency)
-  (modules frequency)
+  (name frequency_combinators)
+  (modules frequency_combinators)
   (libraries 
     qcheck
   ))

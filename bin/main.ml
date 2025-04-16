@@ -1,5 +1,6 @@
 open Mtyped
 open Term
+open Combinators
 module Env = Zzenv
 (* open Language.FrontendTyped *)
 
@@ -43,6 +44,41 @@ let rec replace_bool_gen (t : ('t, 't term) typed) : ('t, 't term) typed =
       op;
       appopargs = (List.map (function y -> y #-> replace_bool_gen_value ) appopargs)
     }
+  | CMatch
+  (* To rewrite matches on True/False to true/false*)
+  {
+    matched;
+    match_cases =
+      [
+        CMatchcase
+          { constructor = { x = "True"; ty = ty_t }; args = []; exp = exp1 };
+        CMatchcase
+          {
+            constructor = { x = "False"; ty = ty_f };
+            args = [];
+            exp = exp2;
+          };
+      ];
+  } -> 
+    CMatch
+        {
+          matched;
+          match_cases =
+            [
+              CMatchcase
+                {
+                  constructor = "true"#:ty_t;
+                  args = [];
+                  exp = replace_bool_gen exp1;
+                };
+              CMatchcase
+                {
+                  constructor = "false"#:ty_f;
+                  args = [];
+                  exp = replace_bool_gen exp2;
+                };
+            ];
+        }
   | CMatch { matched; match_cases } ->
     CMatch {
       matched = matched #-> replace_bool_gen_value;
@@ -177,42 +213,62 @@ let alter_ast (config : string) (source : string ) =
   let new_code = final_program_to_string name if_rec new_body in
   
   (* prints new body *)
-  (* let () = print_endline (Language.FrontendTyped.layout_typed_term new_body) in
-  let () = print_endline "" in *)
+  (* let () = print_endline (Language.FrontendTyped.layout_typed_term new_body) in *)
 
   let () = print_endline new_code in
 
-  let filename = String.sub source 0 ( (String.length source) - 3) ^ "_edited.ml" in
+  let filename = String.sub source 0 ( (String.length source) - 3) ^ "_syn.ml" in
 
   let oc = open_out filename in
+  output_string oc "open Combinators\n";
+  output_string oc "open Frequency_combinators\n";
   output_string oc new_code;
   close_out oc
 
+(* Cobb_PBT stuff - TODO: move to own file *)
 
-    
+let test_count = 20000
+let test_max_fail = 20000
 
+let precondition_frequency prop (gen_type, name) =
+  QCheck.(
+    Test.make ~count:test_count ~max_fail:test_max_fail ~name
+      (QCheck.make (fun _ -> gen_type ()))
+      (fun l ->
+        assume (prop l);
+        true))
 
-let () = 
+let sized_list_generators =
+  [
+    (Examples.Sizedlist_syn.sized_list_gen, "prog_syn");
+    (* (Examples.Sizedlist.sized_list_gen, "prog"); *)
+  ]
+
+let sized_list_arbitraries =
+  List.map
+    (fun (gen, name) ->
+      ( (fun () ->
+          let size = nat_gen () in
+          (size, gen size)),
+        name ))
+    sized_list_generators
+
+let eval_sized_list =
+  ( 
+    (* "sized_list", *)
+    List.map
+      (precondition_frequency Precondition.is_sized)
+      sized_list_arbitraries )
+
+let run_qcheck foldername = 
+  let filename = foldername ^ "results" ^ ".result" in
+  print_endline ("> Running test for " ^ "t_get_name" ^ "...");
+  let oc = open_out filename in
+  ignore (QCheck_runner.run_tests ~verbose:true ~out:oc eval_sized_list);
+  close_out oc
+
+let () = run_qcheck "bin/";
 
   (* print_code "meta-config.json" "bin/examples/sortedlist.ml"; *)
-  alter_ast "meta-config.json" "bin/examples/sortedlist.ml";
+  (* alter_ast "meta-config.json" "bin/examples/rbtree.ml"; *)
 
-
-
-  (* print_int (List.length code); *)
-  (* assert (List.length first == 1); *)
-  (* let item = (Array.get (Array.of_list code) 0) in *)
-  (* let _, code_rty = Language.get_rty_by_name first "test" in *)
-  (* Language.get_rty_by_name code "test" *)
-  (* print_endline (Language.FrontendTyped.layout_rty code_rty); *)
-
-  (* List.iter Language.FrontendTyped.layout_typed_term code *)
-  (* Language.FrontendTyped.layout_rty (Array.get (Array.of_list code) 0) *)
-
-  
-
-(* let string = Cobb.Postprocess.final_program_to_string  *)
-
-
-(* ../Cobb/underapproximation_type/meta-config.json  *)
-(* ../Cobb/underapproximation_type/data/benchmark/quickchick/sizedlist/_under.ml *)
