@@ -1,0 +1,45 @@
+
+(executable
+ (public_name Cobb_Frequency)
+ (name main)
+ (modules main)
+ (libraries 
+    qcheck
+    Cobb_Frequency 
+    underapproximation_type.preprocessing 
+    underapproximation_type.commands 
+    underapproximation_type.language
+    Cobb.postprocess
+    Cobb.tracking
+    Cobb_PBT.combinators
+    Cobb_PBT.precondition
+    Cobb_PBT.arbitrary_builder
+    data
+  ))
+
+(library
+  (name frequency_combinators)
+  (modules frequency_combinators)
+  (libraries 
+    qcheck
+  ))
+
+(executable
+  (public_name transformation)
+  (name transformation)
+  (modules transformation)
+  (libraries 
+    language_utils.metalang
+    underapproximation_type.commands 
+    underapproximation_type.syntax
+    underapproximation_type.frontend_opt
+    Cobb_PBT.combinators
+  ))
+
+(env
+ (dev
+  (flags
+   (:standard -w -32-27)))
+ (release
+  (ocamlopt_flags
+   (:standard -O3))))
