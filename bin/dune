@@ -9,14 +9,11 @@
     underapproximation_type.preprocessing 
     underapproximation_type.commands 
     underapproximation_type.language
-    underapproximation_type.syntax
-    underapproximation_type.frontend_opt
-    language_utils.metalang
     Cobb.postprocess
     Cobb.tracking
     Cobb_PBT.combinators
     Cobb_PBT.precondition
-    Cobb_PBT.arbitary_builder
+    Cobb_PBT.arbitrary_builder
     examples
   ))
 
@@ -25,6 +22,18 @@
   (modules frequency_combinators)
   (libraries 
     qcheck
+  ))
+
+(executable
+  (public_name transformation)
+  (name transformation)
+  (modules transformation)
+  (libraries 
+    language_utils.metalang
+    underapproximation_type.commands 
+    underapproximation_type.syntax
+    underapproximation_type.frontend_opt
+    Cobb_PBT.combinators
   ))
 
 (env

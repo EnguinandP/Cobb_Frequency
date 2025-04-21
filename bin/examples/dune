@@ -4,7 +4,7 @@
   Cobb_PBT.combinators
   frequency_combinators)
  (modules
-  sizedlist_syn
+  sized_list_trans
   ; sizedlist
-  rbtree_syn
+  rbtree_trans
   ))
