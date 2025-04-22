@@ -14,7 +14,7 @@
     Cobb_PBT.combinators
     Cobb_PBT.precondition
     Cobb_PBT.arbitrary_builder
-    data
+    generators
   ))
 
 (library

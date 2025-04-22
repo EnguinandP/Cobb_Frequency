@@ -16,7 +16,7 @@ let precondition_frequency prop (gen_type, name) =
 
 let sized_list_generators =
   [
-    (Data.Sizedlist_trans.sized_list_gen, "prog_trans");
+    (Generators.Sizedlist_trans.sized_list_gen, "prog_trans");
     (* (Examples.Sizedlist.sized_list_gen, "prog"); *)
   ]
 

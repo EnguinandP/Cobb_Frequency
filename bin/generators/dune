@@ -1,10 +1,13 @@
 (library
- (name data)
+ (name generators)
  (libraries 
   Cobb_PBT.combinators
   frequency_combinators)
  (modules
   sizedlist_trans
+  sizedlist_thunkified
   ; sizedlist
   rbtree_trans
+  test
+  test_trans
   ))
