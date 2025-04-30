@@ -7,10 +7,10 @@ let rec sized_list_gen = fun s ->
   | false ->
       let (w0) = get_weight_idx 0 in
       let (w1) = get_weight_idx 1 in
-      let (base_case) = frequency_gen_list (w1, (fun _ -> [])) in
+      let (base_case) = frequency_gen_list (w0, (fun _ -> [])) in
       let (recursive_case) =
         base_case
-          (w0,
+          (w1,
             (fun _ ->
                let (x_2) = subs s in
                let (x_3) = sized_list_gen x_2 in
