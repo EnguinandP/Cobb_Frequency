@@ -1,14 +1,17 @@
 open Combinators
 open Frequency_combinators
-let rec sized_list_gen_thunkified = fun s ->
+(* let rec sized_list_gen = fun s ->
   let (x_0) = sizecheck s in
   match x_0 with
   | true -> []
   | false ->
-      frequency_gen_list
-        (fun _ -> []) 
-        (fun _ ->
-              let (x_2) = subs s in
-              let (x_3) = sized_list_gen_thunkified x_2 in
-              let (x_4) = int_gen () in 
-              x_4 :: x_3)
+      let w0 = get_weight_idx 0 in
+      let w1 = get_weight_idx 1 in
+      let (base_case) = frequency_gen_list_new (w0, []) in
+      let (recursive_case) =
+        base_case
+          (w1, 
+             let (x_2) = subs s in
+             let (x_3) = sized_list_gen x_2 in
+             let (x_4) = int_gen () in x_4 :: x_3) in
+      recursive_case *)

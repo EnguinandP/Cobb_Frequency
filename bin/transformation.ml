@@ -38,27 +38,46 @@ let rec replace_bool_gen (t : ('t, 't term) typed) : ('t, 't term) typed =
             exp = exp2;
           };
       ]; }; ty = ty4} } ->
-        CLetE {
-          lhs = ("base_case" #: ty);
-          rhs = { x = CApp { 
-            appf = { x = VVar (replace_bool_gen_string "bool_gen"#:ty); ty = ty2}; 
-            apparg = { x = VLam ({
-              lamarg = ("_" #: ty); 
-              body = { x = CVal { x = VVar ("[]" #: ty); ty = Nt.Ty_any} ; ty = Nt.Ty_any}
-              }); ty = Nt.Ty_any (* placeholder *) }
-            }; ty = ty3 }; 
-          body = { x = CLetE {
-            lhs = ("recursive_case" #: ty);
+        CLetE {     (* w0 = get_weight_idx *)
+          lhs = ("w0" #: ty);
+          rhs = { x = CApp {
+            appf = { x = VVar ("get_weight_idx" #: ty); ty = Nt.Ty_any};
+            apparg = {x = VConst (I 0); ty = Nt.Ty_any};
+          }; ty = Nt.Ty_any}; 
+          body = { x = CLetE {    (* w1 = get_weight_idx *)
+            lhs = ("w1" #: ty);
             rhs = { x = CApp {
-              appf = { x = VVar ("base_case" #: ty); ty = Nt.Ty_any};
-              apparg = { x = VLam {
-                lamarg = ("_" #: ty); 
-                body = exp2;
-              }; ty = Nt.Ty_any};
-            }; ty = Nt.Ty_any};
-            body = { x = CVal { x = VVar ("recursive_case" #: ty); ty = Nt.Ty_any} ; ty = Nt.Ty_any}
-          }; ty = Nt.Ty_any (* placeholder *) };
-        }
+              appf = { x = VVar ("get_weight_idx" #: ty); ty = Nt.Ty_any};
+              apparg = {x = VConst (I 1); ty = Nt.Ty_any};
+            }; ty = Nt.Ty_any}; 
+            body = { x = CLetE {    (* let (base_case) = frequency_gen_list_new (w0, []) *)
+              lhs = ("base_case" #: ty);
+              rhs = { x = CApp { 
+                appf = { x = VVar (replace_bool_gen_string "bool_gen"#:ty); ty = ty2}; 
+                apparg = { x = VTu [
+                  { x = VVar ("w0" #: Nt.Ty_any); ty = Nt.Ty_any};
+                  { x = VLam {
+                      lamarg = ("_" #: ty); 
+                      body = exp1;
+                  }; ty = Nt.Ty_any}; ]    
+                  ; ty = Nt.Ty_any (* placeholder *) }
+                }; ty = ty3 }; 
+              body = { x = CLetE {    (* let (recursive_case) = base_case (w0, ...) *)
+                lhs = ("recursive_case" #: ty);
+                rhs = { x = CApp {
+                  appf = { x = VVar ("base_case" #: ty); ty = Nt.Ty_any};
+                  apparg = { x = VTu [
+                    { x = VVar ("w1" #: Nt.Ty_any); ty = Nt.Ty_any};
+                    { x = VLam {
+                        lamarg = ("_" #: ty); 
+                        body = exp2;
+                    }; ty = Nt.Ty_any}; ]    
+                    ; ty = Nt.Ty_any (* placeholder *) }
+                }; ty = Nt.Ty_any};
+                body = { x = CVal { x = VVar ("recursive_case" #: ty); ty = Nt.Ty_any} ; ty = Nt.Ty_any}
+              }; ty = Nt.Ty_any (* placeholder *) };
+            }; ty = Nt.Ty_any}
+          }; ty = Nt.Ty_any}}
   | CLetE { lhs; rhs; body} -> 
     CLetE {
       lhs;
@@ -66,13 +85,14 @@ let rec replace_bool_gen (t : ('t, 't term) typed) : ('t, 't term) typed =
       body = replace_bool_gen body
     }
   | CLetDeTu { turhs; tulhs; body} ->
+    (* CVal { x = VVar ("[]" #: Nt.Ty_any); ty = Nt.Ty_any} *)
     CLetDeTu {
       turhs = turhs #-> replace_bool_gen_value;
       tulhs; 
       body = replace_bool_gen body;
     }
   | CApp { appf; apparg} ->
-    print_endline "is here";
+    (* print_endline "is here"; *)
     CApp {
       appf = appf #-> replace_bool_gen_value;
       apparg = apparg #-> replace_bool_gen_value;
@@ -140,6 +160,7 @@ and replace_bool_gen_value (v : 't value) =
   | VConst _ -> v
   (* bool_gen is a VVar *)
   | VVar s -> 
+    (* VConst (I 100) *)
     if s.x = "bool_gen" then
       VVar (replace_bool_gen_string s)
     else
@@ -156,6 +177,7 @@ and replace_bool_gen_value (v : 't value) =
       body = replace_bool_gen body;
     }
   | VTu l -> 
+    (* tuples *)
     VTu (List.map (function y -> y #-> replace_bool_gen_value ) l)
 
 (* #-> applies function to arg, returning it as `typed` *)

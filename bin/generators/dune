@@ -7,7 +7,7 @@
   sizedlist_trans
   sizedlist_thunkified
   ; sizedlist
-  rbtree_trans
-  test
+  ; rbtree_trans
+  ; test
   test_trans
   ))

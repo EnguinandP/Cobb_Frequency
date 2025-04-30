@@ -17,7 +17,7 @@
     "prim_path": {
         "data_type_decls": "Cobb/underapproximation_type/data/predefined/data_type_decls.ml",
         "templates": "Cobb/underapproximation_type/data/predefined/templates.ml",
-        "normal_typing": "Cobb/underapproximation_type/data/predefined/normal_typing.ml",
+        "normal_typing": "bin/config/normal_typing.ml",
         "axioms": "Cobb/underapproximation_type/data/predefined/axioms.ml",
         "coverage_typing": "Cobb/underapproximation_type/data/predefined/coverage_typing.ml"
     }
