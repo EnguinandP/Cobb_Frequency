@@ -11,10 +11,19 @@
     underapproximation_type.language
     Cobb.postprocess
     Cobb.tracking
+    generators
+    qcheck_run
+  ))
+
+(library
+  (name qcheck_run)
+  (modules qcheck_run)
+  (libraries 
     Cobb_PBT.combinators
     Cobb_PBT.precondition
     Cobb_PBT.arbitrary_builder
     generators
+    qcheck
   ))
 
 (library

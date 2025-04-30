@@ -85,14 +85,12 @@ let rec replace_bool_gen (t : ('t, 't term) typed) : ('t, 't term) typed =
       body = replace_bool_gen body
     }
   | CLetDeTu { turhs; tulhs; body} ->
-    (* CVal { x = VVar ("[]" #: Nt.Ty_any); ty = Nt.Ty_any} *)
     CLetDeTu {
       turhs = turhs #-> replace_bool_gen_value;
       tulhs; 
       body = replace_bool_gen body;
     }
   | CApp { appf; apparg} ->
-    (* print_endline "is here"; *)
     CApp {
       appf = appf #-> replace_bool_gen_value;
       apparg = apparg #-> replace_bool_gen_value;
@@ -160,7 +158,6 @@ and replace_bool_gen_value (v : 't value) =
   | VConst _ -> v
   (* bool_gen is a VVar *)
   | VVar s -> 
-    (* VConst (I 100) *)
     if s.x = "bool_gen" then
       VVar (replace_bool_gen_string s)
     else

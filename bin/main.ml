@@ -1,51 +1,78 @@
-open Combinators
 module Env = Zzenv
 
-(* Cobb_PBT stuff - TODO: move to own file *)
+(* empty list <10% , no empty list 90% *)
+(* calculates distribution *)
+let get_distribution l = 
+  let is_empty = List.filter (fun x -> x = []) l in
+  let distr = float_of_int (List.length is_empty) /. float_of_int (List.length l) in
+  distr
 
+(* checks distribution *)
+(* if distr is less than goal *)
+let score_function_1 goal distr = 
+  distr >= 0.1
 
-let test_count = 20000
-let test_max_fail = 20000
+(* difference of distr from goal *)
+let score_function_2 goal distr = 
+  goal -. distr
 
-let precondition_frequency prop (gen_type, name) =
-  QCheck.(
-    Test.make ~count:test_count ~max_fail:test_max_fail ~name
-      (QCheck.make (fun _ -> gen_type ()))
-      (fun l ->
-        assume (prop l);
-        true))
+let time_out_ref = ref false
 
-let sized_list_generators =
-  [
-    (Generators.Sizedlist_trans.sized_list_gen, "prog_trans");
-    (* (Examples.Sizedlist.sized_list_gen, "prog"); *)
-  ]
+exception Timed_out
 
-let sized_list_arbitraries =
-  List.map
-    (fun (gen, name) ->
-      ( (fun () ->
-          let size = nat_gen () in
-          (size, gen size)),
-        name ))
-    sized_list_generators
+let () =
+  Core.Signal.Expert.handle Core.Signal.alrm (fun (_ : Core.Signal.t) ->
+      Printf.printf "Timed out";
+      time_out_ref := true)
 
-let eval_sized_list =
-  ( 
-    (* "sized_list", *)
-    List.map
-      (precondition_frequency Precondition.is_sized)
-      sized_list_arbitraries )
+let run_X_times (output: string) (goal : float) (f : unit -> 'a) (check_opt : ('a -> bool) option)
+    (num : int) : float =
+  let count = ref 0.0 in
+  let start_time = Unix.gettimeofday () in
 
-let run_qcheck foldername = 
-  let filename = foldername ^ "results" ^ ".result" in
-  print_endline ("> Running test for " ^ "t_get_name" ^ "...");
-  let oc = open_out filename in
-  ignore (QCheck_runner.run_tests ~verbose:true ~out:oc eval_sized_list);
-  close_out oc
+  let oc = open_out output in
 
-let () = run_qcheck "bin/";
+  let rec loop n =
+    if !time_out_ref then raise Timed_out;
+    if n = num then ()
+    else
+      let result = f () in
+      List.iter (Printf.fprintf oc "%d, ") result;
+      Printf.fprintf oc "\n";
 
-  (* print_code "meta-config.json" "bin/examples/sortedlist.ml"; *)
-  (* alter_ast "meta-config.json" "bin/examples/rbtree.ml"; *)
+      match check_opt with
+      | Some check ->
+          if [] == result then (
+            count := !count +. 1.0;
+            loop (n + 1))
+          else loop (n + 1)
+      | None ->
+          loop (n + 1)
+  in
+  let () = loop 0 in
+  let end_time : float = Unix.gettimeofday () in
+  let distr = !count /. float_of_int num in
+  let score_1 = score_function_1 goal distr in
+  let score_2 = score_function_2 goal distr in
+
+  let result_oc = open_out "bin/results.result" in
+  Printf.fprintf result_oc "Collected %d outputs with goal distribution %f\n\n" num goal;
+  Printf.fprintf result_oc "distribution: %f \nscore 1: %b \nscore 2: %f\n" distr score_1 score_2;
+  print_newline ();
+  end_time -. start_time
+
+let () = QCheck_runner.set_seed 42
+
+let () = 
+  let filename = "bin/gen_values.result" in
+  let goal = 0.1 in
+  let prog_time = 
+    run_X_times 
+      filename
+      goal
+      (fun () -> Generators.Sizedlist_trans.sized_list_gen 10)
+      (Some (fun l-> l = []))
+      20000 
+  in
+  Printf.printf "prog_time: %f\n" prog_time;
 
