@@ -10,12 +10,12 @@ let calc_score results goal feature_vector =
   (dist, dist -. goal)
 
 (* steps distribution .1 *)
-let step score best_score =
-  if score < best_score || Random.float 1.0 < cur_temp then
-    !weights.(0) <- !weights.(0) + 1
-  else 
-    Printf.printf "%f %f\n" score best_score;
-    !weights.(0) <- !weights.(0) - 1
+let step cand_weight direction =
+  if direction then
+    !weights.(0) <- cand_weight.(0) - 5
+  else
+    !weights.(0) <- cand_weight.(0) + 5;
+  !weights
     
 
 let time_out_ref = ref false
@@ -36,8 +36,10 @@ let run_X_times (output: string) (goal : float) (f : unit -> 'a) (feature_vector
   let result_oc = open_out "bin/results.result" in
   Printf.fprintf result_oc "weights, score, distribution, time\n";
 
-  let rec loop n best_score =
-    if n = num  || best_score <= goal then
+  (* curr_weight - best
+    cand_weight - in trial *)
+  let rec loop n curr_weight best_score =
+    if n = num  || best_score <= 0. then
       best_score
     else
       (* collecting results *)
@@ -63,16 +65,28 @@ let run_X_times (output: string) (goal : float) (f : unit -> 'a) (feature_vector
       (* calculates score *)
       let distr, score = calc_score results goal feature_vector in
 
-      let weights = !weights in
-      Printf.fprintf result_oc "(%d, %d), %f, %f, %f\n" weights.(0) weights.(1) score distr (end_time -. start_time);
+      Printf.fprintf result_oc "(%d, %d), (%d, %d), %f, %f, %f\n" curr_weight.(0) curr_weight.(1) !weights.(0) !weights.(1) score distr (end_time -. start_time);
+      Printf.printf "(%d, %d), (%d, %d), %f, %f, %f\n" curr_weight.(0) curr_weight.(1) !weights.(0) !weights.(1) score distr (end_time -. start_time);
 
+      (* create new weight *)
       (* udpate weights *)
-      let _ = step score best_score in
 
-      loop (n + 1) score
+      if score < best_score then
+        (* weights work better *)
+        (* keep weight just tested *)
+        let w0 = !weights.(0) in
+        let w1 = !weights.(1) in
+        let _ = step !weights true in
+        Printf.printf "%d - curr: %d:%d  next: %d:%d\n\n" n w0 w1 !weights.(0) !weights.(1);
+        loop (n + 1) [|w0; w1|] score
+      else
+        (* generate new weights and *)
+        let _ = step curr_weight false in
+        Printf.printf "%d - curr: %d:%d  next: %d:%d\n\n" n curr_weight.(0) curr_weight.(1) !weights.(0) !weights.(1);
+        loop (n + 1) curr_weight best_score
   in
 
-  let best_score = loop 0 1. in
+  let best_score = loop 0 !weights 1. in
   close_out result_oc;
 
   best_score
@@ -90,7 +104,7 @@ let () =
       goal
       (fun () -> Generators.Sizedlist_trans.sized_list_gen 10)
       (fun l-> l = [])
-      2000
+      20
   in 
   Printf.printf "solution: %d %d\n" !weights.(0) !weights.(1);
 
