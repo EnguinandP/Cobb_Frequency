@@ -2,6 +2,14 @@ module Env = Zzenv
 open Frequency_combinators
 
 let cur_temp = 0.01 
+let sample_size = 1000
+(* hyperparameter *)
+(* add best candidate + best score *)
+(* pool of cand , test each one and take next step*)
+(* list of best and final evaluation *)
+(* reorder loop to propose eval decide *)
+(* take test gen out and use functions with weird local min and max *)
+(* branching process for quickcheck genrators Augustin Mista *)
 
 (* difference of distr from goal *)
 let calc_score results goal feature_vector = 
@@ -37,7 +45,6 @@ let is_uniform l =
   let avg = sum /. float_of_int (List.length l) in
   let diff = List.fold_left (fun acc x -> acc +. abs_float (x -. avg)) 0. l in
   diff < cur_temp
-
 
 
 (* weights for the generator *)
@@ -89,14 +96,18 @@ let run_X_times (output: string) (goal : float) (f : unit -> 'a) (feature_vector
   let result_oc = open_out "bin/results.result" in
   Printf.fprintf result_oc "weights, score, distribution, time\n";
 
-  (* curr_weight - best
-    cand_weight - in trial *)
-  let rec loop n temp curr_weight best_score =
+  let rec loop n temp curr_weight curr_score best_weight best_score =
+      if n = num  || best_score <= 0. then
+        (best_weight, best_score)
+      else 
+      let _ = step50 curr_weight false in
+      Printf.printf "%d - curr: %d:%d  next: %d:%d\n\n" n curr_weight.(0) curr_weight.(1) !weights.(0) !weights.(1);
+      let temp = temp *. 2. in
     
       (* collecting results *)
       let rec collect n results =
         if !time_out_ref then raise Timed_out;
-        if n = 1000 then results
+        if n = sample_size then results
         else
           let gen_value = f () in
           (* let oc = open_out output in
@@ -119,26 +130,22 @@ let run_X_times (output: string) (goal : float) (f : unit -> 'a) (feature_vector
       Printf.fprintf result_oc "(%d, %d), (%d, %d), %f, %f, %f\n" curr_weight.(0) curr_weight.(1) !weights.(0) !weights.(1) score distr (end_time -. start_time);
       Printf.printf "(%d, %d), (%d, %d), %f, %f, %f\n" curr_weight.(0) curr_weight.(1) !weights.(0) !weights.(1) score distr (end_time -. start_time);
 
-      let r = Random.float 1.0 in
       (* create new weight *)
       (* udpate weights *)
-      if n = num  || score <= 0. then
-        score
-      else if score < best_score || r < temp then
+      if score < curr_score || Random.float 1.0 < temp then
         (* keep weight just tested *)
         let w0 = !weights.(0) in
         let w1 = !weights.(1) in
-        let _ = step50 !weights false in
-        Printf.printf "%d - curr: %d:%d  next: %d:%d\n\n" n w0 w1 !weights.(0) !weights.(1);
-        let temp = temp *. 2. in
-        loop (n + 1) temp [|w0; w1|] score
+        (* updates best *)
+        if (score < best_score) then
+          loop (n + 1) temp [|w0; w1|] score [|w0; w1|] score
+        else
+          loop (n + 1) temp [|w0; w1|] score best_weight best_score
       else
-        let _ = stepAll50 curr_weight true in
-        Printf.printf "%d - curr: %d:%d  next: %d:%d\n\n" n curr_weight.(0) curr_weight.(1) !weights.(0) !weights.(1);
-        loop (n + 1) temp curr_weight best_score
+        loop (n + 1) temp curr_weight curr_score best_weight best_score 
   in
 
-  let best_score = loop 0 temp !weights 1. in
+  let best_score = loop 0 temp !weights 1. !weights 1. in
   close_out result_oc;
 
   best_score
