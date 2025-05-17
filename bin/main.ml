@@ -2,8 +2,11 @@ module Env = Zzenv
 open Frequency_combinators
 open Stdlib
 
-let cur_temp = 0.01 
+let init_temp = 300. 
 let sample_size = 1000
+let step_size = 1
+let step_range = (1, 20)
+
 (* hyperparameter *)
 (* add best candidate + best score *)
 (* pool of cand , test each one and take next step*)
@@ -50,7 +53,7 @@ let is_uniform l =
   let sum = aux 0. l in
   let avg = sum /. float_of_int (List.length l) in
   let diff = List.fold_left (fun acc x -> acc +. abs_float (x -. avg)) 0. l in
-  diff < cur_temp
+  diff
 
 
 (* weights for the generator *)
@@ -83,12 +86,22 @@ let stepAll50 cand_weight direction =
   !weights
 
 let step_f1 cand_weight direction =
-  if direction then
-    weights_f1 := cand_weight + 5
+  if direction && Random.bool () then
+    weights_f1 := cand_weight + step_size
   else
-    weights_f1 := cand_weight - 5;
+    weights_f1 := cand_weight - step_size;
   weights_f1
-    
+
+let step_range cand_weight direction =
+  let step = Random.int (snd step_range) + fst step_range in
+  if direction && Random.bool () then
+    weights_f1 := cand_weight + step
+  else
+    weights_f1 := cand_weight - step;
+  weights_f1
+
+(* updates the temperature *)
+let update_temp n = init_temp /. (float_of_int n +. 1.)
 
 let time_out_ref = ref false
 
@@ -102,68 +115,83 @@ let () =
 let run_X_times (output: string) (goal : float) (gen) (feature_vector : ('a -> bool))
     (num : int) =
 
-  let temp = 0.01 in
+  let temp = init_temp in
   let start_time = Unix.gettimeofday () in
 
   let result_oc = open_out "bin/results.result" in
-  Printf.fprintf result_oc "weights, score, distribution, time\n";
+  Printf.fprintf result_oc "iteration,curr weight,cand weights,score,distribution,time,temp\n";
 
   let rec loop n temp direction curr_weight curr_score best_weight best_score =
-      if n = num  || best_score <= 0. then
+      if n = num then
         (best_weight, best_score)
       else 
-      let _ = step_f1 curr_weight direction in
-      Printf.printf "%d - curr: %d   next:%d\n\n" n curr_weight !weights_f1;
-      (* Printf.printf "%d - curr: %d:%d  next: %d:%d\n\n" n curr_weight.(0) curr_weight.(1) !weights.(0) !weights.(1); *)
-      let temp = temp *. 2. in
+      let _ = step_range curr_weight direction in
+      (* Printf.printf "%d - curr: %d   next:%d\n\n" n curr_weight !weights_f1; *)
+      let temp = update_temp n in
     
       (* collecting results *)
       let results = gen () in
       let end_time : float = Unix.gettimeofday () in
 
       (* calculates score *)
-      let distr, score = calc_score results goal feature_vector in
+      let cand_score, dist = calc_score results goal feature_vector in
 
-      Printf.fprintf result_oc "%d, %d, %f, %f, %f\n" curr_weight !weights_f1 score distr (end_time -. start_time);
-      Printf.printf "%d, %d, %f, %f, %f\n" curr_weight !weights_f1 score distr (end_time -. start_time);
-      (* Printf.fprintf result_oc "(%d, %d), (%d, %d), %f, %f, %f\n" curr_weight.(0) curr_weight.(1) !weights.(0) !weights.(1) score distr (end_time -. start_time);
-      Printf.printf "(%d, %d), (%d, %d), %f, %f, %f\n" curr_weight.(0) curr_weight.(1) !weights.(0) !weights.(1) score distr (end_time -. start_time); *)
+      Printf.fprintf result_oc "%d,%d,%d,%f,%f,%f,%f\n" n curr_weight !weights_f1 cand_score dist (end_time -. start_time) (cand_score -. curr_score);
+      (* Printf.printf "%d, %d, %f, %f, %f\n" curr_weight !weights_f1 score dist (end_time -. start_time); *)
 
-      (* create new weight *)
-      (* udpate weights *)
-      if score < curr_score || Random.float 1.0 < temp then
+      (* when score is worse, e^+ -> true *)
+      if Random.float 1.0 < Float.exp (-. (cand_score -. curr_score) /. temp) then
         (* keep weight just tested *)
-        (* updates best *)
-        let _ = print_endline "ACCEPT cand" in
-        if (score < best_score) then
-          loop (n + 1) temp direction !weights_f1 score !weights_f1 score
+        (* let _ = print_endline "ACCEPT cand" in *)
+        (* let _ = Printf.fprintf result_oc "ACCEPT " in *)
+        if (cand_score < best_score) then
+          loop (n + 1) temp direction !weights_f1 cand_score !weights_f1 cand_score
         else
-          loop (n + 1) temp direction !weights_f1 score best_weight best_score
+          loop (n + 1) temp direction !weights_f1 cand_score best_weight best_score
       else
-        let _ = print_endline "REJECT cand" in
+        (* let _ = print_endline "REJECT cand" in *)
+        (* let _ = Printf.fprintf result_oc "REJECT " in *)
         loop (n + 1) temp (not direction) curr_weight curr_score best_weight best_score 
   in
 
-  let best = loop 0 temp true !weights_f1 1. !weights_f1 10000. in
+  let (best_weight, best_score) = loop 0 temp true !weights_f1 1. !weights_f1 (1000.) in
+
+  Printf.fprintf result_oc "solution,0,%d,%f,0,0\n" best_weight best_score;
   close_out result_oc;
 
-  best
+  (best_weight, best_score)
 
 
 let () = QCheck_runner.set_seed 42
 
-let f1 x = ( float_of_int(!weights_f1) /. 10.) *. (cos (float_of_int(!weights_f1) /. 25.))
+let f1 () = 
+  let x = float_of_int(!weights_f1) in
+    ( x /. 10.) *. (cos (x /. 25.))
 
+let f2 () : float = 
+  let x = float_of_int(!weights_f1) in
+  (4. /. 30.) *. ( (x +. 50.)) *. sin ((x +. 50.) /. 20.) +. ((x -. 500.) /. 30.) *. ((x -. 500.) /. 30.)
+
+let f3 () = 
+  let x = float_of_int(!weights_f1) in
+  if x = 0. then
+    1. 
+  else
+    cos (50. *. Float.pi *. x /. 1000.) /. (x /. 1000.)
+
+let f4 () = 
+  let x = float_of_int(!weights_f1) in
+  -500. *. (sin x *. 30.) /. (x *. 40.)
+ 
 let () = 
   let filename = "bin/gen_values.result" in
   let (w, s) = 
     run_X_times 
       filename
-      31.
-      (f1)
+      0.
+      (f3)
       (fun l-> l = [])
       1000
   in 
   Printf.printf "solution: %d %f\n" w s;
-  (* Printf.printf "solution: %d %d\n" !weights.(0) !weights.(1); *)
 

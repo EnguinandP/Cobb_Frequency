@@ -1,5 +1,5 @@
 (* should figure out the best location for this *)
-let weights_f1 = ref 1000
+let weights_f1 = ref (100)
 let weights = ref [|1000; 1000|]
 
 (* binary search tree example from patrick *)
