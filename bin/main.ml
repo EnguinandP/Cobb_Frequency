@@ -90,15 +90,32 @@ let step_f1 cand_weight direction =
     weights_f1 := cand_weight + step_size
   else
     weights_f1 := cand_weight - step_size;
-  weights_f1
+  !weights_f1
 
-let step_range cand_weight direction =
+let step cand_weight direction =
   let step = Random.int (snd step_range) + fst step_range in
-  if direction && Random.bool () then
+  if Random.bool () then
     weights_f1 := cand_weight + step
   else
     weights_f1 := cand_weight - step;
-  weights_f1
+  !weights_f1
+
+let step_2_param cand_weight =
+  let step = Random.int (snd step_range) + fst step_range in
+
+  (* changing x *)
+  if Random.bool () then
+    !weights.(0) <- cand_weight.(0) + step
+  else
+    !weights.(0) <- cand_weight.(0) - step;
+  (* changing y *)
+  if Random.bool () then
+    !weights.(1) <- cand_weight.(1) + step
+  else
+    !weights.(1) <- cand_weight.(1) - step;
+  !weights
+
+
 
 (* updates the temperature *)
 let update_temp n = init_temp /. (float_of_int n +. 1.)
@@ -119,13 +136,13 @@ let run_X_times (output: string) (goal : float) (gen) (feature_vector : ('a -> b
   let start_time = Unix.gettimeofday () in
 
   let result_oc = open_out "bin/results.result" in
-  Printf.fprintf result_oc "iteration,curr weight,cand weights,score,distribution,time,temp\n";
+  Printf.fprintf result_oc "iteration,curr weight x,curr weight y,cand weights x,cand weights y,score,distribution,time,temp\n";
 
   let rec loop n temp direction curr_weight curr_score best_weight best_score =
       if n = num then
         (best_weight, best_score)
       else 
-      let _ = step_range curr_weight direction in
+      let _ = step_2_param curr_weight in
       (* Printf.printf "%d - curr: %d   next:%d\n\n" n curr_weight !weights_f1; *)
       let temp = update_temp n in
     
@@ -136,7 +153,8 @@ let run_X_times (output: string) (goal : float) (gen) (feature_vector : ('a -> b
       (* calculates score *)
       let cand_score, dist = calc_score results goal feature_vector in
 
-      Printf.fprintf result_oc "%d,%d,%d,%f,%f,%f,%f\n" n curr_weight !weights_f1 cand_score dist (end_time -. start_time) (cand_score -. curr_score);
+      Printf.fprintf result_oc "%d,%d,%d,%d,%d,%f,%f,%f,%f\n" n curr_weight.(0) curr_weight.(1) !weights.(0) !weights.(1) cand_score dist (end_time -. start_time) (cand_score -. curr_score);
+      (* Printf.fprintf result_oc "%d,%d,%d,%f,%f,%f,%f\n" n curr_weight !weights_f1 cand_score dist (end_time -. start_time) (cand_score -. curr_score); *)
       (* Printf.printf "%d, %d, %f, %f, %f\n" curr_weight !weights_f1 score dist (end_time -. start_time); *)
 
       (* when score is worse, e^+ -> true *)
@@ -145,18 +163,19 @@ let run_X_times (output: string) (goal : float) (gen) (feature_vector : ('a -> b
         (* let _ = print_endline "ACCEPT cand" in *)
         (* let _ = Printf.fprintf result_oc "ACCEPT " in *)
         if (cand_score < best_score) then
-          loop (n + 1) temp direction !weights_f1 cand_score !weights_f1 cand_score
+          loop (n + 1) temp direction !weights cand_score !weights cand_score
         else
-          loop (n + 1) temp direction !weights_f1 cand_score best_weight best_score
+          loop (n + 1) temp direction !weights cand_score best_weight best_score
       else
         (* let _ = print_endline "REJECT cand" in *)
         (* let _ = Printf.fprintf result_oc "REJECT " in *)
         loop (n + 1) temp (not direction) curr_weight curr_score best_weight best_score 
   in
 
-  let (best_weight, best_score) = loop 0 temp true !weights_f1 1. !weights_f1 (1000.) in
+  let (best_weight, best_score) = loop 0 temp true !weights 1. !weights (1000.) in
 
-  Printf.fprintf result_oc "solution,0,%d,%f,0,0\n" best_weight best_score;
+  Printf.fprintf result_oc "solution,0,%d,%d,0,0,%f,0,0\n" best_weight.(0) best_weight.(1) best_score;
+  (* Printf.fprintf result_oc "solution,0,%d,%f,0,0\n" best_weight best_score; *)
   close_out result_oc;
 
   (best_weight, best_score)
@@ -164,6 +183,7 @@ let run_X_times (output: string) (goal : float) (gen) (feature_vector : ('a -> b
 
 let () = QCheck_runner.set_seed 42
 
+(* 1 paramater functions *)
 let f1 () = 
   let x = float_of_int(!weights_f1) in
     ( x /. 10.) *. (cos (x /. 25.))
@@ -182,6 +202,17 @@ let f3 () =
 let f4 () = 
   let x = float_of_int(!weights_f1) in
   -500. *. (sin x *. 30.) /. (x *. 40.)
+
+(* 2 parameter functions *)
+
+let f5 () = 
+  let x = float_of_int(!weights.(0)) in
+  let y = float_of_int(!weights.(1)) in
+  100. *. (x /. 300.) *. (x /. 300.) +. (y /. 300.) *. (y /. 300.)
+let f6 () = 
+  let x = float_of_int(!weights.(0)) in
+  let y = float_of_int(!weights.(1)) in
+  -500. *. (sin x *. 30.) /. (x *. 40.) +. 50. *. sin (y /. 30.)
  
 let () = 
   let filename = "bin/gen_values.result" in
@@ -189,9 +220,9 @@ let () =
     run_X_times 
       filename
       0.
-      (f3)
+      (f5)
       (fun l-> l = [])
-      1000
+      2000
   in 
-  Printf.printf "solution: %d %f\n" w s;
+  Printf.printf "solution: (%d, %d) %f\n" w.(0) w.(1) s;
 
