@@ -1,6 +1,8 @@
 (* should figure out the best location for this *)
 let weights_f1 = ref (-400)
+let weights1 = ref [|400|]
 let weights = ref [|400; 400|]
+let weights3 = ref [|400; 400; 400|]
 
 (* binary search tree example from patrick *)
 let frequency_gen_bst size ~base_case ~recursive_case =

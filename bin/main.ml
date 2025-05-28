@@ -16,6 +16,17 @@ let reset = 300
 (* take test gen out and use functions with weird local min and max *)
 (* branching process for quickcheck genrators Augustin Mista *)
 
+(* bump iterations pretty high - 100,000 - 60,000 *)
+(* 2. random restart *)
+(* go to new start with init temp *)
+(* 1. basin hopping *)
+(* * cost function with noise *)
+(* more complicated examples *)
+(* traveling salesman problem / 8 queens *)
+(* 3. 3 parameter function *)
+(* 4. direction bias working *)
+(* 3.5 step function works for arbitrary number of parameters *)
+
 (* difference of distr from goal *)
 let calc_score results goal feature_vector = 
   (results, goal -. results)
@@ -59,64 +70,29 @@ let is_uniform l =
 
 (* weights for the generator *)
 
-(* steps 10 works with sample size 10000 *)
-let step10 cand_weight direction =
-  if direction then
-    !weights.(0) <- cand_weight.(0) + 10
-  else
-    !weights.(0) <- cand_weight.(0) - 10;
-  !weights
-
-(* steps 50 works with sample size 1000 *)
-let step50 cand_weight direction =
-  if direction then
-    !weights.(0) <- cand_weight.(0) + 50
-  else
-    !weights.(0) <- cand_weight.(0) - 50;
-  !weights
-
-(* steps 50 up and down works with sample size 1000 *)
-let stepAll50 cand_weight direction =
-  if direction then begin
-    !weights.(0) <- cand_weight.(0) + 50;
-    !weights.(1) <- cand_weight.(1) - 50
-  end else begin
-    !weights.(0) <- cand_weight.(0) - 50;
-    !weights.(1) <- cand_weight.(1) + 50
-  end;
-  !weights
-
-let step_f1 cand_weight direction =
+let step_direction cand_weight direction =
   if direction && Random.bool () then
     weights_f1 := cand_weight + step_size
   else
     weights_f1 := cand_weight - step_size;
   !weights_f1
 
-let step cand_weight direction =
+let step_in_range cand_weight step_range =
   let step = Random.int (snd step_range) + fst step_range in
   if Random.bool () then
-    weights_f1 := cand_weight + step
+    !weights1.(0) <- cand_weight.(0) + step
   else
-    weights_f1 := cand_weight - step;
-  !weights_f1
+    !weights1.(0) <- cand_weight.(0) - step;
+  !weights1
 
-let step_2_param cand_weight =
+let step cand_weight =
   let step = Random.int (snd step_range) + fst step_range in
-
   if Random.bool () then
-  (* changing x *)
-    (if Random.bool () then
-      !weights.(0) <- cand_weight.(0) + step
-    else
-      !weights.(0) <- cand_weight.(0) - step;)
+    !weights1.(0) <- cand_weight.(0) + step
   else
-  (* changing y *)
-    if Random.bool () then
-      !weights.(1) <- cand_weight.(1) + step
-    else
-      !weights.(1) <- cand_weight.(1) - step;
-  !weights
+    !weights1.(0) <- cand_weight.(0) - step;
+  !weights1
+
 
 let step_2_param cand_weight =
   let step = Random.int (snd step_range) + fst step_range in
@@ -149,8 +125,9 @@ let () =
       Printf.printf "Timed out";
       time_out_ref := true)
 
-let run_X_times (output: string) (goal : float) (gen) (feature_vector : ('a -> bool))
-    (num : int) =
+
+let simulated_annealing (output: string) (goal : float) (gen) (feature_vector : ('a -> bool))
+    (niter : int) =
 
   let temp = init_temp in
   let start_time = Unix.gettimeofday () in
@@ -159,18 +136,18 @@ let run_X_times (output: string) (goal : float) (gen) (feature_vector : ('a -> b
   Printf.fprintf result_oc "iteration,curr weight x,curr weight y,cand weights x,cand weights y,score,distribution,time,temp\n";
 
   let rec loop n temp direction curr_weight curr_score best_weight best_score count =
-      if n = num then
+      if n = niter then
         (best_weight, best_score)
       else 
         
-      let count, curr_score = if count >= 300 then
+      (* let count, curr_score = if count >= 300 then
         (let curr_weight = best_weight in
         let _ = step_2_param curr_weight in
         0, best_score)
-      else
+      else *)
       let _ = step_2_param curr_weight in
-        count, curr_score 
-      in
+        (* count, curr_score 
+      in *)
       
       (* let _ = step_2_param curr_weight in *)
       (* Printf.printf "%d - curr: %d   next:%d\n\n" n curr_weight !weights_f1; *)
@@ -210,27 +187,95 @@ let run_X_times (output: string) (goal : float) (gen) (feature_vector : ('a -> b
 
   (best_weight, best_score)
 
+let basin_hoppping (output: string) (goal : float) (gen) (feature_vector : ('a -> bool)) (niter : int) =
+  (* initial solution is stored in the ref *)
+  let init_weight = [|!weights1.(0)|] in
+  let results = gen () in
+  let init_score, _ = calc_score results goal feature_vector in
+
+  (* minimize is local min search *)
+  let rec minimize best_weight best_score n =(
+    (* Printf.printf  "%d,%d,%d,0,0\n" n best_weight.(0) !weights.(0); *)
+
+    (* next step *)
+    let _ = step best_weight in
+
+    let results = gen () in
+    let next_score, dist = calc_score results goal feature_vector in
+    (* Printf.printf "min: %d %f %f %d \n" n next_score best_score best_weight.(0); *)
+
+    if n > 100 then 
+      best_score
+    else
+      (* if score is closer to min, then take step *)
+      if next_score < best_score then
+        
+        minimize [|!weights1.(0)|] next_score (n + 1)
+      else
+        minimize best_weight best_score (n + 1)
+  )
+  in
+
+  let min = minimize [|!weights1.(0)|] 100000. 0 in
+    (* Printf.printf "%f %f \n" init_score min ; *)
+
+
+  let result_oc = open_out "bin/results.result" in
+  Printf.fprintf result_oc "iteration,curr weight,cand weights,score,distribution,time,temp\n";
+
+  let rec loop curr_weight curr_min best_weight best_score count =
+    if count > niter then
+      (best_weight, best_score)
+    else 
+      let temp = update_temp count in
+      (* perturbation (step) *)
+      let _ = step_in_range curr_weight (30,50) in  (* try adaptive stepwise *)
+      let results = gen () in
+      let next_score, dist = calc_score results goal feature_vector in
+
+      (* minimize *)
+      let next_min = minimize [|!weights1.(0)|] 100000. 0 in
+      (* Printf.printf "%d %f %f\n" !weights1.(0) next_score next_min; *)
+
+      Printf.fprintf result_oc "%d,%d,%d,%f,%f,0,0\n" count curr_weight.(0) !weights1.(0) next_min dist;
+      (* Printf.printf "%d,%d,%d,%f,%f,0,0\n" count curr_weight.(0) !weights1.(0) next_min dist; *)
+
+      (* acceptance test *)
+      if Random.float 1.0 < Float.exp (-. (next_min -. curr_min) /. temp) then
+        if (next_min < best_score) then
+          loop [|!weights1.(0)|] next_score [|!weights1.(0)|] next_min (count + 1)
+        else 
+          loop [|!weights1.(0)|] next_score best_weight best_score (count + 1)
+      else
+        loop curr_weight curr_min best_weight best_score (count + 1)
+    in
+
+  let weights, score = loop init_weight min init_weight init_score 0 in
+  Printf.fprintf result_oc "solution,0,%d,%f,0,0,0\n" weights.(0) score ;
+  close_out result_oc;
+  weights, score
+
 
 let () = QCheck_runner.set_seed 42
 
 (* 1 paramater functions *)
 let f1 () = 
-  let x = float_of_int(!weights_f1) in
+  let x = float_of_int(!weights1.(0)) in
     ( x /. 10.) *. (cos (x /. 25.))
 
 let f2 () : float = 
-  let x = float_of_int(!weights_f1) in
+  let x = float_of_int(!weights1.(0)) in
   (4. /. 30.) *. ( (x +. 50.)) *. sin ((x +. 50.) /. 20.) +. ((x -. 500.) /. 30.) *. ((x -. 500.) /. 30.)
 
 let f3 () = 
-  let x = float_of_int(!weights_f1) in
+  let x = float_of_int(!weights1.(0)) in
   if x = 0. then
     1. 
   else
     cos (50. *. Float.pi *. x /. 1000.) /. (x /. 1000.)
 
 let f4 () = 
-  let x = float_of_int(!weights_f1) in
+  let x = float_of_int(!weights1.(0)) in
   -500. *. (sin x *. 30.) /. (x *. 40.)
 
 (* 2 parameter functions *)
@@ -249,12 +294,13 @@ let f6 () =
 let () = 
   let filename = "bin/gen_values.result" in
   let (w, s) = 
-    run_X_times 
+    basin_hoppping 
       filename
       0.
-      (f6)
+      (f3)
       (fun l-> l = [])
       2000
   in 
-  Printf.printf "solution: (%d, %d) %f\n" w.(0) w.(1) s;
+  (* Printf.printf "solution: (%d, %d) %f\n" w.(0) w.(1) s; *)
+  Printf.printf "solution: (%d) %f\n" w.(0) s;
 

@@ -25,7 +25,7 @@ length = 0
 def randrange(n, vmin, vmax):
     return (vmax - vmin)*np.random.rand(n) + vmin
 
-if parameters == 1:
+if parameters == '1':
 
     with open("bin/results.result", "r") as csv_file:
         csv_reader = csv.DictReader(csv_file)
@@ -48,7 +48,7 @@ if parameters == 1:
     sc = plt.scatter(x, y, s=10, c=colors, cmap='viridis', alpha=0.1)
     # mark solution
     plt.scatter(sol_x, sol_y, s=20, c='red')
-    plt.text(sol_x + 0.1, sol_y, f'solution ({sol_x}, {sol_y})', fontsize=9)
+    plt.text(sol_x, sol_y, f'solution ({sol_x}, {sol_y})', fontsize=9)
 
     # mark start
     plt.scatter(x[0], y[0], s=20, c='purple')
@@ -64,8 +64,6 @@ if parameters == 1:
     plt.show()
 
 else:
-
-
     with open("bin/results.result", "r") as csv_file:
         csv_reader = csv.DictReader(csv_file)
 
