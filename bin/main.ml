@@ -187,6 +187,69 @@ let simulated_annealing (output: string) (goal : float) (gen) (feature_vector : 
 
   (best_weight, best_score)
 
+let random_restart (output: string) (goal : float) (gen) (feature_vector : ('a -> bool)) (niter : int) =
+  let restart_interval = niter / 5 in
+
+  let temp = init_temp in
+  let start_time = Unix.gettimeofday () in
+
+  let result_oc = open_out "bin/results.result" in
+  Printf.fprintf result_oc "iteration,curr weight x,curr weight y,cand weights x,cand weights y,score,distribution,time,temp\n";
+
+  let rec loop n temp direction curr_weight curr_score best_weight best_score count =
+      if n = restart_interval then
+        (best_weight, best_score)
+      else 
+        
+      let _ = step_2_param curr_weight in
+
+      let temp = update_temp n in
+    
+      (* collecting results *)
+      let results = gen () in
+      let end_time : float = Unix.gettimeofday () in
+
+      (* calculates score *)
+      let cand_score, dist = calc_score results goal feature_vector in
+
+      Printf.fprintf result_oc "%d,%d,%d,%d,%d,%f,%f,%f,%f\n" n curr_weight.(0) curr_weight.(1) !weights.(0) !weights.(1) cand_score dist (end_time -. start_time) (cand_score -. curr_score);
+      (* Printf.fprintf result_oc "%d,%d,%d,%f,%f,%f,%f\n" n curr_weight !weights_f1 cand_score dist (end_time -. start_time) (cand_score -. curr_score); *)
+
+      (* when score is worse, e^+ -> true *)
+      if Random.float 1.0 < Float.exp (-. (cand_score -. curr_score) /. temp) then
+        (* keep weight just tested *)
+        if (cand_score < best_score) then
+          loop (n + 1) temp direction [|!weights.(0); !weights.(1)|] cand_score [|!weights.(0); !weights.(1)|] cand_score count
+        else
+          loop (n + 1) temp direction [|!weights.(0); !weights.(1)|] cand_score best_weight best_score count
+      else
+        loop (n + 1) temp (not direction) curr_weight curr_score best_weight best_score (count +1)
+  in
+
+  let rec restart n best_weight best_score =
+    if n > 5 then
+      (best_weight, best_score)
+    else
+        (* new location between -1000 and 1000 *)
+        let new_start = [|Random.int 2000 - 1000; Random.int 2000 - 1000|] in
+        let (weight, score) = loop 0 temp true new_start 1. new_start (1000.) 0 in
+
+      if score < best_score then
+        restart (n + 1) weight score
+      else
+        restart (n + 1) best_weight best_score
+
+      in
+
+  let (best_weight, best_score) = restart 0 !weights 100000. in
+
+  Printf.fprintf result_oc "solution,0,%d,%d,0,0,%f,0,0\n" best_weight.(0) best_weight.(1) best_score;
+  close_out result_oc;
+  (best_weight, best_score)
+
+
+
+
 let basin_hoppping (output: string) (goal : float) (gen) (feature_vector : ('a -> bool)) (niter : int) =
   (* initial solution is stored in the ref *)
   let init_weight = [|!weights1.(0)|] in
@@ -195,21 +258,17 @@ let basin_hoppping (output: string) (goal : float) (gen) (feature_vector : ('a -
 
   (* minimize is local min search *)
   let rec minimize best_weight best_score n =(
-    (* Printf.printf  "%d,%d,%d,0,0\n" n best_weight.(0) !weights.(0); *)
 
     (* next step *)
     let _ = step best_weight in
-
     let results = gen () in
     let next_score, dist = calc_score results goal feature_vector in
-    (* Printf.printf "min: %d %f %f %d \n" n next_score best_score best_weight.(0); *)
 
     if n > 100 then 
       best_score
     else
       (* if score is closer to min, then take step *)
       if next_score < best_score then
-        
         minimize [|!weights1.(0)|] next_score (n + 1)
       else
         minimize best_weight best_score (n + 1)
@@ -294,13 +353,14 @@ let f6 () =
 let () = 
   let filename = "bin/gen_values.result" in
   let (w, s) = 
-    basin_hoppping 
+    random_restart 
       filename
       0.
-      (f3)
+      (f6)
       (fun l-> l = [])
-      2000
+      5000
   in 
   (* Printf.printf "solution: (%d, %d) %f\n" w.(0) w.(1) s; *)
   Printf.printf "solution: (%d) %f\n" w.(0) s;
+
 
