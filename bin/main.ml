@@ -27,6 +27,8 @@ let reset = 300
 (* 4. direction bias working *)
 (* 3.5 step function works for arbitrary number of parameters *)
 
+(* for restart, checkc if stuck in neighborhood *)
+
 (* difference of distr from goal *)
 let calc_score results goal feature_vector = 
   (results, goal -. results)
@@ -79,11 +81,13 @@ let step_direction cand_weight direction =
 
 let step_in_range cand_weight step_range =
   let step = Random.int (snd step_range) + fst step_range in
-  if Random.bool () then
-    !weights1.(0) <- cand_weight.(0) + step
+  let n = Array.length cand_weight in
+  let direction = Random.int n in
+  
+  if Random.bool () then 
+    !weights.(direction) <- cand_weight.(direction) + step
   else
-    !weights1.(0) <- cand_weight.(0) - step;
-  !weights1
+    !weights.(direction) <- cand_weight.(direction) - step
 
 let step cand_weight =
   let step = Random.int (snd step_range) + fst step_range in
@@ -111,10 +115,35 @@ let step_2_param cand_weight =
       !weights.(1) <- cand_weight.(1) - step;
   !weights
 
+let step_n_param (cand_weight : int array) =
+  let step = Random.int (snd step_range) + fst step_range in
 
+  let n = Array.length cand_weight in
+  let direction = Random.int n in
+  
+  if Random.bool () then 
+    !weights.(direction) <- cand_weight.(direction) + step
+  else
+    !weights.(direction) <- cand_weight.(direction) - step
+  
 
 (* updates the temperature *)
 let update_temp n = init_temp /. (float_of_int n +. 1.)
+
+(* print function for results *)
+let print_iterations result_oc n curr_weight cand_score dist time =
+  Printf.fprintf result_oc "%s," n;
+  Array.iter (fun x -> Printf.fprintf result_oc "%d," x) curr_weight;
+  Array.iter (fun x -> Printf.fprintf result_oc "%d," x) !weights;
+  let _ = Printf.fprintf result_oc "%f,%f\n" dist time
+  in ()
+
+let print_labels result_oc =
+  Printf.fprintf result_oc "iteration,";
+  Array.iteri (fun i x -> Printf.fprintf result_oc "curr weight %d," (i + 1)) !weights;
+  Array.iteri (fun i x -> Printf.fprintf result_oc "cand weight %d," (i + 1)) !weights;
+  let _ = Printf.fprintf result_oc "score,distribution,time\n"
+  in ()
 
 let time_out_ref = ref false
 
@@ -133,7 +162,7 @@ let simulated_annealing (output: string) (goal : float) (gen) (feature_vector : 
   let start_time = Unix.gettimeofday () in
 
   let result_oc = open_out "bin/results.result" in
-  Printf.fprintf result_oc "iteration,curr weight x,curr weight y,cand weights x,cand weights y,score,distribution,time,temp\n";
+  print_labels result_oc;
 
   let rec loop n temp direction curr_weight curr_score best_weight best_score count =
       if n = niter then
@@ -145,7 +174,7 @@ let simulated_annealing (output: string) (goal : float) (gen) (feature_vector : 
         let _ = step_2_param curr_weight in
         0, best_score)
       else *)
-      let _ = step_2_param curr_weight in
+      let _ = step_n_param curr_weight in
         (* count, curr_score 
       in *)
       
@@ -160,7 +189,8 @@ let simulated_annealing (output: string) (goal : float) (gen) (feature_vector : 
       (* calculates score *)
       let cand_score, dist = calc_score results goal feature_vector in
 
-      Printf.fprintf result_oc "%d,%d,%d,%d,%d,%f,%f,%f,%f\n" n curr_weight.(0) curr_weight.(1) !weights.(0) !weights.(1) cand_score dist (end_time -. start_time) (cand_score -. curr_score);
+      let _ = print_iterations result_oc (string_of_int n) curr_weight cand_score dist (end_time -. start_time) in
+      (* Printf.fprintf result_oc "%d,%d,%d,%d,%d,%f,%f,%f,%f\n" n curr_weight.(0) curr_weight.(1) !weights.(0) !weights.(1) cand_score dist (end_time -. start_time) (cand_score -. curr_score); *)
       (* Printf.fprintf result_oc "%d,%d,%d,%f,%f,%f,%f\n" n curr_weight !weights_f1 cand_score dist (end_time -. start_time) (cand_score -. curr_score); *)
       (* Printf.printf "%d, %d, %f, %f, %f\n" curr_weight !weights_f1 score dist (end_time -. start_time); *)
 
@@ -169,10 +199,11 @@ let simulated_annealing (output: string) (goal : float) (gen) (feature_vector : 
         (* keep weight just tested *)
         (* let _ = print_endline "ACCEPT cand" in *)
         (* let _ = Printf.fprintf result_oc "ACCEPT " in *)
+        let w = Array.map (fun r -> r) !weights in
         if (cand_score < best_score) then
-          loop (n + 1) temp direction [|!weights.(0); !weights.(1)|] cand_score [|!weights.(0); !weights.(1)|] cand_score count
+          loop (n + 1) temp direction w cand_score w cand_score count
         else
-          loop (n + 1) temp direction [|!weights.(0); !weights.(1)|] cand_score best_weight best_score count
+          loop (n + 1) temp direction w cand_score best_weight best_score count
       else
         (* let _ = print_endline "REJECT cand" in *)
         (* let _ = Printf.fprintf result_oc "REJECT " in *)
@@ -181,7 +212,8 @@ let simulated_annealing (output: string) (goal : float) (gen) (feature_vector : 
 
   let (best_weight, best_score) = loop 0 temp true !weights 1. !weights (1000.) 0 in
 
-  Printf.fprintf result_oc "solution,0,%d,%d,0,0,%f,0,0\n" best_weight.(0) best_weight.(1) best_score;
+  let _ = print_iterations result_oc "solution" best_weight best_score 0. 0. in
+  (* Printf.fprintf result_oc "solution,0,%d,%d,0,0,%f,0,0\n" best_weight.(0) best_weight.(1) best_score; *)
   (* Printf.fprintf result_oc "solution,0,%d,%f,0,0\n" best_weight best_score; *)
   close_out result_oc;
 
@@ -194,14 +226,14 @@ let random_restart (output: string) (goal : float) (gen) (feature_vector : ('a -
   let start_time = Unix.gettimeofday () in
 
   let result_oc = open_out "bin/results.result" in
-  Printf.fprintf result_oc "iteration,curr weight x,curr weight y,cand weights x,cand weights y,score,distribution,time,temp\n";
+  print_labels result_oc;
 
   let rec loop n temp direction curr_weight curr_score best_weight best_score count =
       if n = restart_interval then
         (best_weight, best_score)
       else 
         
-      let _ = step_2_param curr_weight in
+      let _ = step_n_param curr_weight in
 
       let temp = update_temp n in
     
@@ -211,17 +243,18 @@ let random_restart (output: string) (goal : float) (gen) (feature_vector : ('a -
 
       (* calculates score *)
       let cand_score, dist = calc_score results goal feature_vector in
-
-      Printf.fprintf result_oc "%d,%d,%d,%d,%d,%f,%f,%f,%f\n" n curr_weight.(0) curr_weight.(1) !weights.(0) !weights.(1) cand_score dist (end_time -. start_time) (cand_score -. curr_score);
+      let _ = print_iterations result_oc (string_of_int n) curr_weight cand_score dist (end_time -. start_time) in
+      (* Printf.fprintf result_oc "%d,%d,%d,%d,%d,%f,%f,%f\n" n curr_weight.(0) curr_weight.(1) !weights.(0) !weights.(1) cand_score dist (end_time -. start_time); *)
       (* Printf.fprintf result_oc "%d,%d,%d,%f,%f,%f,%f\n" n curr_weight !weights_f1 cand_score dist (end_time -. start_time) (cand_score -. curr_score); *)
 
       (* when score is worse, e^+ -> true *)
       if Random.float 1.0 < Float.exp (-. (cand_score -. curr_score) /. temp) then
         (* keep weight just tested *)
+        let w = Array.map (fun r -> r) !weights in
         if (cand_score < best_score) then
-          loop (n + 1) temp direction [|!weights.(0); !weights.(1)|] cand_score [|!weights.(0); !weights.(1)|] cand_score count
+          loop (n + 1) temp direction w cand_score w cand_score count
         else
-          loop (n + 1) temp direction [|!weights.(0); !weights.(1)|] cand_score best_weight best_score count
+          loop (n + 1) temp direction w cand_score best_weight best_score count
       else
         loop (n + 1) temp (not direction) curr_weight curr_score best_weight best_score (count +1)
   in
@@ -243,7 +276,7 @@ let random_restart (output: string) (goal : float) (gen) (feature_vector : ('a -
 
   let (best_weight, best_score) = restart 0 !weights 100000. in
 
-  Printf.fprintf result_oc "solution,0,%d,%d,0,0,%f,0,0\n" best_weight.(0) best_weight.(1) best_score;
+  let _ = print_iterations result_oc "solution" best_weight best_score 0. 0. in
   close_out result_oc;
   (best_weight, best_score)
 
@@ -252,7 +285,7 @@ let random_restart (output: string) (goal : float) (gen) (feature_vector : ('a -
 
 let basin_hoppping (output: string) (goal : float) (gen) (feature_vector : ('a -> bool)) (niter : int) =
   (* initial solution is stored in the ref *)
-  let init_weight = [|!weights1.(0)|] in
+  let init_weight = Array.map (fun r -> r) !weights in
   let results = gen () in
   let init_score, _ = calc_score results goal feature_vector in
 
@@ -268,19 +301,19 @@ let basin_hoppping (output: string) (goal : float) (gen) (feature_vector : ('a -
       best_score
     else
       (* if score is closer to min, then take step *)
+      let w = Array.map (fun r -> r) !weights in
       if next_score < best_score then
-        minimize [|!weights1.(0)|] next_score (n + 1)
+        minimize w next_score (n + 1)
       else
         minimize best_weight best_score (n + 1)
   )
   in
 
-  let min = minimize [|!weights1.(0)|] 100000. 0 in
+  let min = minimize (Array.map (fun r -> r) !weights) 100000. 0 in
     (* Printf.printf "%f %f \n" init_score min ; *)
 
-
   let result_oc = open_out "bin/results.result" in
-  Printf.fprintf result_oc "iteration,curr weight,cand weights,score,distribution,time,temp\n";
+  print_labels result_oc;
 
   let rec loop curr_weight curr_min best_weight best_score count =
     if count > niter then
@@ -289,28 +322,33 @@ let basin_hoppping (output: string) (goal : float) (gen) (feature_vector : ('a -
       let temp = update_temp count in
       (* perturbation (step) *)
       let _ = step_in_range curr_weight (30,50) in  (* try adaptive stepwise *)
+
+      let start_time = Unix.gettimeofday () in
       let results = gen () in
       let next_score, dist = calc_score results goal feature_vector in
+      let end_time : float = Unix.gettimeofday () in
 
       (* minimize *)
-      let next_min = minimize [|!weights1.(0)|] 100000. 0 in
+      let next_min = minimize (Array.map (fun r -> r) !weights) 100000. 0 in
       (* Printf.printf "%d %f %f\n" !weights1.(0) next_score next_min; *)
 
-      Printf.fprintf result_oc "%d,%d,%d,%f,%f,0,0\n" count curr_weight.(0) !weights1.(0) next_min dist;
+      let _ = print_iterations result_oc (string_of_int count) curr_weight next_min dist (end_time -. start_time) in
       (* Printf.printf "%d,%d,%d,%f,%f,0,0\n" count curr_weight.(0) !weights1.(0) next_min dist; *)
 
       (* acceptance test *)
       if Random.float 1.0 < Float.exp (-. (next_min -. curr_min) /. temp) then
+        let w = Array.map (fun r -> r) !weights in
         if (next_min < best_score) then
-          loop [|!weights1.(0)|] next_score [|!weights1.(0)|] next_min (count + 1)
+          loop w next_score w next_min (count + 1)
         else 
-          loop [|!weights1.(0)|] next_score best_weight best_score (count + 1)
+          loop w next_score best_weight best_score (count + 1)
       else
         loop curr_weight curr_min best_weight best_score (count + 1)
     in
 
   let weights, score = loop init_weight min init_weight init_score 0 in
-  Printf.fprintf result_oc "solution,0,%d,%f,0,0,0\n" weights.(0) score ;
+  let _ = print_iterations result_oc "solution" weights score 0. 0. in
+
   close_out result_oc;
   weights, score
 
@@ -350,17 +388,31 @@ let f6 () =
   let y = float_of_int(!weights.(1)) in
   -500. *. (sin x *. 30.) /. (x *. 40.) +. 80. *. sin (y /. 30.) /. (y /. 100.)
  
+
+(* 3 parameter functions *)
+
+let f7 () = 
+  let x = float_of_int(!weights.(0)) in
+  let y = float_of_int(!weights.(1)) in
+  let z = float_of_int(!weights.(2)) in
+
+  -500. *.  (sin x *. 30.) /. (x *. 40.) +. 80. *. sin (y /. 30.) /. (y /. 100.) +. z
+
 let () = 
   let filename = "bin/gen_values.result" in
   let (w, s) = 
-    random_restart 
+    simulated_annealing 
       filename
       0.
-      (f6)
+      (f3)
       (fun l-> l = [])
-      5000
+      4000
   in 
   (* Printf.printf "solution: (%d, %d) %f\n" w.(0) w.(1) s; *)
-  Printf.printf "solution: (%d) %f\n" w.(0) s;
+  Printf.printf "solution: %f " s;
+  Array.iter (fun x -> Printf.printf "%d," x) w;
+  Printf.printf "\n";
+
+
 
 

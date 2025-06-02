@@ -37,10 +37,10 @@ if parameters == '1':
     for row in data:
         try:
             colors.append(int(row['iteration']))
-            x.append(int(row['cand weights']))
+            x.append(int(row['cand weight 1']))
             y.append(float(row['score']))
         except ValueError:
-            sol_x = int(row['cand weights'])
+            sol_x = int(row['cand weight 1'])
             sol_y = float(row['score'])
 
     plt.figure(figsize=(10, 6))
@@ -74,12 +74,12 @@ else:
     for row in data:
         try:
             colors.append(int(row['iteration']))
-            x.append(int(row['cand weights x']))
-            y.append(int(row['cand weights y']))
+            x.append(int(row['cand weight 1']))
+            y.append(int(row['cand weight 2']))
             z.append(float(row['score']))
         except ValueError:
-            sol_x = int(row['cand weights x'])
-            sol_x = int(row['cand weights y'])
+            sol_x = int(row['cand weight 1'])
+            sol_x = int(row['cand weight 2'])
             sol_y = float(row['score'])
 
     plt.figure(figsize=(10, 6))
