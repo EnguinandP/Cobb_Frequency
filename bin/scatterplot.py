@@ -40,7 +40,7 @@ if parameters == '1':
             x.append(int(row['cand weight 1']))
             y.append(float(row['score']))
         except ValueError:
-            sol_x = int(row['cand weight 1'])
+            sol_x = int(row['curr weight 1'])
             sol_y = float(row['score'])
 
     plt.figure(figsize=(10, 6))
@@ -78,8 +78,8 @@ else:
             y.append(int(row['cand weight 2']))
             z.append(float(row['score']))
         except ValueError:
-            sol_x = int(row['cand weight 1'])
-            sol_x = int(row['cand weight 2'])
+            sol_x = int(row['curr weight 1'])
+            sol_x = int(row['curr weight 2'])
             sol_y = float(row['score'])
 
     plt.figure(figsize=(10, 6))
