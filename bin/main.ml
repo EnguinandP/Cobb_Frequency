@@ -42,7 +42,7 @@ let calc_score results goal feature_vector =
 (* noise is normal/gaussian distribution using marsaglia-polar method *)
 let calc_noisy_score spare results goal feature_vector =
   (* assumed standard deviation *)
-  let std_dev = 1.0 in
+  let std_dev = 3.0 in
 
   match spare with
   | None ->
@@ -205,9 +205,9 @@ let simulated_annealing (output: string) (goal : float) (gen) (feature_vector : 
   let temp = init_temp in
 
   let result_oc = if print_all then
-    open_out "bin/results.result" 
+    open_out output
   else
-    open_out_gen [Open_creat; Open_text; Open_append] 0o666 "bin/results.result" 
+    open_out_gen [Open_creat; Open_text; Open_append] 0o666 output
   in
   let extra_oc = if print_all then Some result_oc else None in
   print_labels extra_oc;
@@ -261,21 +261,22 @@ let basin_hoppping (output: string) (goal : float) (gen) (feature_vector : ('a -
   (* initial solution is stored in the ref *)
 
   let result_oc = if print_all then
-    open_out "bin/results.result" 
+    open_out output
   else
-    open_out_gen [Open_creat; Open_text; Open_append] 0o666 "bin/results.result" 
+    open_out_gen [Open_creat; Open_text; Open_append] 0o666 output 
   in
 
   let extra_oc = if print_all then Some result_oc else None in
   print_labels extra_oc;
 
   (* minimize is local min search *)
-  let rec minimize best_weight best_score n = (
+  let rec minimize best_weight best_score n spare = (
 
     (* next step *)
     let _ = step best_weight in
     let results = gen () in
-    let next_score, dist = calc_score results goal feature_vector in
+    (* let next_score, dist = calc_score results goal feature_vector in *)
+    let next_score, spare, dist = calc_noisy_score spare results goal feature_vector in
 
     if n > 100 then 
       (best_weight, best_score)
@@ -283,12 +284,12 @@ let basin_hoppping (output: string) (goal : float) (gen) (feature_vector : ('a -
       (* if score is closer to min, then take step *)
       let w = Array.map (fun r -> r) !weights in
       if next_score < best_score then
-        minimize w next_score (n + 1)
+        minimize w next_score (n + 1) spare
       else
-        minimize best_weight best_score (n + 1)
+        minimize best_weight best_score (n + 1) spare
   ) in
 
-  let rec loop curr_weight curr_min best_weight best_score count =
+  let rec loop curr_weight curr_min best_weight best_score count spare =
     if count > niter then
       (best_weight, best_score)
     else 
@@ -299,10 +300,12 @@ let basin_hoppping (output: string) (goal : float) (gen) (feature_vector : ('a -
       let start_time = Unix.gettimeofday () in
       let results = gen () in
       let end_time : float = Unix.gettimeofday () in
-      let _, dist = calc_score results goal feature_vector in
+      (* let _, dist = calc_score results goal feature_vector in *)
+      let _, spare, dist = calc_noisy_score spare results goal feature_vector in
+
 
       (* minimize *)
-      let next_min_weight, next_min = minimize (Array.map (fun r -> r) !weights) 100000. 0 in
+      let next_min_weight, next_min = minimize (Array.map (fun r -> r) !weights) 100000. 0 spare in
       (* Printf.printf "%d %f %f\n" !weights1.(0) next_score next_min; *)
 
       let _ = print_iterations result_oc (string_of_int count) next_min_weight next_min dist (end_time -. start_time) in
@@ -312,16 +315,16 @@ let basin_hoppping (output: string) (goal : float) (gen) (feature_vector : ('a -
       if Random.float 1.0 < Float.exp (-. (next_min -. curr_min) /. temp) then
         (* let w = Array.map (fun r -> r) !weights in *)
         if (next_min < best_score) then
-          loop next_min_weight next_min next_min_weight next_min (count + 1)
+          loop next_min_weight next_min next_min_weight next_min (count + 1) spare
         else 
-          loop next_min_weight next_min best_weight best_score (count + 1)
+          loop next_min_weight next_min best_weight best_score (count + 1) spare
       else
-        loop curr_weight curr_min best_weight best_score (count + 1)
+        loop curr_weight curr_min best_weight best_score (count + 1) spare
     in
 
   (* min is intial solution *)
-  let init_weight, init_min = minimize (Array.map (fun r -> r) !weights) 100000. 0 in
-  let best_weights, best_score = loop init_weight init_min init_weight init_min 0 in
+  let init_weight, init_min = minimize (Array.map (fun r -> r) !weights) 100000. 0 None in
+  let best_weights, best_score = loop init_weight init_min init_weight init_min 0 None in
   let _ = print_solutions extra_oc best_weights best_score in
 
   let _ = if print_all then
@@ -335,7 +338,7 @@ let basin_hoppping (output: string) (goal : float) (gen) (feature_vector : ('a -
 let random_restart (output: string) (goal : float) (gen) (feature_vector : ('a -> bool)) (niter : int) algor =
   let restart_interval = niter / 5 in
 
-  let result_oc = open_out "bin/results.result" in
+  let result_oc = open_out output in
   print_labels (Some result_oc);
 
   let rec restart n best_weight best_score =
@@ -345,7 +348,7 @@ let random_restart (output: string) (goal : float) (gen) (feature_vector : ('a -
         (* new location between -1000 and 1000 *)
         let new_start = Array.map (fun _ -> Random.int 2000 - 1000) !weights in
         weights := new_start;
-        Printf.printf "\n%d\n" !weights.(0);
+        (* Printf.printf "\n%d\n" !weights.(0); *)
         let (weight, score) = algor output 0. gen feature_vector restart_interval false in
 
       if score < best_score then
@@ -413,15 +416,15 @@ let f7 () =
   -500. *.  (sin x *. 30.) /. (x *. 40.) +. 80. *. sin (y /. 30.) /. (y /. 100.) +. z
 
 let () = 
-  let filename = "bin/gen_values.result" in
+  let filename = "bin/results.result" in
   let (w, s) = 
     random_restart
       filename
       0.
-      (f4)
+      (f2)
       (fun l-> l = [])
       1000
-      simulated_annealing
+      basin_hoppping  
   in 
   (* Printf.printf "solution: (%d, %d) %f\n" w.(0) w.(1) s; *)
   Printf.printf "solution: %f (" s;
