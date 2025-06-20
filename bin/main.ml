@@ -2,13 +2,17 @@ module Env = Zzenv
 open Frequency_combinators
 open Stdlib
 
-let init_temp = 300. (* 300 *)
+let init_temp = 5230. (* 300 *) 
+(* scipy default temperature is 5230 *)
 let sample_size = 1000
 let step_size = 1
 let step_range = (1, 20)
 let reset = 300
 
-(* meeting at 1 *)
+(* observation: simulated annealing will get stuck in a local min when 
+- temp is low 
+- the stepping range is not large enough to jump past and down far enough the next hill 
+-> far enough is when the score is lower and current local min *)
 
 (* hyperparameter *)
 (* add best candidate + best score *)
@@ -34,6 +38,35 @@ let reset = 300
 (* difference of distr from goal *)
 let calc_score results goal feature_vector = 
   (results, goal -. results)
+
+(* noise is normal/gaussian distribution using marsaglia-polar method *)
+let calc_noisy_score spare results goal feature_vector =
+  (* assumed standard deviation *)
+  let std_dev = 1.0 in
+
+  match spare with
+  | None ->
+    let rec find_t () =
+      let u = (Random.float 2.) -. 1. in
+      let v = (Random.float 2.) -. 1. in
+      let t = u *. u +. v *. v in
+      if t <= 1. && t > 0. then
+        (u, v, t)
+      else
+        find_t ()
+      in
+    let (u, v, t) = find_t () in
+    let s = Float.sqrt ((-2. *. Float.log (t)) /. t) in
+    let spare = Some (s *. v) in
+    let noise = results +. std_dev *. u *. s in
+    (noise, spare, goal -. noise)
+
+  | Some s ->
+    let spare = None in
+    let noise = results +. std_dev *. s in
+    (noise, spare, goal -. noise)
+
+
 
 (* difference of distr from goal *)
 let calc_score_gen results goal feature_vector = 
@@ -122,6 +155,7 @@ let step_n_param (cand_weight : int array) =
 
   let n = Array.length cand_weight in
   let direction = Random.int n in
+  (* print_int direction; *)
   
   if Random.bool () then 
     !weights.(direction) <- cand_weight.(direction) + step
@@ -160,58 +194,47 @@ let simulated_annealing (output: string) (goal : float) (gen) (feature_vector : 
     (niter : int) =
 
   let temp = init_temp in
-  let start_time = Unix.gettimeofday () in
 
   let result_oc = open_out "bin/results.result" in
   print_labels result_oc;
 
-  let rec loop n temp direction curr_weight curr_score best_weight best_score count =
+  let rec loop n temp direction curr_weight curr_score best_weight best_score count spare =
       if n = niter then
         (best_weight, best_score)
       else 
-        
-      (* let count, curr_score = if count >= 300 then
-        (let curr_weight = best_weight in
-        let _ = step_2_param curr_weight in
-        0, best_score)
-      else *)
+
       let _ = step_n_param curr_weight in
-        (* count, curr_score 
-      in *)
-      
-      (* let _ = step_2_param curr_weight in *)
-      (* Printf.printf "%d - curr: %d   next:%d\n\n" n curr_weight !weights_f1; *)
+
       let temp = update_temp n in
     
       (* collecting results *)
+      let start_time = Unix.gettimeofday () in
       let results = gen () in
       let end_time : float = Unix.gettimeofday () in
 
       (* calculates score *)
       let cand_score, dist = calc_score results goal feature_vector in
+      (* calculates score with noise *)
+      (* let cand_score, spare, dist = calc_noisy_score spare results goal feature_vector in *)
 
       let _ = print_iterations result_oc (string_of_int n) curr_weight cand_score dist (end_time -. start_time) in
-      (* Printf.fprintf result_oc "%d,%d,%d,%d,%d,%f,%f,%f,%f\n" n curr_weight.(0) curr_weight.(1) !weights.(0) !weights.(1) cand_score dist (end_time -. start_time) (cand_score -. curr_score); *)
-      (* Printf.fprintf result_oc "%d,%d,%d,%f,%f,%f,%f\n" n curr_weight !weights_f1 cand_score dist (end_time -. start_time) (cand_score -. curr_score); *)
-      (* Printf.printf "%d, %d, %f, %f, %f\n" curr_weight !weights_f1 score dist (end_time -. start_time); *)
+
 
       (* when score is worse, e^+ -> true *)
       if Random.float 1.0 < Float.exp (-. (cand_score -. curr_score) /. temp) then
         (* keep weight just tested *)
-        (* let _ = print_endline "ACCEPT cand" in *)
         (* let _ = Printf.fprintf result_oc "ACCEPT " in *)
         let w = Array.map (fun r -> r) !weights in
         if (cand_score < best_score) then
-          loop (n + 1) temp direction !weights cand_score w cand_score count
+          loop (n + 1) temp direction w cand_score w cand_score count spare
         else
-          loop (n + 1) temp direction !weights cand_score best_weight best_score count
+          loop (n + 1) temp direction w cand_score best_weight best_score count spare
       else
-        (* let _ = print_endline "REJECT cand" in *)
         (* let _ = Printf.fprintf result_oc "REJECT " in *)
-        loop (n + 1) temp (not direction) curr_weight curr_score best_weight best_score (count +1)
+        loop (n + 1) temp (not direction) curr_weight curr_score best_weight best_score (count +1) spare
   in
 
-  let (best_weight, best_score) = loop 0 temp true !weights 1. !weights (1000.) 0 in
+  let (best_weight, best_score) = loop 0 temp true !weights 1. !weights (1000.) 0 None in
   let _ = print_iterations result_oc "solution" best_weight best_score 0. 0. in
   (* Printf.fprintf result_oc "solution,0,%d,%d,0,0,%f,0,0\n" best_weight.(0) best_weight.(1) best_score; *)
   (* Printf.fprintf result_oc "solution,0,%d,%f,0,0\n" best_weight best_score; *)
@@ -359,10 +382,12 @@ let f1 () =
   let x = float_of_int(!weights.(0)) in
     ( x /. 10.) *. (cos (x /. 25.))
 
+(* (547.047, -77.145) *)
 let f2 () : float = 
   let x = float_of_int(!weights.(0)) in
   (4. /. 30.) *. ( (x +. 50.)) *. sin ((x +. 50.) /. 20.) +. ((x -. 500.) /. 30.) *. ((x -. 500.) /. 30.)
 
+(* (-1, -987.688) *)
 let f3 () = 
   let x = float_of_int(!weights.(0)) in
   if x = 0. then
@@ -400,17 +425,17 @@ let f7 () =
 let () = 
   let filename = "bin/gen_values.result" in
   let (w, s) = 
-    basin_hoppping 
+    basin_hoppping
       filename
       0.
-      (f6)
+      (f3)
       (fun l-> l = [])
-      5000
+      1000
   in 
   (* Printf.printf "solution: (%d, %d) %f\n" w.(0) w.(1) s; *)
-  Printf.printf "solution: %f " s;
+  Printf.printf "solution: %f (" s;
   Array.iter (fun x -> Printf.printf "%d," x) w;
-  Printf.printf "\n";
+  Printf.printf ")\n";
 
 
 
