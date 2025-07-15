@@ -184,10 +184,6 @@ let get_function = function
 | Language.MFuncImp {name; if_rec;body; _} -> Some (name, if_rec, body) 
 | _ -> None
 
-(* some initial code for understanding the AST *)
-let example_term_1 : 't term = CErr
-let example_term_2 : (('t, 't term) typed) = { x = CVal {x = VConst (I 42); ty = 0}; ty = 0}
-let example_term_3 : (('t, 't term) typed) = { x = CErr; ty = 0}
 
 let get_value_constructor (v : 't value) =
   match v with 
@@ -204,12 +200,6 @@ let peek (t : ('t, 't term) typed) =
   | CVal {x = value;_} -> get_value_constructor value
   | _ -> failwith "not CVal"
 
-
-(* some functions to help with printing *)
-let print_string_list l = List.iter print_endline l
-let print_string_typed (s : ('t, string) typed ) = print_endline s.x
-let print_string_typed_list (l : ('t, string) typed list) = List.iter print_string_typed l
-
 let print_code (config:string) (source:string) =
 
   (* calls poirot preprocess to get AST of source file *)
@@ -217,19 +207,6 @@ let print_code (config:string) (source:string) =
 
   (* gets the first item, (gets the function and ignores the type annotation) *)
   let first_item = (Array.get (Array.of_list code) 0) in
-
-  (* finds which type of item (MFuncImp) *)
-  (* let name =
-    match first_item with
-    | Language.MTyDecl {type_name;_} -> "type dec " ^ type_name
-    | Language.MValDecl {x = name; _} -> "val dec" ^ name
-    | Language.MMethodPred {x = name; _} -> "method pred " ^ name
-    | Language.MAxiom {name;_} -> "axiom " ^ name
-    | Language.MFuncImpRaw {name = {x = name; _};_} -> "Function Imp Raw" ^ name
-    | Language.MFuncImp {name = {x = name; _};_} -> "Function Imp "^ name
-    | Language.MRty {name;_} -> "Rty " ^ name
-  in *)
-  (* let term = if is_mtydecl then "True" else "False" *)
 
   (* converts the body into terms *)
   let (name, if_rec, body) = 
@@ -263,7 +240,6 @@ let final_program_to_string name if_rec new_body : string =
 
 
 let transform_program (config : string) (source : string ) = 
-
   (* temporarily removes open because poirot can't read it *)
   let ic = open_in source in
   let lines = ref [] in
@@ -287,7 +263,6 @@ let transform_program (config : string) (source : string ) =
   ) lines;
   close_out oc;
   
-
   let code = process config source () in
 
   (* adds open back *)
@@ -297,8 +272,6 @@ let transform_program (config : string) (source : string ) =
   output_string oc "open Frequency_combinators\n"; *)
   List.iter (fun line -> output_string oc (line ^ "\n")) lines;
   close_out oc;
-
-
 
   let code_arr = Array.of_list code in
   (* (gets the function and ignores the type annotation) *)
@@ -314,7 +287,7 @@ let transform_program (config : string) (source : string ) =
       let () = print_endline new_code in
 
       (* prints program to file *)
-      let filename = String.sub source 0 ( (String.length source) - 3) ^ "_trans.ml" in
+      let filename = String.sub source 0 ( (String.length source) - 3) ^ "_freq.ml" in
       let oc = open_out filename in
       output_string oc "open Combinators\n";
       output_string oc "open Frequency_combinators\n";

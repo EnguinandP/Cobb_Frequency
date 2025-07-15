@@ -5,9 +5,9 @@
   frequency_combinators)
  (modules
   sizedlist_trans
-  sizedlist_thunkified
+  ; sizedlist_thunkifieds
   ; sizedlist
   ; rbtree_trans
   ; test
-  test_trans
+  ; test_trans
   ))

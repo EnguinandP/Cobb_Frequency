@@ -42,7 +42,6 @@
     underapproximation_type.commands 
     underapproximation_type.syntax
     underapproximation_type.frontend_opt
-    Cobb_PBT.combinators
   ))
 
 (env
