@@ -18,7 +18,7 @@ let reset = 300
 (* 1-10 10-100 100-5000 *)
 (* uniform dist *)
 (* shapes of trees - nice distribution
-balanceness - duplicate elements - input to sizedlist bounds - parent -child difference can't control
+balanceness - duplicate elements - input to sizedlist bounds - parent -c shild difference can't control
 could control values at nodes different nat gens - number of elements/nodes in list/tree 
 - pressures precondition to not fail
 - reduce the error-ing out 
@@ -64,13 +64,36 @@ let rec collect n results f =
     let results = gen_value :: results in
     collect (n + 1) results f
 
-let exit_cond dist = dist <= 0.10
+let exit_cond dist goal = dist <= goal
 
-(* (dist, score) where score is distance from 10% *)
-let calc_score results feature_vector = 
-  let pass = List.fold_left (fun acc x -> if feature_vector x then acc +. 1. else acc) 0. results in
+(* (dist, score) feature vector is is nl, score is difference between distr and 10% *)
+let is_nil l = l = []
+let score_nil results goal = 
+  let pass = List.fold_left (fun acc x -> if is_nil x then acc +. 1. else acc) 0. results in
   let dist = pass /. float_of_int (List.length results) in
-  (dist, dist -. 0.10)
+  (dist, dist -. goal)
+
+(* feature vector is the percentage of black nodes 
+score is the difference of avg from .5 
+widest ratio of red to black internal nodes is 2 : 1 (only possible for even h)*)
+let rec count_rb (tree : int Combinators.rbtree ) (r , b) = 
+  match tree with
+  | Rbtleaf -> (r, b)
+  | Rbtnode (c, lt, _, rt) -> 
+    let (ltr, ltb) = count_rb lt (0,0) in
+    let (rtr, rtb) = count_rb rt (0,0) in
+    if c then 
+    (ltr + rtr + 1, ltb + rtb) else (ltr + rtr, ltb + rtb + 1)
+    
+let score_rbtree_rb (results : int Combinators.rbtree list) (goal : float) =
+  let pass = List.fold_left (fun acc x -> 
+    let (r, b) = count_rb x (0, 0) in
+    acc +. (float_of_int(b) /. float_of_int(r + b))
+    ) 0. results
+  in
+  let dist = pass /. float_of_int (List.length results) in
+  (dist, dist -. goal)
+  
 
 (* noise is normal/gaussian distribution using marsaglia-polar method *)
 let calc_noisy_score spare results goal feature_vector =
@@ -116,9 +139,6 @@ let calc_uniform results goal size =
   ) 0. results in
   chi_squared
   
-
-let is_nil l = l = []
-
 let is_uniform l =
   let rec aux acc = function
     | [] -> acc
@@ -221,7 +241,7 @@ let () =
       Printf.printf "Timed out";
       time_out_ref := true)
 
-let simulated_annealing (result_oc: out_channel) (gen : unit -> 'a list) (*(gen : unit -> float )*) (feature_vector : ('a list -> bool)) 
+let simulated_annealing (result_oc: out_channel) (gen : unit -> 'a) (calc_score : 'a list -> float -> float * float) (goal : float)
       (niter : int) print_all =
 
   let temp = init_temp in
@@ -230,7 +250,7 @@ let simulated_annealing (result_oc: out_channel) (gen : unit -> 'a list) (*(gen 
   print_labels extra_oc;
 
   let rec loop n temp direction curr_weight curr_score best_weight best_score best_dist count spare =
-      if n = niter || exit_cond best_dist then
+      if n = niter || exit_cond best_dist goal then
         (best_weight, best_score, best_dist)
       else 
 
@@ -244,7 +264,7 @@ let simulated_annealing (result_oc: out_channel) (gen : unit -> 'a list) (*(gen 
       let end_time : float = Unix.gettimeofday () in
 
       (* calculates score *)
-      let dist, cand_score = calc_score results feature_vector in
+      let dist, cand_score = calc_score results goal in
       (* calculates score with noise *)
       (* let cand_score, spare, dist = calc_noisy_score spare results goal feature_vector in *)
 
@@ -270,7 +290,7 @@ let simulated_annealing (result_oc: out_channel) (gen : unit -> 'a list) (*(gen 
   (best_weight, best_score, best_dist)
 
 
-let basin_hoppping (result_oc: out_channel) (gen) (feature_vector : ('a list -> bool)) (niter : int) print_all =
+let basin_hoppping (result_oc: out_channel) (gen) calc_score (niter : int) goal print_all =
   (* initial solution is stored in the ref *)
 
   let extra_oc = if print_all then Some result_oc else None in
@@ -282,7 +302,7 @@ let basin_hoppping (result_oc: out_channel) (gen) (feature_vector : ('a list -> 
     (* next step *)
     let _ = step_n_param best_weight in
     let results = collect 0 [] gen in
-    let dist, next_score = calc_score results feature_vector in
+    let dist, next_score = calc_score results goal in
     (* let results = gen () in
     let next_score, spare, dist = calc_noisy_score spare results feature_vector in *)
 
@@ -298,7 +318,7 @@ let basin_hoppping (result_oc: out_channel) (gen) (feature_vector : ('a list -> 
   ) in
 
   let rec loop curr_weight curr_min best_weight best_score best_dist n spare =
-    if n > niter || exit_cond best_dist then
+    if n > niter || exit_cond best_dist goal then
       (best_weight, best_score, best_dist)
     else 
       let temp = update_temp n in
@@ -338,7 +358,7 @@ let basin_hoppping (result_oc: out_channel) (gen) (feature_vector : ('a list -> 
 
   (best_weights, best_score, best_dist)
 
-let random_restart (result_oc: out_channel) (gen : unit -> 'a list) (feature_vector : ('a list -> bool)) (niter : int) algor =
+let random_restart (result_oc: out_channel) (gen : unit -> 'a) calc_score (goal : float) (niter : int) algor =
   let restart_interval = niter / 5 in
 
   (* let result_oc = open_out output in *)
@@ -354,7 +374,7 @@ let random_restart (result_oc: out_channel) (gen : unit -> 'a list) (feature_vec
         let new_start = Array.map (fun _ -> Random.int 1000) !weights in
         weights := new_start;
         (* Printf.printf "\n%d\n" !weights.(0); *)
-        let (weight, score, dist) = algor result_oc gen feature_vector restart_interval false in
+        let (weight, score, dist) = algor result_oc gen calc_score goal restart_interval false in
 
       if score < best_score then
         restart (n + 1) weight score dist
@@ -371,7 +391,7 @@ let random_restart (result_oc: out_channel) (gen : unit -> 'a list) (feature_vec
 
 let () = QCheck_runner.set_seed 42
 
-
+(* function examples *)
 (* 1 paramater functions *)
 let f1 () = 
   let x = float_of_int(!weights.(0)) in
@@ -408,7 +428,6 @@ let f6 () =
   let y = float_of_int(!weights.(1)) in
   -500. *. (sin x *. 30.) /. (x *. 40.) +. 80. *. sin (y /. 30.) /. (y /. 100.)
  
-
 (* 3 parameter functions *)
 
 let f7 () = 
@@ -421,23 +440,30 @@ let f7 () =
 (* sizedlist generator with size 10 *)
 let sizedlist () = Generators.Sizedlist_trans.sized_list_gen 10
 
+(* rb tree generator
+true = red 
+
+inv - tree height is 4 or 5
+color - red
+h - black height is 2 (patrick uses max height 6) *)
+
+let rbtree () = 
+  let height = 2 in
+  let color = true in
+  let inv = if color then 2 * height else (2 * height) + 1 in
+  Generators.Rbtree_freq.rbtree_gen inv color height
+
 let () = 
-
-  (* let l = sizedlist () in
-  print_int (List.length l);
-  print_newline ();
-  List.iter (Printf.printf "%d, ") l;
-  Printf.printf "\n";  *)
-
   let filename = "bin/results.result" in
   let oc = open_out filename in 
   let (w, s, d) = 
-    basin_hoppping
+    random_restart
       oc
-      (sizedlist)
-      (fun l -> l = [])
-      100
-      true
+      (rbtree)
+      score_rbtree_rb
+      0.5
+      5000
+      simulated_annealing
   in 
   close_out oc;
 

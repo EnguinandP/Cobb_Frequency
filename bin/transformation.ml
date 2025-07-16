@@ -2,6 +2,8 @@ open Mtyped
 open Term
 module Env = Zzenv
 
+(* TODO: add different transformation for multiple bool_gens *)
+
 (** calls poirot to get AST of source_file *)
 let process meta_config_file source_file () =
   let () = Env.load_meta meta_config_file in

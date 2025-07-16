@@ -7,7 +7,7 @@
   sizedlist_trans
   ; sizedlist_thunkifieds
   ; sizedlist
-  ; rbtree_trans
+  rbtree_freq
   ; test
   ; test_trans
   ))
