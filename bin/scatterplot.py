@@ -101,8 +101,8 @@ else:
     # plt.scatter(x[0], y[0], z[0], s=20, c='purple')
     # plt.text(x[0]+ 0.1, y[0], z[0], 'start', fontsize=9)
 
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
+    ax.set_xlabel('weight 1')
+    ax.set_ylabel('weight 2')
     ax.set_zlabel('score')
 
     plt.show()
