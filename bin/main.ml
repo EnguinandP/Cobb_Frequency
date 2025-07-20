@@ -49,11 +49,11 @@ tyche making sense of Property-Base Testing Effective *)
 
 (* for restart, checkc if stuck in neighborhood *)
 
-let rec collect n results f =
+let rec collect n results gen =
   (* if !time_out_ref then raise Timed_out; *)
   if n = sample_size then results
   else
-    let gen_value = f () in
+    let gen_value = gen () in
     (* let oc = open_out output in
     List.iter (Printf.fprintf oc "%d, ") gen_value;
     Printf.fprintf oc "\n"; 
@@ -62,7 +62,7 @@ let rec collect n results f =
   
     (* collects generated values in results *)
     let results = gen_value :: results in
-    collect (n + 1) results f
+    collect (n + 1) results gen
 
 let exit_cond dist goal = dist <= goal
 
@@ -85,7 +85,7 @@ let rec count_rb (tree : int Combinators.rbtree ) (r , b) =
     if c then 
     (ltr + rtr + 1, ltb + rtb) else (ltr + rtr, ltb + rtb + 1)
     
-let score_rbtree_rb (results : int Combinators.rbtree list) (goal : float) =
+let score_rbtree_black (results : int Combinators.rbtree list) (goal : float) =
   let pass = List.fold_left (fun acc x -> 
     let (r, b) = count_rb x (0, 0) in
     acc +. (float_of_int(b) /. float_of_int(r + b))
@@ -359,6 +359,8 @@ let basin_hoppping (result_oc: out_channel) (gen) calc_score (niter : int) goal 
   (best_weights, best_score, best_dist)
 
 let random_restart (result_oc: out_channel) (gen : unit -> 'a) calc_score (goal : float) (niter : int) algor =
+  let start_time = Unix.gettimeofday () in
+
   let restart_interval = niter / 5 in
 
   (* let result_oc = open_out output in *)
@@ -384,10 +386,10 @@ let random_restart (result_oc: out_channel) (gen : unit -> 'a) calc_score (goal 
       in
 
   let (best_weight, best_score, best_dist) = restart 0 !weights 100000. 1. in
-
+  let end_time = Unix.gettimeofday () in
   let _ = print_iterations result_oc "solution" best_weight best_score 0. 0. in
   (* close_out result_oc; *)
-  (best_weight, best_score, best_dist)
+  (best_weight, best_score, best_dist, (end_time -. start_time))
 
 let () = QCheck_runner.set_seed 42
 
@@ -429,7 +431,6 @@ let f6 () =
   -500. *. (sin x *. 30.) /. (x *. 40.) +. 80. *. sin (y /. 30.) /. (y /. 100.)
  
 (* 3 parameter functions *)
-
 let f7 () = 
   let x = float_of_int(!weights.(0)) in
   let y = float_of_int(!weights.(1)) in
@@ -446,31 +447,78 @@ true = red
 inv - tree height is 4 or 5
 color - red
 h - black height is 2 (patrick uses max height 6) *)
-
 let rbtree () = 
   let height = 2 in
   let color = true in
   let inv = if color then 2 * height else (2 * height) + 1 in
   Generators.Rbtree_freq.rbtree_gen inv color height
 
-let () = 
-  let filename = "bin/results.result" in
-  let oc = open_out filename in 
-  let (w, s, d) = 
+(* print to stdout
+print to csv file
+
+Test 1: Sizedlist_gen - dist of nil
+Goal: 0.5
+Ran 5000 iterations
+
+Initial:     dist     time
+              %f        %f
+
+  Final:     dist     time
+              %f        %f
+
+*)
+
+(* meta parameters *)
+let iterations = 5000
+
+let evaluate ?(print_stdout=true) (gen : unit -> 'a) (score_function : 'a list -> float -> float * float) (goal : float) (*(name : string)*) =
+
+  (* run initial *)
+  let test_oc = if (print_stdout) then
+    stdout
+  else
+    let filename = "bin/results.csv" in
+    open_out filename
+  in
+
+  let start_time = Unix.gettimeofday () in
+  let results = collect 0 [] gen in
+  let end_time : float = Unix.gettimeofday () in
+  let init_dist, _ = score_function results 0. in
+
+
+  (* print initial *)
+  Printf.fprintf test_oc 
+    "\nTest 1: Sizedlist_gen - dist of nil\nGoal: distr <= %.2f\nRan %d iterations\n\n" 
+    goal iterations;
+  Printf.fprintf test_oc "%8s %8s %8s\n" "" "dist" "time";
+  Printf.fprintf test_oc "%s\n" (String.make 30 '-');
+  (* Printf.fprintf test_oc "%8s" "Initial:"; *)
+  Printf.fprintf test_oc "%8s %8.2f %8.4fs\n\n" "Initial:" init_dist (end_time -. start_time);
+
+
+  (* run with adjustment *)
+  let oc = open_out "bin/iterations.csv" in 
+  let (w, s, final_dist, time) = 
     random_restart
       oc
-      (rbtree)
-      score_rbtree_rb
-      0.5
-      5000
+      rbtree
+      score_rbtree_black
+      goal
+      iterations
       simulated_annealing
   in 
   close_out oc;
 
-  (* Printf.printf "solution: (%d, %d) %f\n" w.(0) w.(1) s; *)
-  Printf.printf "distribution: %f \nweights: (" d;
-  Array.iter (fun x -> Printf.printf "%d," x) w;
-  Printf.printf ")\nscore: %f\n" s;
+  (* Printf.fprintf test_oc "%8s\n" "Final:"; *)
+  Printf.fprintf test_oc "%8s %8.2f %8.4fs\n\n" "Final:" final_dist time;
+
+
+  ()
+
+let () = 
+  evaluate rbtree score_rbtree_black 0.4
+
 
 
 
