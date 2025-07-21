@@ -298,12 +298,43 @@ let transform_program (config : string) (source : string ) =
     | None -> ()
   done
 
+let source = ref "" 
+let all = ref false
+let usage_msg = "Usage: dune exec transformation [-d] <program_file>"
+
+let anon_fun file = source := file
+let speclist = [
+  ("-a", Arg.Set all, "Transform all files in directory")
+] 
 
 let () =
   try 
     let config_file = "meta-config.json" in
-    let source_file = Array.get Sys.argv 1 in
+    
+    Arg.parse speclist anon_fun usage_msg;
+(* 
+    let text = "hello123world" in
+let re = Str.regexp "[0-9]+" in
+if Str.string_match re text 0 then
+  Printf.printf "Matched: %s\n" ( text)
+else
+  Printf.printf "No match\n"; *)
 
-    transform_program config_file source_file 
+    (* let source_file = Array.get Sys.argv 1 in *)
+
+    if (!all) then
+      try let files = Sys.readdir !source in
+        Array.iter (fun (s:string) ->
+          if (String.ends_with ~suffix:".ml" s) && (not (String.ends_with ~suffix:"_freq.ml" s )) then 
+            transform_program config_file (!source ^ "/" ^ s)
+            (* print_endline s *)
+          else ()
+            ) 
+          files
+        with 
+          | Sys_error s -> print_endline s
+    else
+      (* print_endline !source *)
+      transform_program config_file !source 
   with
    | Invalid_argument s -> print_endline "Usage: dune exec transformation program_file"

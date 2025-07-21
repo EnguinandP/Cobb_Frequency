@@ -4,10 +4,10 @@
   Cobb_PBT.combinators
   frequency_combinators)
  (modules
-  sizedlist_trans
-  ; sizedlist_thunkifieds
-  ; sizedlist
+  completetree_freq
+  depthbst_freq
+  duplicatelist_freq
+  evenlist_freq
   rbtree_freq
-  ; test
-  ; test_trans
+  sizedlist_freq
   ))

@@ -42,6 +42,7 @@
     underapproximation_type.commands 
     underapproximation_type.syntax
     underapproximation_type.frontend_opt
+    str
   ))
 
 (env
