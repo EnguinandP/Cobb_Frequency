@@ -20,7 +20,8 @@ let is_bool_gen (s : ('t, string) typed) : bool =
 (** recursively traverses through AST to find and replace bool_gen with frequency_gen *)
 let rec replace_bool_gen (t : ('t, 't term) typed) : ('t, 't term) typed = 
   t #-> ( function
-  | CErr -> CErr
+  | CErr ->     (* raise Bailout *)
+    CVal { x = VVar ("raise BailOut" #: Nt.Ty_any); ty = Nt.Ty_any}
   | CVal t -> CVal t #-> replace_bool_gen_value
   (* thunkifies branches *)
   | CLetE { 
@@ -52,7 +53,7 @@ let rec replace_bool_gen (t : ('t, 't term) typed) : ('t, 't term) typed =
               appf = { x = VVar ("get_weight_idx" #: ty); ty = Nt.Ty_any};
               apparg = {x = VConst (I 1); ty = Nt.Ty_any};
             }; ty = Nt.Ty_any}; 
-            body = { x = CLetE {    (* let (base_case) = frequency_gen_list_new (w0, []) *)
+            body = { x = CLetE {    (* let (base_case) = frequency_gen (w0, []) *)
               lhs = ("base_case" #: ty);
               rhs = { x = CApp { 
                 appf = { x = VVar (replace_bool_gen_string "bool_gen"#:ty); ty = ty2}; 
@@ -159,7 +160,7 @@ and replace_bool_gen_value (v : 't value) =
   match v with 
   | VConst _ -> v
   (* bool_gen is a VVar *)
-  | VVar s -> 
+  | VVar s -> (* TODO: rewrite this *)
     if s.x = "bool_gen" then
       VVar (replace_bool_gen_string s)
     else
@@ -242,42 +243,12 @@ let final_program_to_string name if_rec new_body : string =
 
 
 let transform_program (config : string) (source : string ) = 
-  (* temporarily removes open because poirot can't read it *)
-  let ic = open_in source in
-  let lines = ref [] in
-
-  try
-    while true do
-      let line = input_line ic in
-      lines := line :: !lines
-    done
-  with 
-    End_of_file -> close_in ic;
-  
-  let lines = List.rev !lines in
-
-  let oc = open_out source in
-  List.iter (fun line -> 
-    match line with
-    | _ when String.length line >= 4 && String.sub line 0 4 <> "open" ->
-      output_string oc (line ^ "\n");
-    | _ -> ()
-  ) lines;
-  close_out oc;
   
   let code = process config source () in
-
-  (* adds open back *)
-
-  let oc = open_out source in
-  (* output_string oc "open Combinators\n";
-  output_string oc "open Frequency_combinators\n"; *)
-  List.iter (fun line -> output_string oc (line ^ "\n")) lines;
-  close_out oc;
-
   let code_arr = Array.of_list code in
+
   (* (gets the function and ignores the type annotation) *)
-  print_int (Array.length code_arr);
+  (* print_int (Array.length code_arr); *)
   for x = 0 to (Array.length code_arr) - 1 do
     match get_function code_arr.(x) with
     | Some (name, if_rec, body) -> 
@@ -300,7 +271,7 @@ let transform_program (config : string) (source : string ) =
 
 let source = ref "" 
 let all = ref false
-let usage_msg = "Usage: dune exec transformation [-d] <program_file>"
+let usage_msg = "Usage: dune exec transformation [-a] <program_file>"
 
 let anon_fun file = source := file
 let speclist = [
@@ -312,29 +283,17 @@ let () =
     let config_file = "meta-config.json" in
     
     Arg.parse speclist anon_fun usage_msg;
-(* 
-    let text = "hello123world" in
-let re = Str.regexp "[0-9]+" in
-if Str.string_match re text 0 then
-  Printf.printf "Matched: %s\n" ( text)
-else
-  Printf.printf "No match\n"; *)
-
-    (* let source_file = Array.get Sys.argv 1 in *)
 
     if (!all) then
-      try let files = Sys.readdir !source in
+      let files = Sys.readdir !source in
         Array.iter (fun (s:string) ->
           if (String.ends_with ~suffix:".ml" s) && (not (String.ends_with ~suffix:"_freq.ml" s )) then 
             transform_program config_file (!source ^ "/" ^ s)
-            (* print_endline s *)
-          else ()
-            ) 
+          else ()) 
           files
-        with 
-          | Sys_error s -> print_endline s
+        (* with  *)
     else
-      (* print_endline !source *)
       transform_program config_file !source 
   with
-   | Invalid_argument s -> print_endline "Usage: dune exec transformation program_file"
+  | Invalid_argument s -> print_endline "Usage: dune exec transformation [-a] <program_file>"
+  | Sys_error s -> print_endline s

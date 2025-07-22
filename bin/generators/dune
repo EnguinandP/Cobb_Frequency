@@ -10,4 +10,5 @@
   evenlist_freq
   rbtree_freq
   sizedlist_freq
+  sortedlist_freq
   ))

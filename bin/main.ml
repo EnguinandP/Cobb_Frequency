@@ -438,8 +438,27 @@ let f7 () =
 
   -500. *.  (sin x *. 30.) /. (x *. 40.) +. 80. *. sin (y /. 30.) /. (y /. 100.) +. z
 
+(* duplicate list generator with size 10 and x = 5 *)
+let duplicatelist () =
+  let size = 10 in
+  let x = 5 in
+  Generators.Duplicatelist_freq.duplicate_list_gen size x
+
+let evenlist () = 
+  let size = 10 in
+  Generators.Evenlist_freq.even_list_gen size
+
 (* sizedlist generator with size 10 *)
-let sizedlist () = Generators.Sizedlist_trans.sized_list_gen 10
+let sizedlist () = 
+  let size = 10 in
+  Generators.Sizedlist_freq.sized_list_gen size
+
+let sortedlist () =
+  let size = 10 in
+  let x = 5 in
+  try Some (Generators.Sortedlist_freq.sorted_list_gen size x)
+  with Combinators.BailOut -> None
+
 
 (* rb tree generator
 true = red 
