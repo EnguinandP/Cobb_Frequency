@@ -4,6 +4,43 @@ module Env = Zzenv
 
 (* TODO: add different transformation for multiple bool_gens *)
 
+let rec has_recursive_call (t : ('t, 't term) typed) (name : string) =
+match t.x with
+  | CErr -> false
+  | CVal t -> has_recursive_call_value name t.x
+  | CLetE { lhs; rhs; body} -> 
+      (has_recursive_call rhs name) &&
+      (has_recursive_call body name)
+  | CLetDeTu { turhs; tulhs; body} ->
+      (has_recursive_call_value name turhs.x) &&
+      (has_recursive_call body name)
+  | CApp { appf; apparg} ->
+      (has_recursive_call_value name appf.x) &&
+      (has_recursive_call_value name apparg.x);
+  | CAppOp {op; appopargs} -> 
+      List.fold_left (fun (acc:bool) x -> 
+            acc || (has_recursive_call_value name x.x)) false appopargs
+  | CMatch { matched; match_cases } ->
+    (has_recursive_call_value name matched.x) &&
+        List.fold_left (fun (acc:bool) (CMatchcase {constructor; args; exp}) -> 
+            acc || (has_recursive_call exp name)) false match_cases
+and has_recursive_call_value (name : string) (v : 't value) =
+  match v with 
+  | VConst _ -> has_recursive_call_value name v
+  (* bool_gen is a VVar *)
+  | VVar s ->
+    if s.x = name then
+      true
+    else
+      false
+  | VLam {lamarg; body} -> 
+      has_recursive_call body name
+  | VFix { fixname; fixarg; body } -> 
+      has_recursive_call body name
+  | VTu l -> 
+    List.fold_left (fun (acc:bool) x -> 
+      acc || (has_recursive_call_value name x.x)) false l
+
 (** calls poirot to get AST of source_file *)
 let process meta_config_file source_file () =
   let () = Env.load_meta meta_config_file in
@@ -18,11 +55,11 @@ let is_bool_gen (s : ('t, string) typed) : bool =
   s.x = "bool_gen"
 
 (** recursively traverses through AST to find and replace bool_gen with frequency_gen *)
-let rec replace_bool_gen (t : ('t, 't term) typed) : ('t, 't term) typed = 
+let rec replace_bool_gen (t : ('t, 't term) typed) (name : string) : ('t, 't term) typed = 
   t #-> ( function
   | CErr ->     (* raise Bailout *)
     CVal { x = VVar ("raise BailOut" #: Nt.Ty_any); ty = Nt.Ty_any}
-  | CVal t -> CVal t #-> replace_bool_gen_value
+  | CVal t -> CVal t #-> (replace_bool_gen_value name)
   (* thunkifies branches *)
   | CLetE { 
       lhs; 
@@ -61,7 +98,11 @@ let rec replace_bool_gen (t : ('t, 't term) typed) : ('t, 't term) typed =
                   { x = VVar ("w0" #: Nt.Ty_any); ty = Nt.Ty_any};
                   { x = VLam {
                       lamarg = ("_" #: ty); 
-                      body = exp1;
+                      body = 
+                        if not (has_recursive_call exp1 name) then
+                          exp1 
+                        else 
+                          exp2;
                   }; ty = Nt.Ty_any}; ]    
                   ; ty = Nt.Ty_any (* placeholder *) }
                 }; ty = ty3 }; 
@@ -73,7 +114,11 @@ let rec replace_bool_gen (t : ('t, 't term) typed) : ('t, 't term) typed =
                     { x = VVar ("w1" #: Nt.Ty_any); ty = Nt.Ty_any};
                     { x = VLam {
                         lamarg = ("_" #: ty); 
-                        body = exp2;
+                        body = 
+                          if (has_recursive_call exp1 name) then
+                            exp1 
+                          else 
+                            exp2;
                     }; ty = Nt.Ty_any}; ]    
                     ; ty = Nt.Ty_any (* placeholder *) }
                 }; ty = Nt.Ty_any};
@@ -84,24 +129,24 @@ let rec replace_bool_gen (t : ('t, 't term) typed) : ('t, 't term) typed =
   | CLetE { lhs; rhs; body} -> 
     CLetE {
       lhs;
-      rhs = replace_bool_gen rhs;
-      body = replace_bool_gen body
+      rhs = replace_bool_gen rhs name;
+      body = replace_bool_gen body name
     }
   | CLetDeTu { turhs; tulhs; body} ->
     CLetDeTu {
-      turhs = turhs #-> replace_bool_gen_value;
+      turhs = turhs #-> (replace_bool_gen_value name);
       tulhs; 
-      body = replace_bool_gen body;
+      body = replace_bool_gen body name;
     }
   | CApp { appf; apparg} ->
     CApp {
-      appf = appf #-> replace_bool_gen_value;
-      apparg = apparg #-> replace_bool_gen_value;
+      appf = appf #-> (replace_bool_gen_value name);
+      apparg = apparg #-> (replace_bool_gen_value name);
   }
   | CAppOp {op; appopargs} -> 
     CAppOp {
       op;
-      appopargs = (List.map (function y -> y #-> replace_bool_gen_value ) appopargs)
+      appopargs = (List.map (function y -> y #-> (replace_bool_gen_value name) ) appopargs)
     }
   | CMatch
   (* To rewrite matches on True/False to true/false, from Cobb_postprocess*)
@@ -132,31 +177,31 @@ let rec replace_bool_gen (t : ('t, 't term) typed) : ('t, 't term) typed =
                 {
                   constructor = "true"#:ty_t;
                   args = [];
-                  exp = replace_bool_gen exp1;
+                  exp = replace_bool_gen exp1 name;
                 };
               CMatchcase
                 {
                   constructor = "false"#:ty_f;
                   args = [];
-                  exp = replace_bool_gen exp2;
+                  exp = replace_bool_gen exp2 name;
                 };
             ];
         }
   | CMatch { matched; match_cases } ->
     CMatch {
-      matched = matched #-> replace_bool_gen_value;
+      matched = matched #-> (replace_bool_gen_value name);
       match_cases =
         List.map (function (CMatchcase {constructor; args; exp}) -> 
           CMatchcase {
             constructor;
             args;
-            exp = replace_bool_gen exp;
+            exp = replace_bool_gen exp name;
           }
         )
         match_cases
     }
   )
-and replace_bool_gen_value (v : 't value) =
+and replace_bool_gen_value (name : string) (v : 't value) =
   match v with 
   | VConst _ -> v
   (* bool_gen is a VVar *)
@@ -168,17 +213,17 @@ and replace_bool_gen_value (v : 't value) =
   | VLam {lamarg; body} -> 
     VLam  {
       lamarg;
-      body = replace_bool_gen body;
+      body = replace_bool_gen body name;
     }
   | VFix { fixname; fixarg; body } -> 
     VFix {
       fixname;
       fixarg;
-      body = replace_bool_gen body;
+      body = replace_bool_gen body name;
     }
   | VTu l -> 
     (* tuples *)
-    VTu (List.map (function y -> y #-> replace_bool_gen_value ) l)
+    VTu (List.map (function y -> y #-> (replace_bool_gen_value name)) l)
 
 (* #-> applies function to arg, returning it as `typed` *)
 
@@ -187,6 +232,10 @@ let get_function = function
 | Language.MFuncImp {name; if_rec;body; _} -> Some (name, if_rec, body) 
 | _ -> None
 
+let test2 (x:int) = if x > 5 then true else false
+
+let test =
+  List.fold_left (fun acc x -> acc && (test2 x)) true [12;3;4;5;]
 
 let get_value_constructor (v : 't value) =
   match v with 
@@ -253,11 +302,11 @@ let transform_program (config : string) (source : string ) =
     match get_function code_arr.(x) with
     | Some (name, if_rec, body) -> 
       (* replaces bool_gen with frequency_gen*)
-      let new_body = replace_bool_gen body in
+      let new_body = replace_bool_gen body name.x in
       let new_code = final_program_to_string name if_rec new_body in
       
       (* prints new body *)
-      let () = print_endline new_code in
+      (* let () = print_endline new_code in *)
 
       (* prints program to file *)
       let filename = String.sub source 0 ( (String.length source) - 3) ^ "_freq.ml" in
@@ -288,7 +337,9 @@ let () =
       let files = Sys.readdir !source in
         Array.iter (fun (s:string) ->
           if (String.ends_with ~suffix:".ml" s) && (not (String.ends_with ~suffix:"_freq.ml" s )) then 
-            transform_program config_file (!source ^ "/" ^ s)
+            let file = (!source ^ "/" ^ s) in
+            Printf.printf "Syntactically transformed %s\n" file;
+            transform_program config_file file
           else ()) 
           files
         (* with  *)

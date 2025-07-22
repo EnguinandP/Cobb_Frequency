@@ -472,20 +472,6 @@ let rbtree () =
   let inv = if color then 2 * height else (2 * height) + 1 in
   Generators.Rbtree_freq.rbtree_gen inv color height
 
-(* print to stdout
-print to csv file
-
-Test 1: Sizedlist_gen - dist of nil
-Goal: 0.5
-Ran 5000 iterations
-
-Initial:     dist     time
-              %f        %f
-
-  Final:     dist     time
-              %f        %f
-
-*)
 
 (* meta parameters *)
 let iterations = 5000
@@ -517,6 +503,7 @@ let evaluate ?(print_stdout=true) (gen : unit -> 'a) (score_function : 'a list -
 
 
   (* run with adjustment *)
+  (* weights := [|1000,1000,1000,1000|]; *)
   let oc = open_out "bin/iterations.csv" in 
   let (w, s, final_dist, time) = 
     random_restart
@@ -529,11 +516,8 @@ let evaluate ?(print_stdout=true) (gen : unit -> 'a) (score_function : 'a list -
   in 
   close_out oc;
 
-  (* Printf.fprintf test_oc "%8s\n" "Final:"; *)
-  Printf.fprintf test_oc "%8s %8.2f %8.4fs\n\n" "Final:" final_dist time;
-
-
-  ()
+  (* Print final results *)
+  Printf.fprintf test_oc "%8s %8.2f %8.4fs\n\n" "Final:" final_dist time
 
 let () = 
   evaluate rbtree score_rbtree_black 0.4
