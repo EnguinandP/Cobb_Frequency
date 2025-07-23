@@ -2,12 +2,14 @@ module Env = Zzenv
 open Frequency_combinators
 open Stdlib
 
+(* meta parameters *)
+let iterations = 5000
 let init_temp = 300. (* 300 *) 
 (* scipy default temperature is 5230 *)
 let sample_size = 1000
 let step_size = 1
 let step_range = (1, 20)
-let reset = 300
+let n_reset = 5
 
 (* observation: simulated annealing will get stuck in a local min when 
 - temp is low 
@@ -68,10 +70,15 @@ let exit_cond dist goal = dist <= goal
 
 (* (dist, score) feature vector is is nl, score is difference between distr and 10% *)
 let is_nil l = l = []
-let score_nil results goal = 
+let score_nil gen goal = 
+  (* collecting results *)
+  let start_time = Unix.gettimeofday () in
+  let results = collect 0 [] gen in
+  let end_time : float = Unix.gettimeofday () in
+
   let pass = List.fold_left (fun acc x -> if is_nil x then acc +. 1. else acc) 0. results in
   let dist = pass /. float_of_int (List.length results) in
-  (dist, dist -. goal)
+  (dist, dist -. goal, (end_time -. start_time))
 
 (* feature vector is the percentage of black nodes 
 score is the difference of avg from .5 
@@ -85,14 +92,36 @@ let rec count_rb (tree : int Combinators.rbtree ) (r , b) =
     if c then 
     (ltr + rtr + 1, ltb + rtb) else (ltr + rtr, ltb + rtb + 1)
     
-let score_rbtree_black (results : int Combinators.rbtree list) (goal : float) =
+let score_rbtree_black (*(results : int Combinators.rbtree list)*) gen (goal : float) =
+  (* collecting results *)
+  let start_time = Unix.gettimeofday () in
+  let results = collect 0 [] gen in
+  let end_time : float = Unix.gettimeofday () in
+  
   let pass = List.fold_left (fun acc x -> 
     let (r, b) = count_rb x (0, 0) in
     acc +. (float_of_int(b) /. float_of_int(r + b))
     ) 0. results
   in
   let dist = pass /. float_of_int (List.length results) in
-  (dist, dist -. goal)
+  (dist, dist -. goal, (end_time -. start_time))
+
+(* let count_bailout n gen count =
+  if n >= sample_size then
+    count
+  else
+    let count = 
+    try
+      let _ = gen ();
+      count
+    with 
+    | Combinators.BailOut -> count + 1
+  in
+
+let score_bailout gen (goal : float) =  *)
+
+
+
   
 
 (* noise is normal/gaussian distribution using marsaglia-polar method *)
@@ -241,7 +270,7 @@ let () =
       Printf.printf "Timed out";
       time_out_ref := true)
 
-let simulated_annealing (result_oc: out_channel) (gen : unit -> 'a) (calc_score : 'a list -> float -> float * float) (goal : float)
+let simulated_annealing (result_oc: out_channel) (gen : unit -> 'a) calc_score (goal : float)
       (niter : int) print_all =
 
   let temp = init_temp in
@@ -259,16 +288,16 @@ let simulated_annealing (result_oc: out_channel) (gen : unit -> 'a) (calc_score 
       let temp = update_temp n in
     
       (* collecting results *)
-      let start_time = Unix.gettimeofday () in
+      (* let start_time = Unix.gettimeofday () in
       let results = collect 0 [] gen in
-      let end_time : float = Unix.gettimeofday () in
+      let end_time : float = Unix.gettimeofday () in *)
 
       (* calculates score *)
-      let dist, cand_score = calc_score results goal in
+      let (dist, cand_score, time) = calc_score gen goal in
       (* calculates score with noise *)
       (* let cand_score, spare, dist = calc_noisy_score spare results goal feature_vector in *)
 
-      let _ = print_iterations result_oc (string_of_int n) curr_weight cand_score dist (end_time -. start_time) in
+      let _ = print_iterations result_oc (string_of_int n) curr_weight cand_score dist (time) in
 
       (* when score is worse, e^+ -> true *)
       if Random.float 1.0 < Float.exp (-. (cand_score -. curr_score) /. temp) then
@@ -361,7 +390,7 @@ let basin_hoppping (result_oc: out_channel) (gen) calc_score (niter : int) goal 
 let random_restart (result_oc: out_channel) (gen : unit -> 'a) calc_score (goal : float) (niter : int) algor =
   let start_time = Unix.gettimeofday () in
 
-  let restart_interval = niter / 5 in
+  let restart_interval = niter / n_reset in
 
   (* let result_oc = open_out output in *)
   print_labels (Some result_oc);
@@ -371,7 +400,6 @@ let random_restart (result_oc: out_channel) (gen : unit -> 'a) calc_score (goal 
     if n >= 5 then
       (best_weight, best_score, best_dist)
     else
-        (* new location between -1000 and 1000 *)
         (* new location between 0 and 1000 *)
         let new_start = Array.map (fun _ -> Random.int 1000) !weights in
         weights := new_start;
@@ -472,34 +500,41 @@ let rbtree () =
   let inv = if color then 2 * height else (2 * height) + 1 in
   Generators.Rbtree_freq.rbtree_gen inv color height
 
+let completetree () =
+  let size = 10 in
+  Generators.Completetree_freq.complete_tree_gen size
 
-(* meta parameters *)
-let iterations = 5000
+let depthbst () = 
+  let depth = 5 in
+  let low = 0 in
+  let high = 100 in
+  Generators.Depthbst_freq.size_bst_gen depth low high
 
-let evaluate ?(print_stdout=true) (gen : unit -> 'a) (score_function : 'a list -> float -> float * float) (goal : float) (*(name : string)*) =
+
+let evaluate ?(print_stdout=true) ?(test_oc=stdout) (gen : unit -> 'a) score_function (goal : float) (name : string) =
 
   (* run initial *)
-  let test_oc = if (print_stdout) then
+  (* let test_oc = if (print_stdout) then
     stdout
   else
-    let filename = "bin/results.csv" in
+    let filename = "bin/results" in
     open_out filename
-  in
+  in *)
 
-  let start_time = Unix.gettimeofday () in
+  (* let start_time = Unix.gettimeofday () in
   let results = collect 0 [] gen in
-  let end_time : float = Unix.gettimeofday () in
-  let init_dist, _ = score_function results 0. in
+  let end_time : float = Unix.gettimeofday () in *)
+  let init_dist, _, time = score_function gen 0. in
 
 
   (* print initial *)
   Printf.fprintf test_oc 
-    "\nTest 1: Sizedlist_gen - dist of nil\nGoal: distr <= %.2f\nRan %d iterations\n\n" 
-    goal iterations;
+    "Test: %s\nGoal: distr <= %.2f\nRan %d iterations\n\n" 
+    name goal iterations;
   Printf.fprintf test_oc "%8s %8s %8s\n" "" "dist" "time";
   Printf.fprintf test_oc "%s\n" (String.make 30 '-');
   (* Printf.fprintf test_oc "%8s" "Initial:"; *)
-  Printf.fprintf test_oc "%8s %8.2f %8.4fs\n\n" "Initial:" init_dist (end_time -. start_time);
+  Printf.fprintf test_oc "%8s %8.2f %8.4fs\n\n" "Initial:" init_dist (time);
 
 
   (* run with adjustment *)
@@ -508,8 +543,8 @@ let evaluate ?(print_stdout=true) (gen : unit -> 'a) (score_function : 'a list -
   let (w, s, final_dist, time) = 
     random_restart
       oc
-      rbtree
-      score_rbtree_black
+      gen
+      score_function
       goal
       iterations
       simulated_annealing
@@ -517,10 +552,20 @@ let evaluate ?(print_stdout=true) (gen : unit -> 'a) (score_function : 'a list -
   close_out oc;
 
   (* Print final results *)
-  Printf.fprintf test_oc "%8s %8.2f %8.4fs\n\n" "Final:" final_dist time
+  Printf.fprintf test_oc "%8s %8.2f %8.4fs\n\n\n" "Final:" final_dist time
+  (* if (print_stdout) then
+    ()
+  else
+    close_out test_oc *)
 
 let () = 
-  evaluate rbtree score_rbtree_black 0.4
+  let p = false in
+  (* let result_oc = stdout in *)
+  let result_oc = open_out "bin/results" in
+  evaluate sizedlist score_nil 0.1 "sizedlist_gen - dist of lists that are nil" ~print_stdout:p ~test_oc:result_oc;
+  evaluate rbtree score_rbtree_black 0.3 "rbt_tree - avg of black nodes in a tree" ~print_stdout:p ~test_oc:result_oc;
+  evaluate rbtree score_rbtree_black 0.4 "rbt_tree - avg of black nodes in a tree" ~print_stdout:p ~test_oc:result_oc;
+  close_out result_oc
 
 
 

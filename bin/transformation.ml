@@ -4,6 +4,15 @@ module Env = Zzenv
 
 (* TODO: add different transformation for multiple bool_gens *)
 
+(** calls poirot to get AST of source_file *)
+let process meta_config_file source_file () =
+  let () = Env.load_meta meta_config_file in
+  let code = Commands.Cre.preprocess source_file () in
+  code
+
+
+
+(** recursively traverses through AST to find if it calls the recusive function specified by name *)
 let rec has_recursive_call (t : ('t, 't term) typed) (name : string) =
 match t.x with
   | CErr -> false
@@ -41,12 +50,6 @@ and has_recursive_call_value (name : string) (v : 't value) =
     List.fold_left (fun (acc:bool) x -> 
       acc || (has_recursive_call_value name x.x)) false l
 
-(** calls poirot to get AST of source_file *)
-let process meta_config_file source_file () =
-  let () = Env.load_meta meta_config_file in
-  let code = Commands.Cre.preprocess source_file () in
-  code
-
 (** returns "frequency_gen" as ('t, string) typed *)
 let replace_bool_gen_string (s : ('t, string) typed) : ('t, string) typed = 
   s #-> (function _ -> "frequency_gen_list")
@@ -78,24 +81,24 @@ let rec replace_bool_gen (t : ('t, 't term) typed) (name : string) : ('t, 't ter
             exp = exp2;
           };
       ]; }; ty = ty4} } ->
-        CLetE {     (* w0 = get_weight_idx *)
-          lhs = ("w0" #: ty);
+        CLetE {     (* w_base = get_weight_idx 0 *)
+          lhs = ("w_base" #: ty);
           rhs = { x = CApp {
             appf = { x = VVar ("get_weight_idx" #: ty); ty = Nt.Ty_any};
             apparg = {x = VConst (I 0); ty = Nt.Ty_any};
           }; ty = Nt.Ty_any}; 
-          body = { x = CLetE {    (* w1 = get_weight_idx *)
-            lhs = ("w1" #: ty);
+          body = { x = CLetE {    (* w_recursive = get_weight_idx 1 *)
+            lhs = ("w_recursive" #: ty);
             rhs = { x = CApp {
               appf = { x = VVar ("get_weight_idx" #: ty); ty = Nt.Ty_any};
               apparg = {x = VConst (I 1); ty = Nt.Ty_any};
             }; ty = Nt.Ty_any}; 
-            body = { x = CLetE {    (* let (base_case) = frequency_gen (w0, []) *)
+            body = { x = CLetE {    (* let (base_case) = frequency_gen (w_base, []) *)
               lhs = ("base_case" #: ty);
               rhs = { x = CApp { 
                 appf = { x = VVar (replace_bool_gen_string "bool_gen"#:ty); ty = ty2}; 
                 apparg = { x = VTu [
-                  { x = VVar ("w0" #: Nt.Ty_any); ty = Nt.Ty_any};
+                  { x = VVar ("w_base" #: Nt.Ty_any); ty = Nt.Ty_any};
                   { x = VLam {
                       lamarg = ("_" #: ty); 
                       body = 
@@ -106,12 +109,12 @@ let rec replace_bool_gen (t : ('t, 't term) typed) (name : string) : ('t, 't ter
                   }; ty = Nt.Ty_any}; ]    
                   ; ty = Nt.Ty_any (* placeholder *) }
                 }; ty = ty3 }; 
-              body = { x = CLetE {    (* let (recursive_case) = base_case (w0, ...) *)
+              body = { x = CLetE {    (* let (recursive_case) = base_case (w_base, ...) *)
                 lhs = ("recursive_case" #: ty);
                 rhs = { x = CApp {
                   appf = { x = VVar ("base_case" #: ty); ty = Nt.Ty_any};
                   apparg = { x = VTu [
-                    { x = VVar ("w1" #: Nt.Ty_any); ty = Nt.Ty_any};
+                    { x = VVar ("w_recursive" #: Nt.Ty_any); ty = Nt.Ty_any};
                     { x = VLam {
                         lamarg = ("_" #: ty); 
                         body = 
@@ -232,11 +235,6 @@ let get_function = function
 | Language.MFuncImp {name; if_rec;body; _} -> Some (name, if_rec, body) 
 | _ -> None
 
-let test2 (x:int) = if x > 5 then true else false
-
-let test =
-  List.fold_left (fun acc x -> acc && (test2 x)) true [12;3;4;5;]
-
 let get_value_constructor (v : 't value) =
   match v with 
   | VConst _-> "const"
@@ -291,8 +289,11 @@ let final_program_to_string name if_rec new_body : string =
   Frontend_opt.To_item.layout_item reconstructed_body
 
 
-let transform_program (config : string) (source : string ) = 
-  
+let frequify_program (config : string) (source : string ) = 
+  (* try  *)
+
+  (* let ic = open_in source in  *)
+
   let code = process config source () in
   let code_arr = Array.of_list code in
 
@@ -317,6 +318,54 @@ let transform_program (config : string) (source : string ) =
       close_out oc
     | None -> ()
   done
+(* with
+      | Failure s -> 
+        (* processs can't read open ... *)
+        print_endline "fixing file";
+        let ic = open_in source in
+        (* let oc = open_out "temp" in *)
+
+        let lines = ref [] in
+
+        (* throw out first line (open ...) *)
+        let _ = input_line ic in
+
+        try
+          while true do
+            let line = input_line ic in
+            (* Printf.fprintf oc "%s\n" line; *)
+            print_endline line;
+            lines := line :: !lines
+          done
+        with End_of_file -> close_in ic;
+
+        let oc = open_out source in
+        List.iter (fun x -> Printf.fprintf oc "%s\n" x) !lines;
+        close_out oc;
+
+        frequify_program config source *)
+
+(* let rewrite_freq (source : string) (w_base : int) (w_recursive : int)=
+  let lines = ref [] in
+  let ic = open_in source in
+
+  try while true do
+    let line = input_line ic in
+    (* print_endline line; *)
+    if line = "      let (w0) = get_weight_idx 0 in" then
+      let l = String.split_on_char '=' line in
+      print_endline (Array.of_list l).(0);
+      print_endline (Array.of_list l).(1);
+      lines := ((Array.of_list l).(0) ^ "= " ^ (string_of_int w_base)) :: !lines
+    else
+      lines := line :: !lines
+  done
+  with End_of_file -> close_in ic;
+
+  let oc = open_out source in
+
+  let _ = List.iter (fun x -> Printf.fprintf oc "%s" x) !lines in
+  () *)
 
 let source = ref "" 
 let all = ref false
@@ -339,12 +388,12 @@ let () =
           if (String.ends_with ~suffix:".ml" s) && (not (String.ends_with ~suffix:"_freq.ml" s )) then 
             let file = (!source ^ "/" ^ s) in
             Printf.printf "Syntactically transformed %s\n" file;
-            transform_program config_file file
+            frequify_program config_file file
           else ()) 
           files
-        (* with  *)
     else
-      transform_program config_file !source 
+      frequify_program config_file !source 
   with
-  | Invalid_argument s -> print_endline "Usage: dune exec transformation [-a] <program_file>"
+  (* | Invalid_argument s -> print_endline "Usage:a dune exec transformation [-a] <program_file>" *)
   | Sys_error s -> print_endline s
+  (* | Failure s -> print_endline s *)

@@ -36,8 +36,8 @@ let rec rbtree_gen = fun inv ->
                let (rt2) = x_22 x_23 in
                let (x_24) = int_gen () in Rbtnode (false, lt2, x_24, rt2)
            | false ->
-               let (w0) = get_weight_idx 0 in
-               let (w1) = get_weight_idx 1 in
+               let (w0) = get_weight_idx 2 in
+               let (w1) = get_weight_idx 3 in
                let (base_case) =
                  frequency_gen_list
                    (w0,
