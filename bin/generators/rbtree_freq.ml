@@ -1,4 +1,5 @@
 open Combinators
+open Frequency_combinators
 let rec rbtree_gen = fun inv ->
   fun color ->
     fun h ->
@@ -8,17 +9,16 @@ let rec rbtree_gen = fun inv ->
           (match color with
            | true -> Rbtleaf
            | false ->
-               let (size) = freq_gen inv in
-               let (base_case) = size ~base_case: (fun _ -> Rbtleaf) in
-               let (recursive_case) =
-                 base_case ~recursive_case:
+               let (fst_case) = unif_gen (fun _ -> Rbtleaf) in
+               let (snd_case) =
+                 fst_case
                    (fun _ ->
                       let (x_2) = Rbtleaf in
                       let (x_3) = int_gen () in
                       let (x_4) = Rbtleaf in Rbtnode (true, x_4, x_3, x_2)) in
-               recursive_case)
+               snd_case)
       | false ->
-          (match color with
+          (match color with 
            | true ->
                let (x_5) = subs inv in
                let (x_6) = rbtree_gen x_5 in
@@ -32,9 +32,8 @@ let rec rbtree_gen = fun inv ->
                let (rt2) = x_11 x_12 in
                let (x_13) = int_gen () in Rbtnode (false, lt2, x_13, rt2)
            | false ->
-               let (size) = freq_gen inv in
-               let (base_case) =
-                 size ~base_case:
+               let (fst_case) =
+                 unif_gen
                    (fun _ ->
                       let (x_14) = subs inv in
                       let (x_15) = rbtree_gen x_14 in
@@ -46,8 +45,8 @@ let rec rbtree_gen = fun inv ->
                       let (rt3) = x_19 h in
                       let (x_20) = int_gen () in
                       Rbtnode (true, lt3, x_20, rt3)) in
-               let (recursive_case) =
-                 base_case ~recursive_case:
+               let (snd_case) =
+                 fst_case
                    (fun _ ->
                       let (x_21) = subs inv in
                       let (x_22) = subs x_21 in
@@ -63,4 +62,4 @@ let rec rbtree_gen = fun inv ->
                       let (rt4) = x_29 x_30 in
                       let (x_31) = int_gen () in
                       Rbtnode (false, lt4, x_31, rt4)) in
-               recursive_case)
+               snd_case)

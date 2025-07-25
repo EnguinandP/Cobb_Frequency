@@ -24,6 +24,11 @@ let frequency_gen_list base_case recursive_case =
     ]
   (QCheck_runner.random_state ())
 
+let unif_gen fst_case snd_case =
+  QCheck.Gen.frequency
+    [ (1, fst_case); (1, snd_case) ]
+    (QCheck_runner.random_state ())
+
 
   (* accesing the weights *)
   let get_weight_idx (i: int) = !weights.(i)

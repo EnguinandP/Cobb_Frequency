@@ -12,6 +12,7 @@ let speclist = [
   ("-f", Arg.String (fun s -> freq_name := s), "Set frequency function (supports freq_gen and frequency_gen_list)");
   ("-a", Arg.Set all, "Transform all files in directory");
 ] 
+let freq_gen_list = ["freq_gen"; "unif_gen"; "frequency_gen_list"]
 
 (** calls poirot to get AST of source_file *)
 let process meta_config_file source_file () =
@@ -88,6 +89,7 @@ let rec replace_bool_gen (t : ('t, 't term) typed) (name : string) (arg : string
             exp = exp2;
           };
       ]; }; ty = ty4} } ->
+
         (* frequeny_gen_list *)
         if !freq_name = "frequency_gen_list" then
           CLetE {     (* w_base = get_weight_idx 0 *)
@@ -140,7 +142,7 @@ let rec replace_bool_gen (t : ('t, 't term) typed) (name : string) (arg : string
             }; ty = Nt.Ty_any}}
 
         (* freq_gen *)
-        else
+        else if name = "freq_gen" then
           CLetE {    (* let (size) = freq_gen s *) 
             lhs = ("size" #: ty);
             rhs = { x = CApp { 
@@ -175,8 +177,40 @@ let rec replace_bool_gen (t : ('t, 't term) typed) (name : string) (arg : string
                   }; ty = Nt.Ty_any};
                   body = { x = CVal { x = VVar ("recursive_case" #: ty); ty = Nt.Ty_any} ; ty = Nt.Ty_any}
                 }; ty = Nt.Ty_any }
-            }; ty = Nt.Ty_any };
-          };
+            }; ty = Nt.Ty_any }
+          }
+
+      (* unif_gen *)
+      else
+        CLetE {    (* let (size) = freq_gen s *) 
+            lhs = ("fst_case" #: ty);
+            rhs = { x = CApp {
+                appf = { x = VVar (replace_bool_gen_string "bool_gen"#:ty); ty = ty2}; 
+                apparg = { x = VLam {
+                        lamarg = ("_" #: ty); 
+                        body = 
+                          if not (has_recursive_call exp1 name) then
+                            exp1 
+                          else 
+                            exp2;
+                    }; ty = Nt.Ty_any};
+              }; ty = Nt.Ty_any};
+              body = { x = CLetE {    (* let (recursive_case) = base_case exp *)
+                  lhs = ("snd_case" #: ty);
+                  rhs = { x = CApp {
+                    appf = { x = VVar ("fst_case" #: ty); ty = Nt.Ty_any};
+                    apparg = { x = VLam {
+                          lamarg = ("_" #: ty); 
+                          body = 
+                            if (has_recursive_call exp1 name) then
+                              exp1 
+                            else 
+                              exp2;
+                      }; ty = Nt.Ty_any};
+                  }; ty = Nt.Ty_any};
+                  body = { x = CVal { x = VVar ("snd_case" #: ty); ty = Nt.Ty_any} ; ty = Nt.Ty_any}
+                }; ty = Nt.Ty_any }
+            }
   | CLetE { lhs; rhs; body} -> 
     CLetE {
       lhs;
@@ -373,13 +407,15 @@ let frequify_program (config : string) (source : string ) =
     | None -> ()
   done
 
+let validate_freq_gen (gen : string) = List.fold_left (fun acc g -> acc || (g = gen)) true freq_gen_list
+
 let () =
   try 
     let config_file = "meta-config.json" in
     
     Arg.parse speclist anon_fun usage_msg;
 
-    if !freq_name = "freq_gen" || !freq_name = "frequency_gen_list" then
+    if validate_freq_gen !freq_name then
       if (!all) then
         let files = Sys.readdir !source in
           Array.iter (fun (s:string) ->
