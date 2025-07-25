@@ -6,6 +6,7 @@
  (modules
   completetree_freq
   depthbst_freq
+  depthtree_freq
   duplicatelist_freq
   evenlist_freq
   rbtree_freq

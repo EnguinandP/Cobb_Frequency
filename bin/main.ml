@@ -559,12 +559,12 @@ let evaluate ?(print_stdout=true) ?(test_oc=stdout) (gen : unit -> 'a) score_fun
     close_out test_oc *)
 
 let () = 
-  let p = false in
+  let p = true in
   (* let result_oc = stdout in *)
   let result_oc = open_out "bin/results" in
   evaluate sizedlist score_nil 0.1 "sizedlist_gen - dist of lists that are nil" ~print_stdout:p ~test_oc:result_oc;
-  evaluate rbtree score_rbtree_black 0.3 "rbt_tree - avg of black nodes in a tree" ~print_stdout:p ~test_oc:result_oc;
-  evaluate rbtree score_rbtree_black 0.4 "rbt_tree - avg of black nodes in a tree" ~print_stdout:p ~test_oc:result_oc;
+  (* evaluate rbtree score_rbtree_black 0.3 "rbt_tree - avg of black nodes in a tree" ~print_stdout:p ~test_oc:result_oc; *)
+  (* evaluate rbtree score_rbtree_black 0.4 "rbt_tree - avg of black nodes in a tree" ~print_stdout:p ~test_oc:result_oc; *)
   close_out result_oc
 
 

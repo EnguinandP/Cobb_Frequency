@@ -3,14 +3,21 @@ open Term
 module Env = Zzenv
 
 (* TODO: add different transformation for multiple bool_gens *)
+let source = ref "" 
+let all = ref false
+let freq_name = ref "frequency_gen_list"
+let usage_msg = "Usage: dune exec transformation [-a] [-f] <program_file>"
+let anon_fun file = source := file
+let speclist = [
+  ("-f", Arg.String (fun s -> freq_name := s), "Set frequency function (supports freq_gen and frequency_gen_list)");
+  ("-a", Arg.Set all, "Transform all files in directory");
+] 
 
 (** calls poirot to get AST of source_file *)
 let process meta_config_file source_file () =
   let () = Env.load_meta meta_config_file in
   let code = Commands.Cre.preprocess source_file () in
   code
-
-
 
 (** recursively traverses through AST to find if it calls the recusive function specified by name *)
 let rec has_recursive_call (t : ('t, 't term) typed) (name : string) =
@@ -52,17 +59,17 @@ and has_recursive_call_value (name : string) (v : 't value) =
 
 (** returns "frequency_gen" as ('t, string) typed *)
 let replace_bool_gen_string (s : ('t, string) typed) : ('t, string) typed = 
-  s #-> (function _ -> "frequency_gen_list")
+  s #-> (function _ -> !freq_name)
 
 let is_bool_gen (s : ('t, string) typed) : bool =
   s.x = "bool_gen"
 
 (** recursively traverses through AST to find and replace bool_gen with frequency_gen *)
-let rec replace_bool_gen (t : ('t, 't term) typed) (name : string) : ('t, 't term) typed = 
+let rec replace_bool_gen (t : ('t, 't term) typed) (name : string) (arg : string): ('t, 't term) typed = 
   t #-> ( function
   | CErr ->     (* raise Bailout *)
     CVal { x = VVar ("raise BailOut" #: Nt.Ty_any); ty = Nt.Ty_any}
-  | CVal t -> CVal t #-> (replace_bool_gen_value name)
+  | CVal t -> CVal t #-> (replace_bool_gen_value name arg)
   (* thunkifies branches *)
   | CLetE { 
       lhs; 
@@ -81,75 +88,116 @@ let rec replace_bool_gen (t : ('t, 't term) typed) (name : string) : ('t, 't ter
             exp = exp2;
           };
       ]; }; ty = ty4} } ->
-        CLetE {     (* w_base = get_weight_idx 0 *)
-          lhs = ("w_base" #: ty);
-          rhs = { x = CApp {
-            appf = { x = VVar ("get_weight_idx" #: ty); ty = Nt.Ty_any};
-            apparg = {x = VConst (I 0); ty = Nt.Ty_any};
-          }; ty = Nt.Ty_any}; 
-          body = { x = CLetE {    (* w_recursive = get_weight_idx 1 *)
-            lhs = ("w_recursive" #: ty);
+        (* frequeny_gen_list *)
+        if !freq_name = "frequency_gen_list" then
+          CLetE {     (* w_base = get_weight_idx 0 *)
+            lhs = ("w_base" #: ty);
             rhs = { x = CApp {
               appf = { x = VVar ("get_weight_idx" #: ty); ty = Nt.Ty_any};
-              apparg = {x = VConst (I 1); ty = Nt.Ty_any};
+              apparg = {x = VConst (I 0); ty = Nt.Ty_any};
             }; ty = Nt.Ty_any}; 
-            body = { x = CLetE {    (* let (base_case) = frequency_gen (w_base, []) *)
-              lhs = ("base_case" #: ty);
-              rhs = { x = CApp { 
-                appf = { x = VVar (replace_bool_gen_string "bool_gen"#:ty); ty = ty2}; 
-                apparg = { x = VTu [
-                  { x = VVar ("w_base" #: Nt.Ty_any); ty = Nt.Ty_any};
-                  { x = VLam {
-                      lamarg = ("_" #: ty); 
-                      body = 
-                        if not (has_recursive_call exp1 name) then
-                          exp1 
-                        else 
-                          exp2;
-                  }; ty = Nt.Ty_any}; ]    
-                  ; ty = Nt.Ty_any (* placeholder *) }
-                }; ty = ty3 }; 
-              body = { x = CLetE {    (* let (recursive_case) = base_case (w_base, ...) *)
-                lhs = ("recursive_case" #: ty);
-                rhs = { x = CApp {
-                  appf = { x = VVar ("base_case" #: ty); ty = Nt.Ty_any};
+            body = { x = CLetE {    (* w_recursive = get_weight_idx 1 *)
+              lhs = ("w_recursive" #: ty);
+              rhs = { x = CApp {
+                appf = { x = VVar ("get_weight_idx" #: ty); ty = Nt.Ty_any};
+                apparg = {x = VConst (I 1); ty = Nt.Ty_any};
+              }; ty = Nt.Ty_any}; 
+              body = { x = CLetE {    (* let (base_case) = frequency_gen (w_base, []) *)
+                lhs = ("base_case" #: ty);
+                rhs = { x = CApp { 
+                  appf = { x = VVar (replace_bool_gen_string "bool_gen"#:ty); ty = ty2}; 
                   apparg = { x = VTu [
-                    { x = VVar ("w_recursive" #: Nt.Ty_any); ty = Nt.Ty_any};
+                    { x = VVar ("w_base" #: Nt.Ty_any); ty = Nt.Ty_any};
                     { x = VLam {
                         lamarg = ("_" #: ty); 
                         body = 
-                          if (has_recursive_call exp1 name) then
+                          if not (has_recursive_call exp1 name) then
                             exp1 
                           else 
                             exp2;
                     }; ty = Nt.Ty_any}; ]    
                     ; ty = Nt.Ty_any (* placeholder *) }
-                }; ty = Nt.Ty_any};
-                body = { x = CVal { x = VVar ("recursive_case" #: ty); ty = Nt.Ty_any} ; ty = Nt.Ty_any}
-              }; ty = Nt.Ty_any (* placeholder *) };
-            }; ty = Nt.Ty_any}
-          }; ty = Nt.Ty_any}}
+                  }; ty = ty3 }; 
+                body = { x = CLetE {    (* let (recursive_case) = base_case (w_base, ...) *)
+                  lhs = ("recursive_case" #: ty);
+                  rhs = { x = CApp {
+                    appf = { x = VVar ("base_case" #: ty); ty = Nt.Ty_any};
+                    apparg = { x = VTu [
+                      { x = VVar ("w_recursive" #: Nt.Ty_any); ty = Nt.Ty_any};
+                      { x = VLam {
+                          lamarg = ("_" #: ty); 
+                          body = 
+                            if (has_recursive_call exp1 name) then
+                              exp1 
+                            else 
+                              exp2;
+                      }; ty = Nt.Ty_any}; ]    
+                      ; ty = Nt.Ty_any (* placeholder *) }
+                  }; ty = Nt.Ty_any};
+                  body = { x = CVal { x = VVar ("recursive_case" #: ty); ty = Nt.Ty_any} ; ty = Nt.Ty_any}
+                }; ty = Nt.Ty_any (* placeholder *) };
+              }; ty = Nt.Ty_any}
+            }; ty = Nt.Ty_any}}
+
+        (* freq_gen *)
+        else
+          CLetE {    (* let (size) = freq_gen s *) 
+            lhs = ("size" #: ty);
+            rhs = { x = CApp { 
+              appf = { x = VVar (replace_bool_gen_string "bool_gen"#:ty); ty = ty2}; 
+              apparg = { x = VVar (arg #: Nt.Ty_any); ty = Nt.Ty_any}  
+              }; ty = ty3 }; 
+            body = { x = CLetE {   (* let (base_case) = size exp *) 
+              lhs = ("base_case" #: ty);
+              rhs = { x = CApp {
+                appf = { x = VVar ("size ~base_case:" #: ty); ty = Nt.Ty_any};
+                apparg = { x = VLam {
+                        lamarg = ("_" #: ty); 
+                        body = 
+                          if not (has_recursive_call exp1 name) then
+                            exp1 
+                          else 
+                            exp2;
+                    }; ty = Nt.Ty_any};
+              }; ty = Nt.Ty_any};
+              body = { x = CLetE {    (* let (recursive_case) = base_case exp *)
+                  lhs = ("recursive_case" #: ty);
+                  rhs = { x = CApp {
+                    appf = { x = VVar ("base_case ~recursive_case:" #: ty); ty = Nt.Ty_any};
+                    apparg = { x = VLam {
+                          lamarg = ("_" #: ty); 
+                          body = 
+                            if (has_recursive_call exp1 name) then
+                              exp1 
+                            else 
+                              exp2;
+                      }; ty = Nt.Ty_any};
+                  }; ty = Nt.Ty_any};
+                  body = { x = CVal { x = VVar ("recursive_case" #: ty); ty = Nt.Ty_any} ; ty = Nt.Ty_any}
+                }; ty = Nt.Ty_any }
+            }; ty = Nt.Ty_any };
+          };
   | CLetE { lhs; rhs; body} -> 
     CLetE {
       lhs;
-      rhs = replace_bool_gen rhs name;
-      body = replace_bool_gen body name
+      rhs = replace_bool_gen rhs name arg;
+      body = replace_bool_gen body name arg
     }
   | CLetDeTu { turhs; tulhs; body} ->
     CLetDeTu {
-      turhs = turhs #-> (replace_bool_gen_value name);
+      turhs = turhs #-> (replace_bool_gen_value name arg);
       tulhs; 
-      body = replace_bool_gen body name;
+      body = replace_bool_gen body name arg;
     }
   | CApp { appf; apparg} ->
     CApp {
-      appf = appf #-> (replace_bool_gen_value name);
-      apparg = apparg #-> (replace_bool_gen_value name);
+      appf = appf #-> (replace_bool_gen_value name arg);
+      apparg = apparg #-> (replace_bool_gen_value name arg);
   }
   | CAppOp {op; appopargs} -> 
     CAppOp {
       op;
-      appopargs = (List.map (function y -> y #-> (replace_bool_gen_value name) ) appopargs)
+      appopargs = (List.map (function y -> y #-> (replace_bool_gen_value name arg) ) appopargs)
     }
   | CMatch
   (* To rewrite matches on True/False to true/false, from Cobb_postprocess*)
@@ -180,31 +228,31 @@ let rec replace_bool_gen (t : ('t, 't term) typed) (name : string) : ('t, 't ter
                 {
                   constructor = "true"#:ty_t;
                   args = [];
-                  exp = replace_bool_gen exp1 name;
+                  exp = replace_bool_gen exp1 name arg;
                 };
               CMatchcase
                 {
                   constructor = "false"#:ty_f;
                   args = [];
-                  exp = replace_bool_gen exp2 name;
+                  exp = replace_bool_gen exp2 name arg;
                 };
             ];
         }
   | CMatch { matched; match_cases } ->
     CMatch {
-      matched = matched #-> (replace_bool_gen_value name);
+      matched = matched #-> (replace_bool_gen_value name arg);
       match_cases =
         List.map (function (CMatchcase {constructor; args; exp}) -> 
           CMatchcase {
             constructor;
             args;
-            exp = replace_bool_gen exp name;
+            exp = replace_bool_gen exp name arg;
           }
         )
         match_cases
     }
   )
-and replace_bool_gen_value (name : string) (v : 't value) =
+and replace_bool_gen_value (name : string) (arg : string) (v : 't value) =
   match v with 
   | VConst _ -> v
   (* bool_gen is a VVar *)
@@ -216,17 +264,16 @@ and replace_bool_gen_value (name : string) (v : 't value) =
   | VLam {lamarg; body} -> 
     VLam  {
       lamarg;
-      body = replace_bool_gen body name;
+      body = replace_bool_gen body name arg;
     }
   | VFix { fixname; fixarg; body } -> 
     VFix {
       fixname;
       fixarg;
-      body = replace_bool_gen body name;
+      body = replace_bool_gen body name arg;
     }
-  | VTu l -> 
-    (* tuples *)
-    VTu (List.map (function y -> y #-> (replace_bool_gen_value name)) l)
+  | VTu l -> (* tuples *)
+    VTu (List.map (function y -> y #-> (replace_bool_gen_value name arg)) l)
 
 (* #-> applies function to arg, returning it as `typed` *)
 
@@ -298,12 +345,17 @@ let frequify_program (config : string) (source : string ) =
   let code_arr = Array.of_list code in
 
   (* (gets the function and ignores the type annotation) *)
-  (* print_int (Array.length code_arr); *)
   for x = 0 to (Array.length code_arr) - 1 do
     match get_function code_arr.(x) with
     | Some (name, if_rec, body) -> 
       (* replaces bool_gen with frequency_gen*)
-      let new_body = replace_bool_gen body name.x in
+
+      let arg = match body.x with
+      | CVal {x = VFix { fixname; fixarg; body };_} -> fixarg.x
+      | _ -> failwith "Couldn't find recursive argument"
+      in
+
+      let new_body = replace_bool_gen body name.x arg in
       let new_code = final_program_to_string name if_rec new_body in
       
       (* prints new body *)
@@ -313,68 +365,13 @@ let frequify_program (config : string) (source : string ) =
       let filename = String.sub source 0 ( (String.length source) - 3) ^ "_freq.ml" in
       let oc = open_out filename in
       output_string oc "open Combinators\n";
-      output_string oc "open Frequency_combinators\n";
+      if !freq_name = "frequency_gen_list" then
+        output_string oc "open Frequency_combinators\n"
+      else ();
       output_string oc new_code;
       close_out oc
     | None -> ()
   done
-(* with
-      | Failure s -> 
-        (* processs can't read open ... *)
-        print_endline "fixing file";
-        let ic = open_in source in
-        (* let oc = open_out "temp" in *)
-
-        let lines = ref [] in
-
-        (* throw out first line (open ...) *)
-        let _ = input_line ic in
-
-        try
-          while true do
-            let line = input_line ic in
-            (* Printf.fprintf oc "%s\n" line; *)
-            print_endline line;
-            lines := line :: !lines
-          done
-        with End_of_file -> close_in ic;
-
-        let oc = open_out source in
-        List.iter (fun x -> Printf.fprintf oc "%s\n" x) !lines;
-        close_out oc;
-
-        frequify_program config source *)
-
-(* let rewrite_freq (source : string) (w_base : int) (w_recursive : int)=
-  let lines = ref [] in
-  let ic = open_in source in
-
-  try while true do
-    let line = input_line ic in
-    (* print_endline line; *)
-    if line = "      let (w0) = get_weight_idx 0 in" then
-      let l = String.split_on_char '=' line in
-      print_endline (Array.of_list l).(0);
-      print_endline (Array.of_list l).(1);
-      lines := ((Array.of_list l).(0) ^ "= " ^ (string_of_int w_base)) :: !lines
-    else
-      lines := line :: !lines
-  done
-  with End_of_file -> close_in ic;
-
-  let oc = open_out source in
-
-  let _ = List.iter (fun x -> Printf.fprintf oc "%s" x) !lines in
-  () *)
-
-let source = ref "" 
-let all = ref false
-let usage_msg = "Usage: dune exec transformation [-a] <program_file>"
-
-let anon_fun file = source := file
-let speclist = [
-  ("-a", Arg.Set all, "Transform all files in directory")
-] 
 
 let () =
   try 
@@ -382,18 +379,20 @@ let () =
     
     Arg.parse speclist anon_fun usage_msg;
 
-    if (!all) then
-      let files = Sys.readdir !source in
-        Array.iter (fun (s:string) ->
-          if (String.ends_with ~suffix:".ml" s) && (not (String.ends_with ~suffix:"_freq.ml" s )) then 
-            let file = (!source ^ "/" ^ s) in
-            Printf.printf "Syntactically transformed %s\n" file;
-            frequify_program config_file file
-          else ()) 
-          files
+    if !freq_name = "freq_gen" || !freq_name = "frequency_gen_list" then
+      if (!all) then
+        let files = Sys.readdir !source in
+          Array.iter (fun (s:string) ->
+            if (String.ends_with ~suffix:".ml" s) && (not (String.ends_with ~suffix:"_freq.ml" s )) then 
+              let file = (!source ^ "/" ^ s) in
+              Printf.printf "Syntactically transformed %s\n" file;
+              frequify_program config_file file
+            else ()) 
+            files
+      else
+        frequify_program config_file !source 
     else
-      frequify_program config_file !source 
+      failwith "frequency generator not supported"
   with
-  (* | Invalid_argument s -> print_endline "Usage:a dune exec transformation [-a] <program_file>" *)
   | Sys_error s -> print_endline s
-  (* | Failure s -> print_endline s *)
+  | Failure s -> print_endline s

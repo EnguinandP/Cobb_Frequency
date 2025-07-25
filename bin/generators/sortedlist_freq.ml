@@ -1,5 +1,4 @@
 open Combinators
-open Frequency_combinators
 let rec sorted_list_gen = fun s ->
   fun x ->
     let (x_0) = sizecheck s in
