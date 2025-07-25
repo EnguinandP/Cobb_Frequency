@@ -1,7 +1,7 @@
 open Combinators
 let rec complete_tree_gen = fun s ->
-  let (x_0) = sizecheck s in
-  match x_0 with
+  let (x_69) = sizecheck s in
+  match x_69 with
   | true -> Leaf
   | false ->
       let (s1) = subs s in

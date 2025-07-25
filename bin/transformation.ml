@@ -142,7 +142,7 @@ let rec replace_bool_gen (t : ('t, 't term) typed) (name : string) (arg : string
             }; ty = Nt.Ty_any}}
 
         (* freq_gen *)
-        else if name = "freq_gen" then
+        else if !freq_name = "freq_gen" then
           CLetE {    (* let (size) = freq_gen s *) 
             lhs = ("size" #: ty);
             rhs = { x = CApp { 
@@ -188,11 +188,7 @@ let rec replace_bool_gen (t : ('t, 't term) typed) (name : string) (arg : string
                 appf = { x = VVar (replace_bool_gen_string "bool_gen"#:ty); ty = ty2}; 
                 apparg = { x = VLam {
                         lamarg = ("_" #: ty); 
-                        body = 
-                          if not (has_recursive_call exp1 name) then
-                            exp1 
-                          else 
-                            exp2;
+                        body = exp1
                     }; ty = Nt.Ty_any};
               }; ty = Nt.Ty_any};
               body = { x = CLetE {    (* let (recursive_case) = base_case exp *)
@@ -201,11 +197,7 @@ let rec replace_bool_gen (t : ('t, 't term) typed) (name : string) (arg : string
                     appf = { x = VVar ("fst_case" #: ty); ty = Nt.Ty_any};
                     apparg = { x = VLam {
                           lamarg = ("_" #: ty); 
-                          body = 
-                            if (has_recursive_call exp1 name) then
-                              exp1 
-                            else 
-                              exp2;
+                          body = exp2
                       }; ty = Nt.Ty_any};
                   }; ty = Nt.Ty_any};
                   body = { x = CVal { x = VVar ("snd_case" #: ty); ty = Nt.Ty_any} ; ty = Nt.Ty_any}
@@ -290,10 +282,7 @@ and replace_bool_gen_value (name : string) (arg : string) (v : 't value) =
   match v with 
   | VConst _ -> v
   (* bool_gen is a VVar *)
-  | VVar s -> (* TODO: rewrite this *)
-    if s.x = "bool_gen" then
-      VVar (replace_bool_gen_string s)
-    else
+  | VVar s ->
       VVar s
   | VLam {lamarg; body} -> 
     VLam  {
