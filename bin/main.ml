@@ -4,7 +4,8 @@ open Stdlib
 
 (* meta parameters *)
 let iterations = 5000
-let init_temp = 300. (* 300 *) 
+let init_temp = 300. (* 300 *)
+
 (* scipy default temperature is 5230 *)
 let sample_size = 1000
 let step_size = 1
@@ -61,7 +62,7 @@ let rec collect n results gen =
     Printf.fprintf oc "\n"; 
     close_out oc;
     *)
-  
+
     (* collects generated values in results *)
     let results = gen_value :: results in
     collect (n + 1) results gen
@@ -70,41 +71,46 @@ let exit_cond dist goal = dist <= goal
 
 (* (dist, score) feature vector is is nl, score is difference between distr and 10% *)
 let is_nil l = l = []
-let score_nil gen goal = 
+
+let score_nil gen goal =
   (* collecting results *)
   let start_time = Unix.gettimeofday () in
   let results = collect 0 [] gen in
   let end_time : float = Unix.gettimeofday () in
 
-  let pass = List.fold_left (fun acc x -> if is_nil x then acc +. 1. else acc) 0. results in
+  let pass =
+    List.fold_left (fun acc x -> if is_nil x then acc +. 1. else acc) 0. results
+  in
   let dist = pass /. float_of_int (List.length results) in
-  (dist, dist -. goal, (end_time -. start_time))
+  (dist, dist -. goal, end_time -. start_time)
 
 (* feature vector is the percentage of black nodes 
 score is the difference of avg from .5 
 widest ratio of red to black internal nodes is 2 : 1 (only possible for even h)*)
-let rec count_rb (tree : int Combinators.rbtree ) (r , b) = 
+let rec count_rb (tree : int Combinators.rbtree) (r, b) =
   match tree with
   | Rbtleaf -> (r, b)
-  | Rbtnode (c, lt, _, rt) -> 
-    let (ltr, ltb) = count_rb lt (0,0) in
-    let (rtr, rtb) = count_rb rt (0,0) in
-    if c then 
-    (ltr + rtr + 1, ltb + rtb) else (ltr + rtr, ltb + rtb + 1)
-    
-let score_rbtree_black (*(results : int Combinators.rbtree list)*) gen (goal : float) =
+  | Rbtnode (c, lt, _, rt) ->
+      let ltr, ltb = count_rb lt (0, 0) in
+      let rtr, rtb = count_rb rt (0, 0) in
+      if c then (ltr + rtr + 1, ltb + rtb) else (ltr + rtr, ltb + rtb + 1)
+
+let score_rbtree_black (*(results : int Combinators.rbtree list)*) gen
+    (goal : float) =
   (* collecting results *)
   let start_time = Unix.gettimeofday () in
   let results = collect 0 [] gen in
   let end_time : float = Unix.gettimeofday () in
-  
-  let pass = List.fold_left (fun acc x -> 
-    let (r, b) = count_rb x (0, 0) in
-    acc +. (float_of_int(b) /. float_of_int(r + b))
-    ) 0. results
+
+  let pass =
+    List.fold_left
+      (fun acc x ->
+        let r, b = count_rb x (0, 0) in
+        acc +. (float_of_int b /. float_of_int (r + b)))
+      0. results
   in
   let dist = pass /. float_of_int (List.length results) in
-  (dist, dist -. goal, (end_time -. start_time))
+  (dist, dist -. goal, end_time -. start_time)
 
 (* let count_bailout n gen count =
   if n >= sample_size then
@@ -120,10 +126,6 @@ let score_rbtree_black (*(results : int Combinators.rbtree list)*) gen (goal : f
 
 let score_bailout gen (goal : float) =  *)
 
-
-
-  
-
 (* noise is normal/gaussian distribution using marsaglia-polar method *)
 let calc_noisy_score spare results goal feature_vector =
   (* assumed standard deviation *)
@@ -131,53 +133,50 @@ let calc_noisy_score spare results goal feature_vector =
 
   match spare with
   | None ->
-    let rec find_t () =
-      let u = (Random.float 2.) -. 1. in
-      let v = (Random.float 2.) -. 1. in
-      let t = u *. u +. v *. v in
-      if t <= 1. && t > 0. then
-        (u, v, t)
-      else
-        find_t ()
+      let rec find_t () =
+        let u = Random.float 2. -. 1. in
+        let v = Random.float 2. -. 1. in
+        let t = (u *. u) +. (v *. v) in
+        if t <= 1. && t > 0. then (u, v, t) else find_t ()
       in
-    let (u, v, t) = find_t () in
-    let s = Float.sqrt ((-2. *. Float.log (t)) /. t) in
-    let spare = Some (s *. v) in
-    let noise = results +. std_dev *. u *. s in
-    (noise, spare, goal -. noise)
-
+      let u, v, t = find_t () in
+      let s = Float.sqrt (-2. *. Float.log t /. t) in
+      let spare = Some (s *. v) in
+      let noise = results +. (std_dev *. u *. s) in
+      (noise, spare, goal -. noise)
   | Some s ->
-    let spare = None in
-    let noise = results +. std_dev *. s in
-    (noise, spare, goal -. noise)
-
+      let spare = None in
+      let noise = results +. (std_dev *. s) in
+      (noise, spare, goal -. noise)
 
 (* chi squared test *)
 let calc_uniform results goal size =
   let distr = Array.make 11 0 in
-  List.iter (fun x ->
-    let length = List.length x in
-    distr.(length) <- distr.(length) + 1
-  ) results;
-  let sum = List.fold_left (fun acc x -> acc +. float_of_int (List.length x)) 0. results in
-  let avg = sum /. float_of_int (List.length results) in
-  let chi_squared = List.fold_left (fun acc x ->
-    let length = List.length x in
-    let diff = float_of_int (length - int_of_float avg) in
-    acc +. ((diff *. diff) /. avg)
-  ) 0. results in
-  chi_squared
-  
-let is_uniform l =
-  let rec aux acc = function
-    | [] -> acc
-    | x::xs -> aux (acc +. x) xs
+  List.iter
+    (fun x ->
+      let length = List.length x in
+      distr.(length) <- distr.(length) + 1)
+    results;
+  let sum =
+    List.fold_left (fun acc x -> acc +. float_of_int (List.length x)) 0. results
   in
+  let avg = sum /. float_of_int (List.length results) in
+  let chi_squared =
+    List.fold_left
+      (fun acc x ->
+        let length = List.length x in
+        let diff = float_of_int (length - int_of_float avg) in
+        acc +. (diff *. diff /. avg))
+      0. results
+  in
+  chi_squared
+
+let is_uniform l =
+  let rec aux acc = function [] -> acc | x :: xs -> aux (acc +. x) xs in
   let sum = aux 0. l in
   let avg = sum /. float_of_int (List.length l) in
   let diff = List.fold_left (fun acc x -> acc +. abs_float (x -. avg)) 0. l in
   diff
-
 
 (* weights for the generator *)
 
@@ -192,25 +191,17 @@ let step_in_range cand_weight step_range =
   let step = Random.int (snd step_range) + fst step_range in
   let n = Array.length cand_weight in
   let direction = Random.int n in
-  
-  if Random.bool () then 
-    !weights.(direction) <- cand_weight.(direction) + step
-  else
-     if (step >= cand_weight.(0)) then
-      ()
-    else
-      !weights.(direction) <- cand_weight.(direction) - step;
+
+  if Random.bool () then !weights.(direction) <- cand_weight.(direction) + step
+  else if step >= cand_weight.(0) then ()
+  else !weights.(direction) <- cand_weight.(direction) - step;
   !weights
 
 let step cand_weight =
   let step = Random.int (snd step_range) + fst step_range in
-  if Random.bool () then
-    !weights.(0) <- cand_weight.(0) + step
-  else
-    if (step >= cand_weight.(0)) then
-      ()
-    else
-      !weights.(0) <- cand_weight.(0) - step;
+  if Random.bool () then !weights.(0) <- cand_weight.(0) + step
+  else if step >= cand_weight.(0) then ()
+  else !weights.(0) <- cand_weight.(0) - step;
   !weights
 
 let step_n_param (cand_weight : int array) =
@@ -221,18 +212,15 @@ let step_n_param (cand_weight : int array) =
 
   (* this is much harder to read *)
   let s =
-    if Random.bool () then
-      step
-    else
+    if Random.bool () then step
+    else if
       (* weight can't be negative *)
-      if (step >= cand_weight.(direction)) then
-        0
-      else
-        step * -1
-      in
+      step >= cand_weight.(direction)
+    then 0
+    else step * -1
+  in
   !weights.(direction) <- cand_weight.(direction) + s;
   weights
-  
 
 (* updates the temperature *)
 let update_temp n = init_temp /. (float_of_int n +. 1.)
@@ -242,24 +230,27 @@ let print_iterations oc n curr_weight cand_score dist time =
   Printf.fprintf oc "%s," n;
   Array.iter (fun x -> Printf.fprintf oc "%d," x) curr_weight;
   Array.iter (fun x -> Printf.fprintf oc "%d," x) !weights;
-  let _ = Printf.fprintf oc "%f,%f,%f\n" cand_score dist time
-  in ()
+  let _ = Printf.fprintf oc "%f,%f,%f\n" cand_score dist time in
+  ()
 
-let print_solutions oc best_weights best_score = 
+let print_solutions oc best_weights best_score =
   match oc with
   | None -> ()
-  | Some c ->
-  print_iterations c "solution" best_weights best_score 0. 0.
+  | Some c -> print_iterations c "solution" best_weights best_score 0. 0.
 
 let print_labels oc =
   match oc with
   | None -> ()
   | Some c ->
-  Printf.fprintf c "iteration,";
-  Array.iteri (fun i x -> Printf.fprintf c "curr weight %d," (i + 1)) !weights;
-  Array.iteri (fun i x -> Printf.fprintf c "cand weight %d," (i + 1)) !weights;
-  let _ = Printf.fprintf c "score,distribution,time\n"
-  in ()
+      Printf.fprintf c "iteration,";
+      Array.iteri
+        (fun i x -> Printf.fprintf c "curr weight %d," (i + 1))
+        !weights;
+      Array.iteri
+        (fun i x -> Printf.fprintf c "cand weight %d," (i + 1))
+        !weights;
+      let _ = Printf.fprintf c "score,distribution,time\n" in
+      ()
 
 let time_out_ref = ref false
 
@@ -270,64 +261,69 @@ let () =
       Printf.printf "Timed out";
       time_out_ref := true)
 
-let simulated_annealing (result_oc: out_channel) (gen : unit -> 'a) calc_score (goal : float)
-      (niter : int) print_all =
-
+let simulated_annealing (result_oc : out_channel) (gen : unit -> 'a) calc_score
+    (goal : float) (niter : int) print_all =
   let temp = init_temp in
 
   let extra_oc = if print_all then Some result_oc else None in
   print_labels extra_oc;
 
-  let rec loop n temp direction curr_weight curr_score best_weight best_score best_dist count spare =
-      if n = niter || exit_cond best_dist goal then
-        (best_weight, best_score, best_dist)
-      else 
-
+  let rec loop n temp direction curr_weight curr_score best_weight best_score
+      best_dist count spare =
+    if n = niter || exit_cond best_dist goal then
+      (best_weight, best_score, best_dist)
+    else
       let _ = step_n_param curr_weight in
 
       let temp = update_temp n in
-    
+
       (* collecting results *)
       (* let start_time = Unix.gettimeofday () in
       let results = collect 0 [] gen in
       let end_time : float = Unix.gettimeofday () in *)
 
       (* calculates score *)
-      let (dist, cand_score, time) = calc_score gen goal in
+      let dist, cand_score, time = calc_score gen goal in
       (* calculates score with noise *)
       (* let cand_score, spare, dist = calc_noisy_score spare results goal feature_vector in *)
 
-      let _ = print_iterations result_oc (string_of_int n) curr_weight cand_score dist (time) in
+      let _ =
+        print_iterations result_oc (string_of_int n) curr_weight cand_score dist
+          time
+      in
 
       (* when score is worse, e^+ -> true *)
-      if Random.float 1.0 < Float.exp (-. (cand_score -. curr_score) /. temp) then
+      if Random.float 1.0 < Float.exp (-.(cand_score -. curr_score) /. temp)
+      then
         (* keep weight just tested *)
         (* let _ = Printf.fprintf result_oc "ACCEPT " in *)
         let w = Array.map (fun r -> r) !weights in
-        if (cand_score < best_score) then
+        if cand_score < best_score then
           loop (n + 1) temp direction w cand_score w cand_score dist count spare
         else
-          loop (n + 1) temp direction w cand_score best_weight best_score best_dist count spare
+          loop (n + 1) temp direction w cand_score best_weight best_score
+            best_dist count spare
       else
         (* let _ = Printf.fprintf result_oc "REJECT " in *)
-        loop (n + 1) temp (not direction) curr_weight curr_score best_weight best_score best_dist (count + 1) spare
+        loop (n + 1) temp (not direction) curr_weight curr_score best_weight
+          best_score best_dist (count + 1) spare
   in
 
-  let (best_weight, best_score, best_dist) = loop 0 temp true !weights 1. !weights (1000.) 1. 0 None in
+  let best_weight, best_score, best_dist =
+    loop 0 temp true !weights 1. !weights 1000. 1. 0 None
+  in
   let _ = print_solutions extra_oc best_weight best_score in
 
   (best_weight, best_score, best_dist)
 
-
-let basin_hoppping (result_oc: out_channel) (gen) calc_score (niter : int) goal print_all =
+let basin_hoppping (result_oc : out_channel) gen calc_score (niter : int) goal
+    print_all =
   (* initial solution is stored in the ref *)
-
   let extra_oc = if print_all then Some result_oc else None in
   print_labels extra_oc;
 
   (* minimize is local min search *)
-  let rec minimize n best_weight best_score best_dist spare = (
-
+  let rec minimize n best_weight best_score best_dist spare =
     (* next step *)
     let _ = step_n_param best_weight in
     let results = collect 0 [] gen in
@@ -335,25 +331,23 @@ let basin_hoppping (result_oc: out_channel) (gen) calc_score (niter : int) goal 
     (* let results = gen () in
     let next_score, spare, dist = calc_noisy_score spare results feature_vector in *)
 
-    if n > 100 then 
-      (best_weight, best_score, best_dist)
+    if n > 100 then (best_weight, best_score, best_dist)
     else
       (* if score is closer to min, then take step *)
       let w = Array.map (fun r -> r) !weights in
-      if next_score < best_score then
-        minimize (n + 1) w next_score dist spare
-      else
-        minimize (n + 1) best_weight best_score best_dist spare
-  ) in
+      if next_score < best_score then minimize (n + 1) w next_score dist spare
+      else minimize (n + 1) best_weight best_score best_dist spare
+  in
 
   let rec loop curr_weight curr_min best_weight best_score best_dist n spare =
     if n > niter || exit_cond best_dist goal then
       (best_weight, best_score, best_dist)
-    else 
+    else
       let temp = update_temp n in
 
       (* perturbation (step) *)
-      let _ = step_in_range curr_weight (30,50) in  (* try adaptive stepwise *)
+      let _ = step_in_range curr_weight (30, 50) in
+      (* try adaptive stepwise *)
 
       (* let start_time = Unix.gettimeofday () in
       (* let results = gen () in *)
@@ -363,31 +357,43 @@ let basin_hoppping (result_oc: out_channel) (gen) calc_score (niter : int) goal 
       (* let _, spare, dist = calc_noisy_score spare results goal feature_vector in *)
 
       (* minimize *)
-      let next_min_weight, next_min, next_dist = minimize 0 (Array.map (fun r -> r) !weights) 100000. 1. spare in
+      let next_min_weight, next_min, next_dist =
+        minimize 0 (Array.map (fun r -> r) !weights) 100000. 1. spare
+      in
       (* Printf.printf "%d %f %f\n" !weights1.(0) next_score next_min; *)
 
-      let _ = print_iterations result_oc (string_of_int n) next_min_weight next_min next_dist 0. in
+      let _ =
+        print_iterations result_oc (string_of_int n) next_min_weight next_min
+          next_dist 0.
+      in
       (* Printf.printf "%d,%d,%d,%f,%f,0,0\n" n curr_weight.(0) !weights.(0) next_min next_dist; *)
 
       (* acceptance test *)
-      if Random.float 1.0 < Float.exp (-. (next_min -. curr_min) /. temp) then
+      if Random.float 1.0 < Float.exp (-.(next_min -. curr_min) /. temp) then
         (* let w = Array.map (fun r -> r) !weights in *)
-        if (next_min < best_score) then
-          loop next_min_weight next_min next_min_weight next_min next_dist (n + 1) spare
-        else 
-          loop next_min_weight next_min best_weight best_score best_dist (n + 1) spare
+        if next_min < best_score then
+          loop next_min_weight next_min next_min_weight next_min next_dist
+            (n + 1) spare
+        else
+          loop next_min_weight next_min best_weight best_score best_dist (n + 1)
+            spare
       else
         loop curr_weight curr_min best_weight best_score best_dist (n + 1) spare
-    in
+  in
 
   (* min is intial solution *)
-  let init_weight, init_min, init_dist = minimize 0 (Array.map (fun r -> r) !weights) 100000. 1. None in
-  let best_weights, best_score, best_dist = loop init_weight init_min init_weight init_min 1. 0 None in
+  let init_weight, init_min, init_dist =
+    minimize 0 (Array.map (fun r -> r) !weights) 100000. 1. None
+  in
+  let best_weights, best_score, best_dist =
+    loop init_weight init_min init_weight init_min 1. 0 None
+  in
   let _ = print_solutions extra_oc best_weights best_score in
 
   (best_weights, best_score, best_dist)
 
-let random_restart (result_oc: out_channel) (gen : unit -> 'a) calc_score (goal : float) (niter : int) algor =
+let random_restart (result_oc : out_channel) (gen : unit -> 'a) calc_score
+    (goal : float) (niter : int) algor =
   let start_time = Unix.gettimeofday () in
 
   let restart_interval = niter / n_reset in
@@ -397,74 +403,73 @@ let random_restart (result_oc: out_channel) (gen : unit -> 'a) calc_score (goal 
 
   let rec restart n best_weight best_score best_dist =
     (* restarts 5 times *)
-    if n >= 5 then
-      (best_weight, best_score, best_dist)
+    if n >= 5 then (best_weight, best_score, best_dist)
     else
-        (* new location between 0 and 1000 *)
-        let new_start = Array.map (fun _ -> Random.int 1000) !weights in
-        weights := new_start;
-        (* Printf.printf "\n%d\n" !weights.(0); *)
-        let (weight, score, dist) = algor result_oc gen calc_score goal restart_interval false in
-
-      if score < best_score then
-        restart (n + 1) weight score dist
-      else
-        restart (n + 1) best_weight best_score best_dist
-
+      (* new location between 0 and 1000 *)
+      let new_start = Array.map (fun _ -> Random.int 1000) !weights in
+      weights := new_start;
+      (* Printf.printf "\n%d\n" !weights.(0); *)
+      let weight, score, dist =
+        algor result_oc gen calc_score goal restart_interval false
       in
 
-  let (best_weight, best_score, best_dist) = restart 0 !weights 100000. 1. in
+      if score < best_score then restart (n + 1) weight score dist
+      else restart (n + 1) best_weight best_score best_dist
+  in
+
+  let best_weight, best_score, best_dist = restart 0 !weights 100000. 1. in
   let end_time = Unix.gettimeofday () in
   let _ = print_iterations result_oc "solution" best_weight best_score 0. 0. in
   (* close_out result_oc; *)
-  (best_weight, best_score, best_dist, (end_time -. start_time))
+  (best_weight, best_score, best_dist, end_time -. start_time)
 
 let () = QCheck_runner.set_seed 42
 
 (* function examples *)
 (* 1 paramater functions *)
-let f1 () = 
-  let x = float_of_int(!weights.(0)) in
-    ( x /. 10.) *. (cos (x /. 25.))
+let f1 () =
+  let x = float_of_int !weights.(0) in
+  x /. 10. *. cos (x /. 25.)
 
 (* (547.047, -77.145) *)
-let f2 () : float = 
-  let x = float_of_int(!weights.(0)) in
-  (4. /. 30.) *. ( (x +. 50.)) *. sin ((x +. 50.) /. 20.) +. ((x -. 500.) /. 30.) *. ((x -. 500.) /. 30.)
+let f2 () : float =
+  let x = float_of_int !weights.(0) in
+  (4. /. 30. *. (x +. 50.) *. sin ((x +. 50.) /. 20.))
+  +. ((x -. 500.) /. 30. *. ((x -. 500.) /. 30.))
 
 (* (-1, -987.688) *)
-let f3 () = 
-  let x = float_of_int(!weights.(0)) in
-  if x = 0. then
-    1. 
-  else
-    cos (50. *. Float.pi *. x /. 1000.) /. (x /. 1000.)
+let f3 () =
+  let x = float_of_int !weights.(0) in
+  if x = 0. then 1. else cos (50. *. Float.pi *. x /. 1000.) /. (x /. 1000.)
 
 (* (1, -315.552) *)
-let f4 () = 
-  let x = float_of_int(!weights.(0)) in
+let f4 () =
+  let x = float_of_int !weights.(0) in
   -500. *. (sin x *. 30.) /. (x *. 40.)
 
 (* 2 parameter functions *)
 
 (* cone *)
-let f5 () = 
-  let x = float_of_int(!weights.(0)) in
-  let y = float_of_int(!weights.(1)) in
-  (x /. 30.) *. (x /. 30.) +. (y /. 30.) *. (y /. 30.)
+let f5 () =
+  let x = float_of_int !weights.(0) in
+  let y = float_of_int !weights.(1) in
+  (x /. 30. *. (x /. 30.)) +. (y /. 30. *. (y /. 30.))
 
-let f6 () = 
-  let x = float_of_int(!weights.(0)) in
-  let y = float_of_int(!weights.(1)) in
-  -500. *. (sin x *. 30.) /. (x *. 40.) +. 80. *. sin (y /. 30.) /. (y /. 100.)
- 
+let f6 () =
+  let x = float_of_int !weights.(0) in
+  let y = float_of_int !weights.(1) in
+  (-500. *. (sin x *. 30.) /. (x *. 40.))
+  +. (80. *. sin (y /. 30.) /. (y /. 100.))
+
 (* 3 parameter functions *)
-let f7 () = 
-  let x = float_of_int(!weights.(0)) in
-  let y = float_of_int(!weights.(1)) in
-  let z = float_of_int(!weights.(2)) in
+let f7 () =
+  let x = float_of_int !weights.(0) in
+  let y = float_of_int !weights.(1) in
+  let z = float_of_int !weights.(2) in
 
-  -500. *.  (sin x *. 30.) /. (x *. 40.) +. 80. *. sin (y /. 30.) /. (y /. 100.) +. z
+  (-500. *. (sin x *. 30.) /. (x *. 40.))
+  +. (80. *. sin (y /. 30.) /. (y /. 100.))
+  +. z
 
 (* duplicate list generator with size 10 and x = 5 *)
 let duplicatelist () =
@@ -472,12 +477,12 @@ let duplicatelist () =
   let x = 5 in
   Generators.Duplicatelist_freq.duplicate_list_gen size x
 
-let evenlist () = 
+let evenlist () =
   let size = 10 in
   Generators.Evenlist_freq.even_list_gen size
 
 (* sizedlist generator with size 10 *)
-let sizedlist () = 
+let sizedlist () =
   let size = 10 in
   Generators.Sizedlist_freq.sized_list_gen size
 
@@ -487,14 +492,13 @@ let sortedlist () =
   try Some (Generators.Sortedlist_freq.sorted_list_gen size x)
   with Combinators.BailOut -> None
 
-
 (* rb tree generator
 true = red 
 
 inv - tree height is 4 or 5
 color - red
 h - black height is 2 (patrick uses max height 6) *)
-let rbtree () = 
+let rbtree () =
   let height = 2 in
   let color = true in
   let inv = if color then 2 * height else (2 * height) + 1 in
@@ -504,15 +508,14 @@ let completetree () =
   let size = 10 in
   Generators.Completetree_freq.complete_tree_gen size
 
-let depthbst () = 
+let depthbst () =
   let depth = 5 in
   let low = 0 in
   let high = 100 in
   Generators.Depthbst_freq.size_bst_gen depth low high
 
-
-let evaluate ?(print_stdout=true) ?(test_oc=stdout) (gen : unit -> 'a) score_function (goal : float) (name : string) =
-
+let evaluate ?(print_stdout = true) ?(test_oc = stdout) (gen : unit -> 'a)
+    score_function (goal : float) (name : string) =
   (* run initial *)
   (* let test_oc = if (print_stdout) then
     stdout
@@ -526,48 +529,35 @@ let evaluate ?(print_stdout=true) ?(test_oc=stdout) (gen : unit -> 'a) score_fun
   let end_time : float = Unix.gettimeofday () in *)
   let init_dist, _, time = score_function gen 0. in
 
-
   (* print initial *)
-  Printf.fprintf test_oc 
-    "Test: %s\nGoal: distr <= %.2f\nRan %d iterations\n\n" 
+  Printf.fprintf test_oc "Test: %s\nGoal: distr <= %.2f\nRan %d iterations\n\n"
     name goal iterations;
   Printf.fprintf test_oc "%8s %8s %8s\n" "" "dist" "time";
   Printf.fprintf test_oc "%s\n" (String.make 30 '-');
   (* Printf.fprintf test_oc "%8s" "Initial:"; *)
-  Printf.fprintf test_oc "%8s %8.2f %8.4fs\n\n" "Initial:" init_dist (time);
-
+  Printf.fprintf test_oc "%8s %8.2f %8.4fs\n\n" "Initial:" init_dist time;
 
   (* run with adjustment *)
   (* weights := [|1000,1000,1000,1000|]; *)
-  let oc = open_out "bin/iterations.csv" in 
-  let (w, s, final_dist, time) = 
-    random_restart
-      oc
-      gen
-      score_function
-      goal
-      iterations
-      simulated_annealing
-  in 
+  let oc = open_out "bin/iterations.csv" in
+  let w, s, final_dist, time =
+    random_restart oc gen score_function goal iterations simulated_annealing
+  in
   close_out oc;
 
   (* Print final results *)
   Printf.fprintf test_oc "%8s %8.2f %8.4fs\n\n\n" "Final:" final_dist time
-  (* if (print_stdout) then
+(* if (print_stdout) then
     ()
   else
     close_out test_oc *)
 
-let () = 
+let () =
   let p = true in
   (* let result_oc = stdout in *)
   let result_oc = open_out "bin/results" in
-  evaluate sizedlist score_nil 0.1 "sizedlist_gen - dist of lists that are nil" ~print_stdout:p ~test_oc:result_oc;
+  evaluate sizedlist score_nil 0.1 "sizedlist_gen - dist of lists that are nil"
+    ~print_stdout:p ~test_oc:result_oc;
   (* evaluate rbtree score_rbtree_black 0.3 "rbt_tree - avg of black nodes in a tree" ~print_stdout:p ~test_oc:result_oc; *)
   (* evaluate rbtree score_rbtree_black 0.4 "rbt_tree - avg of black nodes in a tree" ~print_stdout:p ~test_oc:result_oc; *)
   close_out result_oc
-
-
-
-
-

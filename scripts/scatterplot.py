@@ -106,3 +106,4 @@ else:
     ax.set_zlabel('score')
 
     plt.show()
+    plt.savefig('graph.png')

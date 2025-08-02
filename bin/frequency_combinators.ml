@@ -1,6 +1,6 @@
 (* should figure out the best location for this *)
 (* let weights_f1 = ref (-400) *)
-let weights = ref [|1000;1000;1000;1000|]
+let weights = ref [| 1000; 1000; 1000; 1000 |]
 
 (* for rbt, first 2 freq are for the leaf, and the last 2 are for the standard *)
 
@@ -13,22 +13,18 @@ let frequency_gen_bst size ~base_case ~recursive_case =
 (* basic example for sized list *)
 let frequency_gen_list_basic base_case recursive_case =
   QCheck.Gen.frequency
-  [(1, base_case); (1, recursive_case)]
-  (QCheck_runner.random_state ())
+    [ (1, base_case); (1, recursive_case) ]
+    (QCheck_runner.random_state ())
 
 let frequency_gen_list base_case recursive_case =
   QCheck.Gen.frequency
-  [
-    (fst base_case, (snd base_case)); 
-    (fst recursive_case, (snd recursive_case))
-    ]
-  (QCheck_runner.random_state ())
+    [ (fst base_case, snd base_case); (fst recursive_case, snd recursive_case) ]
+    (QCheck_runner.random_state ())
 
 let unif_gen fst_case snd_case =
   QCheck.Gen.frequency
     [ (1, fst_case); (1, snd_case) ]
     (QCheck_runner.random_state ())
 
-
-  (* accesing the weights *)
-  let get_weight_idx (i: int) = !weights.(i)
+(* accesing the weights *)
+let get_weight_idx (i : int) = !weights.(i)

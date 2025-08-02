@@ -27,13 +27,10 @@ let sized_list_arbitraries =
     sized_list_generators
 
 let eval_sized_list =
-  ( 
-    (* "sized_list", *)
-    List.map
-      (precondition_frequency Precondition.is_sized)
-      sized_list_arbitraries )
+  (* "sized_list", *)
+  List.map (precondition_frequency Precondition.is_sized) sized_list_arbitraries
 
-let run_qcheck foldername = 
+let run_qcheck foldername =
   let filename = foldername ^ "results" ^ ".result" in
   print_endline ("> Running test for " ^ "t_get_name" ^ "...");
   let oc = open_out filename in
