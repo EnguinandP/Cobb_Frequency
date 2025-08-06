@@ -1,7 +1,8 @@
 open Combinators
+open Frequency_combinators
 let rec complete_tree_gen = fun s ->
-  let (x_69) = sizecheck s in
-  match x_69 with
+  let (x_0) = sizecheck s in
+  match x_0 with
   | true -> Leaf
   | false ->
       let (s1) = subs s in

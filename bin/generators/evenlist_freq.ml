@@ -1,23 +1,26 @@
 open Combinators
+open Frequency_combinators
 let rec even_list_gen = fun s ->
-  let (x_43) = sizecheck s in
-  match x_43 with
+  let (x_0) = sizecheck s in
+  match x_0 with
   | true ->
-      let (x_44) = [] in
-      let (x_45) = int_gen () in let (x_46) = double x_45 in x_46 :: x_44
+      let (x_1) = [] in
+      let (x_2) = int_gen () in let (x_3) = double x_2 in x_3 :: x_1
   | false ->
-      let (size) = freq_gen s in
+      let (w_base) = get_weight_idx 0 in
+      let (w_recursive) = get_weight_idx 1 in
       let (base_case) =
-        size ~base_case:
-          (fun _ ->
-             let (x_48) = [] in
-             let (x_49) = int_gen () in
-             let (x_50) = double x_49 in x_50 :: x_48) in
+        frequency_gen_list
+          (w_base,
+            (fun _ ->
+               let (x_5) = [] in
+               let (x_6) = int_gen () in let (x_7) = double x_6 in x_7 :: x_5)) in
       let (recursive_case) =
-        base_case ~recursive_case:
-          (fun _ ->
-             let (x_51) = subs s in
-             let (x_52) = even_list_gen x_51 in
-             let (x_53) = int_gen () in
-             let (x_54) = double x_53 in x_54 :: x_52) in
+        base_case
+          (w_recursive,
+            (fun _ ->
+               let (x_8) = subs s in
+               let (x_9) = even_list_gen x_8 in
+               let (x_10) = int_gen () in
+               let (x_11) = double x_10 in x_11 :: x_9)) in
       recursive_case

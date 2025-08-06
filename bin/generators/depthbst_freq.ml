@@ -1,4 +1,5 @@
 open Combinators
+open Frequency_combinators
 let rec size_bst_gen = fun d ->
   fun lo ->
     fun hi ->
@@ -6,25 +7,26 @@ let rec size_bst_gen = fun d ->
       match x_0 with
       | true -> Leaf
       | false ->
-          let (x_59) = incr lo in
-          let (x_60) = x_59 < hi in
-          (match x_60 with
+          let (x_1) = incr lo in
+          let (x_2) = x_1 < hi in
+          (match x_2 with
            | true ->
-               let (x_61) = int_range lo in
-               let (x) = x_61 hi in
-               let (size) = freq_gen d in
-               let (base_case) =
-                 size ~base_case:
-                   (fun _ ->
-                      let (x_63) = subs d in
-                      let (x_64) = size_bst_gen x_63 in
-                      let (x_65) = x_64 lo in
-                      let (lt) = x_65 x in
-                      let (x_66) = subs d in
-                      let (x_67) = size_bst_gen x_66 in
-                      let (x_68) = x_67 x in
-                      let (rt) = x_68 hi in Node (x, lt, rt)) in
+               let (x_3) = int_range lo in
+               let (x) = x_3 hi in
+               let (w_base) = get_weight_idx 0 in
+               let (w_recursive) = get_weight_idx 1 in
+               let (base_case) = frequency_gen_list (w_base, (fun _ -> Leaf)) in
                let (recursive_case) =
-                 base_case ~recursive_case: (fun _ -> Leaf) in
+                 base_case
+                   (w_recursive,
+                     (fun _ ->
+                        let (x_5) = subs d in
+                        let (x_6) = size_bst_gen x_5 in
+                        let (x_7) = x_6 lo in
+                        let (lt) = x_7 x in
+                        let (x_8) = subs d in
+                        let (x_9) = size_bst_gen x_8 in
+                        let (x_10) = x_9 x in
+                        let (rt) = x_10 hi in Node (x, lt, rt))) in
                recursive_case
            | false -> Leaf)
