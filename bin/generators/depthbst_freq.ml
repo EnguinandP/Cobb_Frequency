@@ -2,8 +2,8 @@ open Combinators
 let rec size_bst_gen = fun d ->
   fun lo ->
     fun hi ->
-      let (x_58) = sizecheck d in
-      match x_58 with
+      let (x_0) = sizecheck d in
+      match x_0 with
       | true -> Leaf
       | false ->
           let (x_59) = incr lo in
