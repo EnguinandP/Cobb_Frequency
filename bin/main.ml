@@ -55,19 +55,22 @@ tyche making sense of Property-Base Testing Effective *)
 
 (* duplicate list generator with size 10 and x = 5 *)
 
+(** collects n values with gen *)
 let rec collect n results gen =
   (* if !time_out_ref then raise Timed_out; *)
-  if n = sample_size then results
+  if n = 0 then results
   else
     let gen_value = gen () in
 
     (* collects generated values in results *)
     let results = gen_value :: results in
-    collect (n + 1) results gen
+    collect (n - 1) results gen
 
-let score goal gen fv =
+(** calculates the (dist, score, and time) given the goal dist, the generator,
+    and the feature vector *)
+let get_score size goal gen fv =
   let start_time = Unix.gettimeofday () in
-  let results = collect 0 [] gen in
+  let results = collect size [] gen in
   let end_time : float = Unix.gettimeofday () in
 
   let pass = List.fold_left fv 0. results in
@@ -117,7 +120,8 @@ let step_n_param (cand_weight : int array) =
 (* updates the temperature *)
 let update_temp n = init_temp /. (float_of_int n +. 1.)
 
-(* print function for results *)
+(** prints one iteration of results as "n, curr_weights, cand weight, cand
+    weights, score, dist, time" *)
 let print_iterations oc n curr_weight cand_score dist time =
   Printf.fprintf oc "%s," n;
   Array.iter (fun x -> Printf.fprintf oc "%d," x) curr_weight;
@@ -125,12 +129,14 @@ let print_iterations oc n curr_weight cand_score dist time =
   let _ = Printf.fprintf oc "%f,%f,%f\n" cand_score dist time in
   ()
 
+(** prints final solution *)
 let print_solutions oc best_weights best_score =
   match oc with
   | None -> ()
   | Some c -> print_iterations c "solution" best_weights best_score 0. 0.
 
-let print_labels oc =
+(** prints header of csv file *)
+let print_header oc =
   match oc with
   | None -> ()
   | Some c ->
@@ -153,12 +159,12 @@ let () =
       Printf.printf "Timed out";
       time_out_ref := true)
 
-let simulated_annealing (result_oc : out_channel) gen fv (goal : float)
-    (niter : int) print_all =
+let simulated_annealing (result_oc : out_channel) (gen : unit -> 'a)
+    (fv : float -> 'a -> float) (goal : float) (niter : int) print_all =
   let temp = init_temp in
 
   let extra_oc = if print_all then Some result_oc else None in
-  print_labels extra_oc;
+  print_header extra_oc;
 
   let rec loop n temp direction curr_weight curr_score best_weight best_score
       best_dist count spare =
@@ -170,7 +176,7 @@ let simulated_annealing (result_oc : out_channel) gen fv (goal : float)
       let temp = update_temp n in
 
       (* calculates score *)
-      let dist, cand_score, time = score goal gen fv in
+      let dist, cand_score, time = get_score sample_size goal gen fv in
 
       print_iterations result_oc (string_of_int n) curr_weight cand_score dist
         time;
@@ -193,7 +199,7 @@ let simulated_annealing (result_oc : out_channel) gen fv (goal : float)
   in
 
   let best_weight, best_score, best_dist =
-    loop 0 temp true !weights 1. !weights 1000. 1. 0 None
+    loop 0 temp true !weights 1. !weights 1000. 1000. 0 None
   in
   let _ = print_solutions extra_oc best_weight best_score in
 
@@ -203,13 +209,13 @@ let basin_hoppping (result_oc : out_channel) gen calc_score (niter : int) goal
     print_all =
   (* initial solution is stored in the ref *)
   let extra_oc = if print_all then Some result_oc else None in
-  print_labels extra_oc;
+  print_header extra_oc;
 
   (* minimize is local min search *)
   let rec minimize n best_weight best_score best_dist spare =
     (* next step *)
     let _ = step_n_param best_weight in
-    let results = collect 0 [] gen in
+    let results = collect sample_size [] gen in
     let dist, next_score = calc_score results goal in
     (* let results = gen () in
     let next_score, spare, dist = calc_noisy_score spare results feature_vector in *)
@@ -275,6 +281,7 @@ let basin_hoppping (result_oc : out_channel) gen calc_score (niter : int) goal
 
   (best_weights, best_score, best_dist)
 
+(** uses random restart with specified optimization algorithm *)
 let random_restart (result_oc : out_channel) gen fv (goal : float) (niter : int)
     algor =
   let start_time = Unix.gettimeofday () in
@@ -282,11 +289,11 @@ let random_restart (result_oc : out_channel) gen fv (goal : float) (niter : int)
   let restart_interval = niter / n_reset in
 
   (* let result_oc = open_out output in *)
-  print_labels (Some result_oc);
+  print_header (Some result_oc);
 
-  let rec restart n best_weight best_score best_dist =
-    (* restarts 5 times *)
-    if n >= 5 then (best_weight, best_score, best_dist)
+  let rec restart n (best_res : (int array * float * float) list) :
+      (int array * float * float) list =
+    if n >= n_reset then best_res
     else
       (* new location between 0 and 1000 *)
       let new_start = Array.map (fun _ -> Random.int 1000) !weights in
@@ -296,14 +303,65 @@ let random_restart (result_oc : out_channel) gen fv (goal : float) (niter : int)
         algor result_oc gen fv goal restart_interval false
       in
 
-      if score < best_score then restart (n + 1) weight score dist
-      else restart (n + 1) best_weight best_score best_dist
+      Printf.printf "%d %f %f " n score dist;
+      Array.iter (fun x -> Printf.printf "%d " x) weight;
+      Printf.printf "\n";
+
+      (* returns top three *)
+      let best_res = (weight, score, dist) :: best_res in
+      let best_res =
+        List.sort
+          (* (fun (_, s1, _) (_, s2, _) ->
+            if s1 > 0. && s2 > 0. then compare s2 s1
+            else if s1 > 0. then -1
+            else if s2 > 0. then 1
+            else compare s1 s2) *)
+          (fun (_, s1, _) (_, s2, _) -> compare s2 s1)
+          best_res
+      in
+      let best_res =
+        match best_res with
+        | [ _; x1; x2; x3 ] -> [ x1; x2; x3 ]
+        | _ -> best_res
+      in
+
+      restart (n + 1) best_res
   in
 
-  let best_weight, best_score, best_dist = restart 0 !weights 100000. 1. in
+  let l = restart 0 [] in
+  let l =
+    List.map
+      (fun (weight, _, _) ->
+        (* sample size used in Branching Processes paper *)
+        weights := weight;
+        let d, s, t = get_score 100000 goal gen fv in
+        Array.iter (fun x -> Printf.printf "%d " x) weight;
+        Printf.printf "%f %f\n" s d;
+        (weight, s, d))
+      l
+  in
+
+  let l =
+    List.sort
+      (fun (_, s1, _) (_, s2, _) ->
+        if s1 > 0. && s2 > 0. then compare s1 s2
+        else if s1 > 0. then 1
+        else if s2 > 0. then -1
+        else compare s2 s1)
+      (* (fun (_, s1, _) (_, s2, _) -> compare s1 s2) *)
+      l
+  in
+  let best_weight, best_score, best_dist = List.hd l in
+
+  List.iter (fun (_, _, d) -> Printf.printf "%f " d) l;
+  print_newline ();
+
   let end_time = Unix.gettimeofday () in
-  let _ = print_iterations result_oc "solution" best_weight best_score 0. 0. in
-  (* close_out result_oc; *)
+  let _ =
+    print_iterations result_oc "solution" best_weight best_score best_dist
+      (end_time -. start_time)
+  in
+  (* return lowest dist under goal or return closest to goal but under or returns under closest to goal  *)
   (best_weight, best_score, best_dist, end_time -. start_time)
 
 let () = QCheck_runner.set_seed 42
@@ -313,15 +371,15 @@ let evaluate ?(test_oc = stdout) gen fv (goal : float) =
   let name1, g = gen in
   let name2, f = fv in
   (* run initial *)
-  let init_dist, _, int_time = score 0. g f in
+  let init_dist, _, int_time = get_score sample_size 0. g f in
 
   (* print initial *)
   Printf.fprintf test_oc
-    "\nTest: %s - %s \nGoal: distr <= %.2f\nRan %d iterations %d restarts\n\n"
+    "\nTest: %s - %s \nGoal: distr <= %.3f\nRan %d iterations %d restarts\n\n"
     name1 name2 goal iterations n_reset;
   Printf.fprintf test_oc "%16s %-10s %-10s %-10s\n" "" "dist" "time" "weights";
   Printf.fprintf test_oc "%s\n" (String.make 50 '-');
-  Printf.fprintf test_oc "%-16s %-10.2f %-10.4f %s" "Initial:" init_dist
+  Printf.fprintf test_oc "%-16s %-10.3f %-10.4f %s" "Initial:" init_dist
     int_time "(";
   Array.iteri
     (fun i x ->
@@ -339,7 +397,7 @@ let evaluate ?(test_oc = stdout) gen fv (goal : float) =
   close_out oc;
 
   (* Print final results *)
-  Printf.fprintf test_oc "%-16s %-10.2f %-10.4f %s" "Final:" fin_dist fin_time
+  Printf.fprintf test_oc "%-16s %-10.3f %-10.4f %s" "Final:" fin_dist fin_time
     "(";
   Array.iteri
     (fun i x ->
@@ -356,15 +414,14 @@ let b_rbtree_fv = ("percent of black nodes in a tree", b_fv)
 
 let () =
   let result_oc = stdout in
-  (* let init_weight = [| 500; 500 |] in *)
+  let init_weight = [| 500; 500 |] in
 
   (* weights := init_weight;
   evaluate sizedlist_gen nil_list_fv 0.1 ~test_oc:result_oc; *)
-  weights := [| 100; 800 |];
-  evaluate sizedlist_gen len_list_fv 2. ~test_oc:result_oc;
-
-  (* weights := [| 500; 500; 500; 500 |];
+  (* weights := [| 100; 800 |];
+  evaluate sizedlist_gen len_list_fv 2. ~test_oc:result_oc; *)
+  weights := [| 500; 500; 500; 500 |];
   evaluate rbtree_gen b_rbtree_fv 0.2 ~test_oc:result_oc;
   weights := [| 500; 500; 500; 500 |];
-  evaluate rbtree_gen b_rbtree_fv 0.4 ~test_oc:result_oc; *)
+  evaluate rbtree_gen b_rbtree_fv 0.4 ~test_oc:result_oc;
   close_out result_oc
