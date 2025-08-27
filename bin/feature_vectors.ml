@@ -1,4 +1,5 @@
 open Frequency_combinators
+open Combinators
 
 (** duplicatelist generator with size 10 and x = 5 *)
 let duplicatelist () =
@@ -42,6 +43,70 @@ let depthbst () =
   let high = 100 in
   Generators.Depthbst_freq.size_bst_gen depth low high
 
+type brPrTree = LeafA | LeafB | LeafC | Node of brPrTree * brPrTree
+
+let brPrTree () =
+  let size = 10 in
+  let rec gen s =
+    if s <= 0 then
+      let w0 = get_weight_idx 0 in
+      let w1 = get_weight_idx 1 in
+      let w2 = get_weight_idx 2 in
+      QCheck.Gen.frequency
+        [ (w0, fun _ -> LeafA); (w1, fun _ -> LeafB); (w2, fun _ -> LeafB) ]
+        (QCheck_runner.random_state ())
+    else
+      let w0 = get_weight_idx 0 in
+      let w1 = get_weight_idx 1 in
+      let w2 = get_weight_idx 2 in
+      let w3 = get_weight_idx 3 in
+      let w4 = get_weight_idx 4 in
+      let w5 = get_weight_idx 5 in
+      frequency_gen_list
+        ( w4,
+          fun _ ->
+            QCheck.Gen.frequency
+              [
+                (w1, fun _ -> LeafA); (w2, fun _ -> LeafB); (w3, fun _ -> LeafB);
+              ]
+              (QCheck_runner.random_state ()) )
+        ( w5,
+          fun _ ->
+            let l = gen (s - 1) in
+            let r = gen (s - 1) in
+            Node (l, r) )
+  in
+  gen size
+
+(* 5.26 5.26 5.21 14.73 *)
+(* let uniform_fv acc x =  *)
+
+let rec count_constr tree =
+  match tree with
+  | LeafA -> (1, 0, 0, 0)
+  | LeafB -> (0, 1, 0, 0)
+  | LeafC -> (0, 0, 1, 0)
+  | Node (lt, rt) ->
+      let lta, ltb, ltc, ltn = count_constr lt in
+      let rta, rtb, rtc, rtn = count_constr rt in
+      (lta + rta, ltb + rtb, ltc + rtc, ltn + rtn + 1)
+
+let rec count_constr_list tree =
+  match tree with
+  | LeafA -> [ 1.; 0.; 0.; 0. ]
+  | LeafB -> [ 0.; 1.; 0.; 0. ]
+  | LeafC -> [ 0.; 0.; 1.; 0. ]
+  | Node (lt, rt) ->
+      let ltc = count_constr_list lt in
+      let rtc = count_constr_list rt in
+      List.map2 ( +. ) ltc
+        (List.mapi (fun i x -> if i = 3 then x +. 1. else x) rtc)
+
+(** percent of leafA *)
+let leafa_fv acc x =
+  let a, b, c, n = count_constr x in
+  acc +. (float_of_int a /. float_of_int (a + b + c + n))
+
 (* list feature vectors *)
 
 (** distrition of lists that are nil *)
@@ -56,7 +121,7 @@ let len_fv acc x =
 
 let rec count_rb (tree : int Combinators.rbtree) (r, b) =
   match tree with
-  | Rbtleaf -> (r, b)
+  | Rbtleaf -> (0, 0)
   | Rbtnode (c, lt, _, rt) ->
       let ltr, ltb = count_rb lt (0, 0) in
       let rtr, rtb = count_rb rt (0, 0) in
