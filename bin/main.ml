@@ -4,11 +4,13 @@ open Feature_vectors
 open Stdlib
 
 (* meta parameters *)
-let iterations = 1000
+let iterations = 5000
 let init_temp = 300. (* 300 *)
 
 (* scipy default temperature is 5230 *)
 let sample_size = 1000
+
+(* Dragen sample size is 100000 *)
 let step_size = 1
 let step_range = (1, 20)
 let n_reset = 5
@@ -76,21 +78,28 @@ let rec collect n results gen =
     collect (n - 1) results gen
 
 (** calculates the (dist, score, and time) given the goal dist, the generator,
-    and the feature vector *)
-let get_score size goal gen fv =
+    and the feature vector
+
+    when target is only value *)
+let get_score fv sample_size goal gen : (float * 'b list) * float * float =
   let start_time = Unix.gettimeofday () in
-  let results = collect size [] gen in
+  let results = collect sample_size [] gen in
   let end_time : float = Unix.gettimeofday () in
 
   let pass = List.fold_left fv 0. results in
 
   let dist = pass /. float_of_int (List.length results) in
-  (dist, dist -. goal, end_time -. start_time)
+  ((dist, []), dist -. goal, end_time -. start_time)
 
-(** chi *)
-let get_chi_score size exp gen count =
+(* alpha = .05 and (i + 1) degrees of freedom *)
+let crit_vals = [| 3.841; 5.991; 7.815; 9.488 |]
+
+(** chi-square goodness of fit
+
+    when target is multiple values *)
+let get_chi_score count sample_size goal gen =
   let start_time = Unix.gettimeofday () in
-  let results = collect size [] gen in
+  let results = collect sample_size [] gen in
   let end_time : float = Unix.gettimeofday () in
 
   (* avg *)
@@ -103,14 +112,55 @@ let get_chi_score size exp gen count =
   in
   let obs = List.map (fun x -> x /. float_of_int (List.length results)) obs in
 
-  let chi =
+  (* [a, a, -1, a] *)
+  let chi, n_none =
     List.fold_left2
-      (fun acc o e -> ((o -. e) *. (o -. e) /. e) +. acc)
-      0. obs exp
+      (fun (acc, n) o e ->
+        if e = -1. then (acc, n)
+        else
+          ( (* Printf.printf "o %f e %f\n" o e; *)
+            ((o -. e) *. (o -. e) /. e) +. acc,
+            n + 1 ))
+      (0., 0) obs goal
   in
 
-  let crit = 9.488 in
-  (chi, chi -. crit, end_time -. start_time)
+  (* alpha = .05 and 4 degrees of freedom *)
+  let crit = crit_vals.(n_none - 1) in
+  ((chi, obs), chi -. crit, end_time -. start_time)
+
+(** chi-square goodness of fit
+
+    when multiple fv and goal pairs *)
+let get_list_score fv sample_size goals gen =
+  let start_time = Unix.gettimeofday () in
+  let results = collect sample_size [] gen in
+  let end_time : float = Unix.gettimeofday () in
+
+  (* let fv_ = [ (h_balanced_tree_fv, 1.5); (stick_tree_fv, 0.5) ] in *)
+  let accumulate fv goal =
+    let pass = List.fold_left fv 0. results in
+
+    let dist = pass /. float_of_int (List.length results) in
+    dist -. goal
+  in
+
+  let obs = List.map2 accumulate fv goals in
+
+  (* [a, a, -1, a] *)
+  let chi, n_none =
+    List.fold_left2
+      (fun (acc, n) o e ->
+        if e = -1. then (acc, n)
+        else
+          ( (* Printf.printf "o %f e %f\n" o e; *)
+            ((o -. e) *. (o -. e) /. e) +. acc,
+            n + 1 ))
+      (0., 0) obs goals
+  in
+
+  (* alpha = .05 and 4 degrees of freedom *)
+  let crit = crit_vals.(n_none - 1) in
+  ((chi, obs), chi -. crit, end_time -. start_time)
 
 let exit_cond dist goal = dist <= goal
 
@@ -193,8 +243,8 @@ let () =
       Printf.printf "Timed out";
       time_out_ref := true)
 
-let simulated_annealing (result_oc : out_channel) (gen : unit -> 'a) fv
-    score_func goal (niter : int) print_all =
+let simulated_annealing (result_oc : out_channel) (gen : unit -> 'a) score_func
+    goal (niter : int) print_all =
   let temp = init_temp in
 
   let extra_oc = if print_all then Some result_oc else None in
@@ -210,7 +260,7 @@ let simulated_annealing (result_oc : out_channel) (gen : unit -> 'a) fv
       let temp = update_temp n in
 
       (* calculates score *)
-      let dist, cand_score, time = score_func sample_size goal gen fv in
+      let (dist, _), cand_score, time = score_func sample_size goal gen in
 
       print_iterations result_oc (string_of_int n) curr_weight cand_score dist
         time;
@@ -316,8 +366,8 @@ let basin_hoppping (result_oc : out_channel) gen calc_score (niter : int) goal
   (best_weights, best_score, best_dist)
 
 (** uses random restart with specified optimization algorithm *)
-let random_restart (result_oc : out_channel) gen fv score_func
-    (goal : float list) (niter : int) algor =
+let random_restart (result_oc : out_channel) gen score_func (goal : 'a)
+    (niter : int) algor =
   let start_time = Unix.gettimeofday () in
 
   let restart_interval = niter / n_reset in
@@ -334,7 +384,7 @@ let random_restart (result_oc : out_channel) gen fv score_func
       weights := new_start;
       (* Printf.printf "\n%d\n" !weights.(0); *)
       let weight, score, dist =
-        algor result_oc gen fv score_func goal restart_interval false
+        algor result_oc gen score_func goal restart_interval false
       in
 
       print_int n;
@@ -367,9 +417,8 @@ let random_restart (result_oc : out_channel) gen fv score_func
   let l =
     List.map
       (fun (weight, _, _) ->
-        (* sample size used in Branching Processes paper *)
         weights := weight;
-        let d, s, t = get_chi_score 100000 goal gen fv in
+        let d, s, t = score_func sample_size goal gen in
         (* Array.iter (fun x -> Printf.printf "%d " x) weight;
         Printf.printf "%f %f\n" s d; *)
         (weight, s, d))
@@ -388,16 +437,17 @@ let random_restart (result_oc : out_channel) gen fv score_func
   in
   let best_weight, best_score, best_dist = List.hd l in
 
-  List.iter (fun (_, _, d) -> Printf.printf "%f " d) l;
-  print_newline ();
+  let best_dist, chi_values = best_dist in
 
+  (* List.iter (fun (_, _, d) -> Printf.printf "%f " d) l;
+  print_newline (); *)
   let end_time = Unix.gettimeofday () in
   let _ =
     print_iterations result_oc "solution" best_weight best_score best_dist
       (end_time -. start_time)
   in
   (* return lowest dist under goal or return closest to goal but under or returns under closest to goal  *)
-  (best_weight, best_score, best_dist, end_time -. start_time)
+  (best_weight, best_score, (best_dist, chi_values), end_time -. start_time)
 
 let () = QCheck_runner.set_seed 42
 
@@ -406,16 +456,27 @@ let evaluate_chi ?(test_oc = stdout) gen fv (goal : float list) =
   let name1, g = gen in
   let name2, f = fv in
   (* run initial *)
-  let init_dist, _, int_time = get_chi_score sample_size goal g f in
+  let (init_chi, init_dist), _, int_time = get_chi_score f sample_size goal g in
 
   (* print initial *)
-  (* Printf.fprintf test_oc
-    "\nTest: %s - %s \nGoal: distr <= %.3f\nRan %d iterations %d restarts\n\n"
-    name1 name2 goal iterations n_reset; *)
-  Printf.fprintf test_oc "%16s %-10s %-10s %-10s\n" "" "dist" "time" "weights";
-  Printf.fprintf test_oc "%s\n" (String.make 50 '-');
-  Printf.fprintf test_oc "%-16s %-10.3f %-10.4f %s" "Initial:" init_dist
-    int_time "(";
+  Printf.fprintf test_oc "\nTest: %s - %s \nGoal: distr = " name1 name2;
+  List.iteri
+    (fun i x ->
+      if i > 0 then Printf.fprintf test_oc ", ";
+      Printf.fprintf test_oc "%.3f" x)
+    goal;
+  Printf.fprintf test_oc "\nRan %d iterations & %d restarts\n\n" iterations
+    n_reset;
+  Printf.fprintf test_oc "%16s %-35s %-10s %-10s %-10s\n" "" "dist" "chi" "time"
+    "weights";
+  Printf.fprintf test_oc "%s\n" (String.make 100 '-');
+  Printf.fprintf test_oc "%-16s %s" "Initial:" "(";
+  List.iteri
+    (fun i x ->
+      if i > 0 then Printf.fprintf test_oc ", ";
+      Printf.fprintf test_oc "%.3f" x)
+    init_dist;
+  Printf.fprintf test_oc ") %-5s %-10.3f %-10.4f %s" " " init_chi int_time "(";
   Array.iteri
     (fun i x ->
       if i > 0 then Printf.fprintf test_oc ", ";
@@ -426,14 +487,19 @@ let evaluate_chi ?(test_oc = stdout) gen fv (goal : float list) =
   (* run with adjustment *)
   (* weights := [|1000,1000,1000,1000|]; *)
   let oc = open_out "bin/iterations.csv" in
-  let w, s, fin_dist, fin_time =
-    random_restart oc g f get_chi_score goal iterations simulated_annealing
+  let w, s, (fin_chi, fin_dist), fin_time =
+    random_restart oc g (get_chi_score f) goal iterations simulated_annealing
   in
   close_out oc;
 
   (* Print final results *)
-  Printf.fprintf test_oc "%-16s %-10.3f %-10.4f %s" "Final:" fin_dist fin_time
-    "(";
+  Printf.fprintf test_oc "%-16s %s" "Final:" "(";
+  List.iteri
+    (fun i x ->
+      if i > 0 then Printf.fprintf test_oc ", ";
+      Printf.fprintf test_oc "%.3f" x)
+    fin_dist;
+  Printf.fprintf test_oc ") %-5s %-10.3f %-10.4f %s" " " fin_chi fin_time "(";
   Array.iteri
     (fun i x ->
       if i > 0 then Printf.fprintf test_oc ", ";
@@ -441,12 +507,76 @@ let evaluate_chi ?(test_oc = stdout) gen fv (goal : float list) =
     !weights;
   Printf.fprintf test_oc ")\n"
 
-(*let evaluate ?(test_oc = stdout) gen (fv : string * (float -> 'a -> float))
-    (goal : float) =
-  let name1, g_ = gen in
-  let name2, f_ = fv in
+(*let evaluate_list ?(test_oc = stdout) gen fv goals =
+  let name1, g = gen in
+  (* let name2, f = fv in *)
   (* run initial *)
-  let init_dist, _, int_time = get_score sample_size 0. g_ f_ in
+  let (init_chi, init_dist), _, int_time =
+    get_list_score fv sample_size goals g
+  in
+
+  (* print initial *)
+  Printf.fprintf test_oc "\nTest: %s - " name1;
+  List.iteri
+    (fun i (fv_name, _) ->
+      if i > 0 then Printf.fprintf test_oc ", ";
+      Printf.fprintf test_oc "%s" fv_name)
+    fv;
+  Printf.fprintf test_oc "\nGoal: distr = ";
+
+  List.iteri
+    (fun i x ->
+      if i > 0 then Printf.fprintf test_oc ", ";
+      Printf.fprintf test_oc "%.3f" x)
+    goals;
+  Printf.fprintf test_oc "\nRan %d iterations & %d restarts\n\n" iterations
+    n_reset;
+  Printf.fprintf test_oc "%16s %-35s %-10s %-10s %-10s\n" "" "dist" "chi" "time"
+    "weights";
+  Printf.fprintf test_oc "%s\n" (String.make 100 '-');
+  Printf.fprintf test_oc "%-16s %s" "Initial:" "(";
+  List.iteri
+    (fun i x ->
+      if i > 0 then Printf.fprintf test_oc ", ";
+      Printf.fprintf test_oc "%.3f" x)
+    init_dist;
+  Printf.fprintf test_oc ") %-5s %-10.3f %-10.4f %s" " " init_chi int_time "(";
+  Array.iteri
+    (fun i x ->
+      if i > 0 then Printf.fprintf test_oc ", ";
+      Printf.fprintf test_oc "%d" x)
+    !weights;
+  Printf.fprintf test_oc ")\n";
+
+  (* run with adjustment *)
+  (* weights := [|1000,1000,1000,1000|]; *)
+  let oc = open_out "bin/iterations.csv" in
+  let w, s, (fin_chi, fin_dist), fin_time =
+    random_restart oc g (get_list_score fv) goals iterations simulated_annealing
+  in
+  close_out oc;
+
+  (* Print final results *)
+  Printf.fprintf test_oc "%-16s %s" "Final:" "(";
+  List.iteri
+    (fun i x ->
+      if i > 0 then Printf.fprintf test_oc ", ";
+      Printf.fprintf test_oc "%.3f" x)
+    fin_dist;
+  Printf.fprintf test_oc ") %-5s %-10.3f %-10.4f %s" " " fin_chi fin_time "(";
+  Array.iteri
+    (fun i x ->
+      if i > 0 then Printf.fprintf test_oc ", ";
+      Printf.fprintf test_oc "%d" x)
+    !weights;
+  Printf.fprintf test_oc ")\n"*)
+
+let evaluate ?(test_oc = stdout) gen (fv : string * (float -> 'a -> float))
+    (goal : float) =
+  let name1, g = gen in
+  let name2, f = fv in
+  (* run initial *)
+  let (init_dist, _), _, int_time = get_score f sample_size 0. g in
 
   (* print initial *)
   Printf.fprintf test_oc
@@ -465,9 +595,10 @@ let evaluate_chi ?(test_oc = stdout) gen fv (goal : float list) =
 
   (* run with adjustment *)
   (* weights := [|1000,1000,1000,1000|]; *)
+  let score = get_score f in
   let oc = open_out "bin/iterations.csv" in
-  let w, s, fin_dist, fin_time =
-    random_restart oc g_ f_ get_score goal iterations simulated_annealing
+  let w, s, (fin_dist, _), fin_time =
+    random_restart oc g score goal iterations simulated_annealing
   in
   close_out oc;
 
@@ -479,15 +610,27 @@ let evaluate_chi ?(test_oc = stdout) gen fv (goal : float list) =
       if i > 0 then Printf.fprintf test_oc ", ";
       Printf.fprintf test_oc "%d" x)
     !weights;
-  Printf.fprintf test_oc ")\n"*)
+  Printf.fprintf test_oc ")\n"
 
-let sizedlist_gen = ("sizedlist", sizedlist)
-let rbtree_gen = ("rbtree", rbtree)
-let brPrTree_gen = ("brPrTree", brPrTree)
+(* generators *)
+let sizedlist_gen = ("sized list", sizedlist)
+let rbtree_gen = ("red black tree", rbtree)
+let depthtree_gen = ("sized tree", depthtree)
+let depthbst_gen = ("BST", depthbst)
+let dragen_gen = ("dragen tree", dragen_tree)
+
+(* feature vectors *)
 let nil_list_fv = ("percent of lists that are nil", nil_fv)
 let len_list_fv = ("avg len of list", len_fv)
 let b_rbtree_fv = ("percent of black nodes in a tree", b_fv)
-let leafa_fv = ("percent of leafa", leafa_fv)
+let height_tree_fv = ("percent of black nodes in a tree", height_fv)
+let stick_tree_fv = ("percent of \"stick\" nodes in a tree", stick_fv)
+
+let h_balanced_tree_fv =
+  ("avg difference in height between left and right subtree", h_balanced_fv)
+
+let leafa_dragen_fv = ("percent of non-leaf a", leafa_fv)
+let withoutC_dragen_fv = ("percent of leaf c", withoutC_fv)
 let count_cons = ("constructors", count_constr_list)
 
 let () =
@@ -504,15 +647,34 @@ let () =
   (* weights := [| 500; 500; 500; 500 |];
   evaluate rbtree_gen b_rbtree_fv 0.4 ~test_oc:result_oc; *)
   (* weights := [| 500; 500; 500; 500; 500; 500 |];
-  evaluate brPrTree_gen leafa_fv 0.0 ~test_oc:result_oc; *)
+  evaluate dragen_gen leafa_dragen_fv 0.0 ~test_oc:result_oc; *)
+  (* weights := [| 500; 500; 500; 500; 500; 500 |];
+  evaluate dragen_gen withoutC_dragen_fv 0.0 ~test_oc:result_oc; *)
+  (* weights := [| 500; 500 |];
+  evaluate depthtree_gen h_balanced_tree_fv 1.5 ~test_oc:result_oc; *)
+  weights := [| 500; 500 |];
+  evaluate depthtree_gen stick_tree_fv 0.2 ~test_oc:result_oc;
+
+  let fv_ = [ (h_balanced_tree_fv, 1.5); (stick_tree_fv, 0.5) ] in
+  (* weights := [| 500; 500 |];
+  evaluate depthtree_gen h_balanced_tree_fv 1.5 ~test_oc:result_oc; *)
+
   (* Kolmogorov–Smirnov test / make buckets*)
-  let uniform = [ 5.26; 5.26; 5.21; 14.73 ] in
-  (* how to create dist? *)
-  let weight_A = [ 30.07; 9.76; 10.15; 48.96 ] in
-  let weight_B = [ 10.07; 3.15; 17.57; 29.80 ] in
-  let only_leafA = [ 10.41; 0.; 0.; 9.41 ] in
-  let without_leafC = [ 6.95; 6.95; 0.; 12.91 ] in
+
+  (* in dragen, weights were distr * size *)
+  let uniform1 = [ 10.; 10.; 10.; 10. ] in
+  let weighted_A = [ 30.; 10.; 10.; -1. ] in
+  let weighted_B = [ 10.; -1.; -1.; 30. ] in
+  let only_leafA = [ 10.; 0.01; 0.01; 0.01 ] in
+  let without_leafC = [ -1.; -1.; 0.01; -1. ] in
+
+  let uniform_exp = [ 5.26; 5.26; 5.21; 14.73 ] in
+  let weight_A_exp = [ 30.07; 9.76; 10.15; 48.96 ] in
+  let weight_B_exp = [ 10.07; 3.15; 17.57; 29.80 ] in
+  let only_leafA_exp = [ 10.41; 0.01; 0.01; 9.41 ] in
+  let without_leafC_exp = [ 6.95; 6.95; 0.01; 12.91 ] in
 
   weights := [| 500; 500; 500; 500; 500; 500 |];
-  evaluate_chi brPrTree_gen count_cons without_leafC ~test_oc:result_oc;
+
+  (* evaluate_chi dragen_gen count_cons without_leafC ~test_oc:result_oc; *)
   close_out result_oc

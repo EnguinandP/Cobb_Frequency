@@ -38,14 +38,20 @@ let completetree () =
   Generators.Completetree_freq.complete_tree_gen size
 
 let depthbst () =
-  let depth = 5 in
+  let depth = 10 in
   let low = 0 in
   let high = 100 in
   Generators.Depthbst_freq.size_bst_gen depth low high
 
-type brPrTree = LeafA | LeafB | LeafC | Node of brPrTree * brPrTree
+let depthtree () =
+  let depth = 10 in
+  Generators.Depthtree_freq.depth_tree_gen depth
 
-let brPrTree () =
+(* Dragen case study *)
+type dragen_tree = LeafA | LeafB | LeafC | Node of dragen_tree * dragen_tree
+
+(** generator for tree used in Dragen *)
+let dragen_tree () =
   let size = 10 in
   let rec gen s =
     if s <= 0 then
@@ -53,7 +59,7 @@ let brPrTree () =
       let w1 = get_weight_idx 1 in
       let w2 = get_weight_idx 2 in
       QCheck.Gen.frequency
-        [ (w0, fun _ -> LeafA); (w1, fun _ -> LeafB); (w2, fun _ -> LeafB) ]
+        [ (w0, fun _ -> LeafA); (w1, fun _ -> LeafB); (w2, fun _ -> LeafC) ]
         (QCheck_runner.random_state ())
     else
       let w0 = get_weight_idx 0 in
@@ -67,7 +73,7 @@ let brPrTree () =
           fun _ ->
             QCheck.Gen.frequency
               [
-                (w1, fun _ -> LeafA); (w2, fun _ -> LeafB); (w3, fun _ -> LeafB);
+                (w1, fun _ -> LeafA); (w2, fun _ -> LeafB); (w3, fun _ -> LeafC);
               ]
               (QCheck_runner.random_state ()) )
         ( w5,
@@ -78,7 +84,6 @@ let brPrTree () =
   in
   gen size
 
-(* 5.26 5.26 5.21 14.73 *)
 (* let uniform_fv acc x =  *)
 
 let rec count_constr tree =
@@ -102,10 +107,16 @@ let rec count_constr_list tree =
       List.map2 ( +. ) ltc
         (List.mapi (fun i x -> if i = 3 then x +. 1. else x) rtc)
 
-(** percent of leafA *)
+(** percent of non - leafA *)
 let leafa_fv acc x =
   let a, b, c, n = count_constr x in
-  acc +. (float_of_int a /. float_of_int (a + b + c + n))
+  acc +. (float_of_int (b + c + n) /. float_of_int (a + b + c + n))
+
+let withoutC_fv acc x =
+  let a, b, c, n = count_constr x in
+  acc +. (float_of_int c /. float_of_int (a + b + c + n))
+
+(* let weighted_fv acc x = *)
 
 (* list feature vectors *)
 
@@ -116,6 +127,54 @@ let nil_fv acc x = if [] = x then acc +. 1. else acc
 let len_fv acc x =
   let s = List.length x in
   acc +. float_of_int s
+
+(* tree feature vectors *)
+
+let rec get_height x =
+  match x with
+  | Leaf -> 1.
+  | Node (_, lt, rt) -> 1. +. max (get_height lt) (get_height rt)
+
+let height_fv acc x = acc +. get_height x
+
+(** avg difference between right subtree and left subtree
+
+    tree is height balanced when each lt and rt height difference is <= 1 *)
+let h_balanced_fv acc x =
+  let rec aux acc' x' =
+    match x' with
+    | Leaf -> (1., acc')
+    | Node (_, lt, rt) ->
+        let lth, rtacc = aux acc' lt in
+        let rth, ltacc = aux acc' rt in
+        (1. +. max lth rth, acc' +. Float.abs (lth -. rth))
+  in
+
+  let acc, _ = aux acc x in
+  acc
+
+let rec count_stick (s, ns) x =
+  match x with
+  | Leaf -> (s, ns)
+  | Node (_, Leaf, rt) ->
+      let s, ns = count_stick (s, ns) rt in
+      (s +. 1., ns)
+  | Node (_, lt, Leaf) ->
+      let s, ns = count_stick (s, ns) lt in
+      (s +. 1., ns)
+  | Node (_, lt, rt) -> (s, ns +. 1.)
+
+(** percentage of nodes that are sticks *)
+let stick_fv acc x =
+  let p =
+    if x = Leaf then 0.
+    else
+      let s, ns = count_stick (0., 0.) x in
+      s /. (ns +. s)
+  in
+  (* Printf.printf "s=%f ns=%f p=%f\n" s ns p; *)
+  (* Printf.printf "p=%f\n" p; *)
+  acc +. p
 
 (* rbtree feature vectors *)
 

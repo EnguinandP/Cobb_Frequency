@@ -1,0 +1,9 @@
+
+Test: sized tree - avg difference in height between left and right subtree 
+Goal: distr <= 1.500
+Ran 5000 iterations 5 restarts
+
+                 dist       time       weights   
+--------------------------------------------------
+Initial:         0.002      0.0020     (500, 500)
+Final:           0.011      132.4516   (81, 627)
