@@ -86,6 +86,90 @@ let dragen_tree () =
 
 (* let uniform_fv acc x =  *)
 
+let get_score fv goal results : (float * float list) * float =
+  let pass = List.fold_left fv 0. results in
+
+  let dist = pass /. float_of_int (List.length results) in
+  ((dist, []), dist -. goal)
+
+(* alpha = .05 and (i + 1) degrees of freedom *)
+let crit_vals =
+  [|
+    3.841;
+    5.991;
+    7.815;
+    9.488;
+    11.070;
+    12.592;
+    14.067;
+    15.507;
+    16.919;
+    18.307;
+    19.675;
+  |]
+
+(** chi-square goodness of fit
+
+    when target is multiple values (4 values hardcoded)*)
+let get_chi_score fv goal results : (float * float list) * float =
+  let size = List.length goal in
+  (* avg *)
+  let obs = List.map fv results in
+  let obs =
+    List.fold_left
+      (fun acc x -> List.map2 ( +. ) acc x)
+      (List.init size (fun _ -> 0.))
+      obs
+  in
+  let obs = List.map (fun x -> x /. float_of_int (List.length results)) obs in
+
+  let chi, n_none =
+    List.fold_left2
+      (fun (acc, n) o e ->
+        if e = -1. then (acc, n) else (((o -. e) *. (o -. e) /. e) +. acc, n + 1))
+      (0., 0) obs goal
+  in
+
+  (* alpha = .05 and 4 degrees of freedom *)
+  let crit = crit_vals.(n_none - 1) in
+  ((chi, obs), chi -. crit)
+
+(* uniform length *)
+let uniform_acc acc x =
+  let length = List.length x in
+  acc.(length) <- acc.(length) +. 1.;
+  acc
+
+let uniform_fv (size : float) results =
+  let goal =
+    List.init (int_of_float (size +. 1.)) (fun _ -> float_of_int 1000 /. size)
+  in
+  (* print_float (float_of_int 1000 /. size); *)
+
+  let obs_arr =
+    List.fold_left uniform_acc
+      (Array.init (int_of_float (size +. 1.)) (fun _ -> 0.))
+      results
+  in
+  let obs = Array.to_list obs_arr in
+
+  (* List.iter (fun x -> Printf.printf "%.3f, " x) obs;
+  print_newline ();
+  print_newline (); *)
+  (* List.iter (fun x -> Printf.printf "%.3f, " x) goal;
+  print_newline (); *)
+  let chi =
+    List.fold_left2
+      (fun acc o e ->
+        if e = -1. then acc else ((o -. e) *. (o -. e) /. e) +. acc)
+      0. obs goal
+  in
+  let crit = crit_vals.(int_of_float size) in
+
+  (* Printf.printf "%.3f %.3f %.3f \n" chi crit (chi -. crit); *)
+
+  ((chi, obs), chi -. crit)
+
 let rec count_constr tree =
   match tree with
   | LeafA -> (1, 0, 0, 0)
@@ -130,6 +214,7 @@ let len_fv acc x =
 
 (* tree feature vectors *)
 
+(* avgg height of trees *)
 let rec get_height x =
   match x with
   | Leaf -> 1.
@@ -229,7 +314,14 @@ let calc_noisy_score spare results goal feature_vector =
       let noise = results +. (std_dev *. s) in
       (noise, spare, goal -. noise)
 
-(* chi squared test *)
+(* assume acc [0,0,0,0,0,0,0,0,...] *)
+(* 
+expected is [1,1,1,1...] 
+count how many in each bin
+conduct chi -> score
+*)
+
+(** chi squared test *)
 let calc_uniform results goal size =
   let distr = Array.make 11 0 in
   List.iter

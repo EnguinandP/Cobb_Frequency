@@ -4,7 +4,7 @@ open Feature_vectors
 open Stdlib
 
 (* meta parameters *)
-let iterations = 5000
+let iterations = 20000
 let init_temp = 300. (* 300 *)
 
 (* scipy default temperature is 5230 *)
@@ -13,7 +13,7 @@ let sample_size = 1000
 (* Dragen sample size is 100000 *)
 let step_size = 1
 let step_range = (1, 20)
-let n_reset = 5
+let n_reset = 50
 
 (* observation: simulated annealing will get stuck in a local min when 
 - temp is low 
@@ -81,61 +81,11 @@ let rec collect n results gen =
     and the feature vector
 
     when target is only value *)
-let get_score fv sample_size goal gen : (float * 'b list) * float * float =
-  let start_time = Unix.gettimeofday () in
-  let results = collect sample_size [] gen in
-  let end_time : float = Unix.gettimeofday () in
-
-  let pass = List.fold_left fv 0. results in
-
-  let dist = pass /. float_of_int (List.length results) in
-  ((dist, []), dist -. goal, end_time -. start_time)
-
-(* alpha = .05 and (i + 1) degrees of freedom *)
-let crit_vals = [| 3.841; 5.991; 7.815; 9.488 |]
-
-(** chi-square goodness of fit
-
-    when target is multiple values *)
-let get_chi_score count sample_size goal gen =
-  let start_time = Unix.gettimeofday () in
-  let results = collect sample_size [] gen in
-  let end_time : float = Unix.gettimeofday () in
-
-  (* avg *)
-  let obs = List.map count results in
-  let obs =
-    List.fold_left
-      (fun acc x -> List.map2 ( +. ) acc x)
-      (List.init 4 (fun _ -> 0.))
-      obs
-  in
-  let obs = List.map (fun x -> x /. float_of_int (List.length results)) obs in
-
-  (* [a, a, -1, a] *)
-  let chi, n_none =
-    List.fold_left2
-      (fun (acc, n) o e ->
-        if e = -1. then (acc, n)
-        else
-          ( (* Printf.printf "o %f e %f\n" o e; *)
-            ((o -. e) *. (o -. e) /. e) +. acc,
-            n + 1 ))
-      (0., 0) obs goal
-  in
-
-  (* alpha = .05 and 4 degrees of freedom *)
-  let crit = crit_vals.(n_none - 1) in
-  ((chi, obs), chi -. crit, end_time -. start_time)
 
 (** chi-square goodness of fit
 
     when multiple fv and goal pairs *)
-let get_list_score fv sample_size goals gen =
-  let start_time = Unix.gettimeofday () in
-  let results = collect sample_size [] gen in
-  let end_time : float = Unix.gettimeofday () in
-
+let get_list_score fv goals gen results =
   (* let fv_ = [ (h_balanced_tree_fv, 1.5); (stick_tree_fv, 0.5) ] in *)
   let accumulate fv goal =
     let pass = List.fold_left fv 0. results in
@@ -160,7 +110,7 @@ let get_list_score fv sample_size goals gen =
 
   (* alpha = .05 and 4 degrees of freedom *)
   let crit = crit_vals.(n_none - 1) in
-  ((chi, obs), chi -. crit, end_time -. start_time)
+  ((chi, obs), chi -. crit)
 
 let exit_cond dist goal = dist <= goal
 
@@ -259,11 +209,15 @@ let simulated_annealing (result_oc : out_channel) (gen : unit -> 'a) score_func
 
       let temp = update_temp n in
 
+      let start_time = Unix.gettimeofday () in
+      let results = collect sample_size [] gen in
+      let end_time : float = Unix.gettimeofday () in
+
       (* calculates score *)
-      let (dist, _), cand_score, time = score_func sample_size goal gen in
+      let (dist, _), cand_score = score_func goal results in
 
       print_iterations result_oc (string_of_int n) curr_weight cand_score dist
-        time;
+        (start_time -. end_time);
 
       (* when score is worse, e^+ -> true *)
       if Random.float 1.0 < Float.exp (-.(cand_score -. curr_score) /. temp)
@@ -387,22 +341,15 @@ let random_restart (result_oc : out_channel) gen score_func (goal : 'a)
         algor result_oc gen score_func goal restart_interval false
       in
 
-      print_int n;
+      (* print_int n;
       Printf.printf " %d %f %f " n score dist;
       Array.iter (fun x -> Printf.printf "%d " x) weight;
-      Printf.printf "\n";
+      Printf.printf "\n"; *)
 
       (* returns top three *)
       let best_res = (weight, score, dist) :: best_res in
       let best_res =
-        List.sort
-          (* (fun (_, s1, _) (_, s2, _) ->
-            if s1 > 0. && s2 > 0. then compare s2 s1
-            else if s1 > 0. then -1
-            else if s2 > 0. then 1
-            else compare s1 s2) *)
-          (fun (_, s1, _) (_, s2, _) -> compare s2 s1)
-          best_res
+        List.sort (fun (_, s1, _) (_, s2, _) -> compare s2 s1) best_res
       in
       let best_res =
         match best_res with
@@ -418,9 +365,8 @@ let random_restart (result_oc : out_channel) gen score_func (goal : 'a)
     List.map
       (fun (weight, _, _) ->
         weights := weight;
-        let d, s, t = score_func sample_size goal gen in
-        (* Array.iter (fun x -> Printf.printf "%d " x) weight;
-        Printf.printf "%f %f\n" s d; *)
+        let results = collect sample_size [] gen in
+        let d, s = score_func goal results in
         (weight, s, d))
       l
   in
@@ -432,15 +378,12 @@ let random_restart (result_oc : out_channel) gen score_func (goal : 'a)
         else if s1 > 0. then 1
         else if s2 > 0. then -1
         else compare s2 s1)
-      (* (fun (_, s1, _) (_, s2, _) -> compare s1 s2) *)
       l
   in
   let best_weight, best_score, best_dist = List.hd l in
 
   let best_dist, chi_values = best_dist in
 
-  (* List.iter (fun (_, _, d) -> Printf.printf "%f " d) l;
-  print_newline (); *)
   let end_time = Unix.gettimeofday () in
   let _ =
     print_iterations result_oc "solution" best_weight best_score best_dist
@@ -452,60 +395,6 @@ let random_restart (result_oc : out_channel) gen score_func (goal : 'a)
 let () = QCheck_runner.set_seed 42
 
 (* maybe functorize evaluate? *)
-let evaluate_chi ?(test_oc = stdout) gen fv (goal : float list) =
-  let name1, g = gen in
-  let name2, f = fv in
-  (* run initial *)
-  let (init_chi, init_dist), _, int_time = get_chi_score f sample_size goal g in
-
-  (* print initial *)
-  Printf.fprintf test_oc "\nTest: %s - %s \nGoal: distr = " name1 name2;
-  List.iteri
-    (fun i x ->
-      if i > 0 then Printf.fprintf test_oc ", ";
-      Printf.fprintf test_oc "%.3f" x)
-    goal;
-  Printf.fprintf test_oc "\nRan %d iterations & %d restarts\n\n" iterations
-    n_reset;
-  Printf.fprintf test_oc "%16s %-35s %-10s %-10s %-10s\n" "" "dist" "chi" "time"
-    "weights";
-  Printf.fprintf test_oc "%s\n" (String.make 100 '-');
-  Printf.fprintf test_oc "%-16s %s" "Initial:" "(";
-  List.iteri
-    (fun i x ->
-      if i > 0 then Printf.fprintf test_oc ", ";
-      Printf.fprintf test_oc "%.3f" x)
-    init_dist;
-  Printf.fprintf test_oc ") %-5s %-10.3f %-10.4f %s" " " init_chi int_time "(";
-  Array.iteri
-    (fun i x ->
-      if i > 0 then Printf.fprintf test_oc ", ";
-      Printf.fprintf test_oc "%d" x)
-    !weights;
-  Printf.fprintf test_oc ")\n";
-
-  (* run with adjustment *)
-  (* weights := [|1000,1000,1000,1000|]; *)
-  let oc = open_out "bin/iterations.csv" in
-  let w, s, (fin_chi, fin_dist), fin_time =
-    random_restart oc g (get_chi_score f) goal iterations simulated_annealing
-  in
-  close_out oc;
-
-  (* Print final results *)
-  Printf.fprintf test_oc "%-16s %s" "Final:" "(";
-  List.iteri
-    (fun i x ->
-      if i > 0 then Printf.fprintf test_oc ", ";
-      Printf.fprintf test_oc "%.3f" x)
-    fin_dist;
-  Printf.fprintf test_oc ") %-5s %-10.3f %-10.4f %s" " " fin_chi fin_time "(";
-  Array.iteri
-    (fun i x ->
-      if i > 0 then Printf.fprintf test_oc ", ";
-      Printf.fprintf test_oc "%d" x)
-    !weights;
-  Printf.fprintf test_oc ")\n"
 
 (*let evaluate_list ?(test_oc = stdout) gen fv goals =
   let name1, g = gen in
@@ -571,46 +460,236 @@ let evaluate_chi ?(test_oc = stdout) gen fv (goal : float list) =
     !weights;
   Printf.fprintf test_oc ")\n"*)
 
-let evaluate ?(test_oc = stdout) gen (fv : string * (float -> 'a -> float))
-    (goal : float) =
+let pp_res fmt
+    ( name1,
+      name2,
+      goal,
+      iterations,
+      n_reset,
+      init_dist,
+      init_time,
+      init_weights,
+      init_chi,
+      fin_dist,
+      fin_time,
+      fin_weights,
+      fin_chi ) =
+  let open Format in
+  let aux version dist time weights =
+    fprintf fmt "%-16s" version;
+    fprintf fmt "%-10.3f %27s %-7s %-10.3f %s" dist "-" " " time "(";
+    Array.iteri
+      (fun i x ->
+        if i > 0 then fprintf fmt ", ";
+        fprintf fmt "%d" x)
+      weights;
+    fprintf fmt ")\n"
+  in
+
+  let aux_chi version dist time weights chi =
+    fprintf fmt "%-16s %s" version "(";
+    List.iteri
+      (fun i x ->
+        if i > 0 then fprintf fmt ", ";
+        fprintf fmt "%.3f" x)
+      dist;
+    fprintf fmt ") %-5s " " ";
+    fprintf fmt "%-10.3f %-10.3f %s" chi time "(";
+    Array.iteri
+      (fun i x ->
+        if i > 0 then fprintf fmt ", ";
+        fprintf fmt "%d" x)
+      weights;
+    fprintf fmt ")\n"
+  in
+
+  fprintf fmt "\nTest: %s - %s \n" name1 name2;
+  let _ =
+    match goal with
+    | g :: [] -> fprintf fmt "Goal: distr <= %.3f" g
+    | [] -> failwith "printing error"
+    | _ ->
+        fprintf fmt "Goal: ";
+        List.iteri
+          (fun i x ->
+            if i > 0 then fprintf fmt ", ";
+            fprintf fmt "%.3f" x)
+          goal
+  in
+
+  fprintf fmt "\nRan %d iterations & %d restarts\n\n" iterations n_reset;
+  fprintf fmt "%16s %-35s %-10s %-10s %-10s\n" "" "dist" "chi" "time" "weights";
+  fprintf fmt "%s\n" (String.make 100 '-');
+
+  match (init_chi, fin_chi) with
+  | Some ic, Some fc ->
+      aux_chi "Initial" init_dist init_time init_weights ic;
+      aux_chi "Final" fin_dist fin_time fin_weights fc
+  | None, None -> (
+      match (init_dist, fin_dist) with
+      | id :: [], fd :: [] ->
+          aux "Initial" id init_time init_weights;
+          aux "Final" fd fin_time fin_weights
+      | _ -> failwith "printing error")
+  | _, _ -> failwith "printing error"
+
+let print_csv oc
+    ( goal,
+      iterations,
+      n_reset,
+      init_dist,
+      init_time,
+      init_weights,
+      init_chi,
+      fin_dist,
+      fin_time,
+      fin_weights,
+      fin_chi ) =
+  let aux version dist time weights chi =
+    Printf.fprintf oc "%s," version;
+    let _ =
+      match goal with
+      | g :: [] -> Printf.fprintf oc "%.3f," g
+      | [] -> failwith "printing error"
+      | _ ->
+          Printf.fprintf oc "\"(";
+          List.iteri
+            (fun i x ->
+              if i > 0 then Printf.fprintf oc ", ";
+              Printf.fprintf oc "%.3f" x)
+            goal;
+          Printf.fprintf oc ")\","
+    in
+
+    let _ =
+      match dist with
+      | d :: [] -> Printf.fprintf oc "%.3f,\"(" d
+      | [] -> failwith "printing error"
+      | _ ->
+          Printf.fprintf oc "\"(";
+          List.iteri
+            (fun i x ->
+              if i > 0 then Printf.fprintf oc ", ";
+              Printf.fprintf oc "%.3f" x)
+            dist;
+          Printf.fprintf oc ")\",\"("
+    in
+
+    Array.iteri
+      (fun i x ->
+        if i > 0 then Printf.fprintf oc ", ";
+        Printf.fprintf oc "%d" x)
+      weights;
+    let _ =
+      match chi with
+      | Some c -> Printf.fprintf oc ")\", %.3f," c
+      | None -> Printf.fprintf oc ")\",,"
+    in
+    Printf.fprintf oc "%.3f,%d,%d\n" time iterations n_reset
+  in
+
+  Printf.fprintf oc "version,goal,dist,weights,chi,time,iterations,restarts\n";
+
+  aux "initial" init_dist init_time init_weights init_chi;
+  aux "final" fin_dist fin_time fin_weights fin_chi
+
+let evaluate_chi ?(test_oc = stdout) gen fv goal =
   let name1, g = gen in
   let name2, f = fv in
-  (* run initial *)
-  let (init_dist, _), _, int_time = get_score f sample_size 0. g in
 
-  (* print initial *)
-  Printf.fprintf test_oc
-    "\nTest: %s - %s \nGoal: distr <= %.3f\nRan %d iterations %d restarts\n\n"
-    name1 name2 goal iterations n_reset;
-  Printf.fprintf test_oc "%16s %-10s %-10s %-10s\n" "" "dist" "time" "weights";
-  Printf.fprintf test_oc "%s\n" (String.make 50 '-');
-  Printf.fprintf test_oc "%-16s %-10.3f %-10.4f %s" "Initial:" init_dist
-    int_time "(";
-  Array.iteri
-    (fun i x ->
-      if i > 0 then Printf.fprintf test_oc ", ";
-      Printf.fprintf test_oc "%d" x)
-    !weights;
-  Printf.fprintf test_oc ")\n";
+  (* run initial *)
+  let start_time = Unix.gettimeofday () in
+  let results = collect sample_size [] g in
+  let end_time : float = Unix.gettimeofday () in
+  let (init_chi, init_dist), _ = f goal results in
+  let init_weights = !weights in
 
   (* run with adjustment *)
-  (* weights := [|1000,1000,1000,1000|]; *)
-  let score = get_score f in
   let oc = open_out "bin/iterations.csv" in
-  let w, s, (fin_dist, _), fin_time =
-    random_restart oc g score goal iterations simulated_annealing
+  let w, s, (fin_chi, fin_dist), fin_time =
+    random_restart oc g f goal iterations simulated_annealing
   in
   close_out oc;
+  let fin_weights = !weights in
 
-  (* Print final results *)
-  Printf.fprintf test_oc "%-16s %-10.3f %-10.4f %s" "Final:" fin_dist fin_time
-    "(";
-  Array.iteri
-    (fun i x ->
-      if i > 0 then Printf.fprintf test_oc ", ";
-      Printf.fprintf test_oc "%d" x)
-    !weights;
-  Printf.fprintf test_oc ")\n"
+  pp_res Format.std_formatter
+    ( name1,
+      name2,
+      goal,
+      iterations,
+      n_reset,
+      init_dist,
+      start_time -. end_time,
+      init_weights,
+      Some init_chi,
+      fin_dist,
+      fin_time,
+      fin_weights,
+      Some fin_chi );
+
+  print_csv test_oc
+    ( goal,
+      iterations,
+      n_reset,
+      init_dist,
+      start_time -. end_time,
+      init_weights,
+      Some init_chi,
+      fin_dist,
+      fin_time,
+      fin_weights,
+      Some fin_chi );
+  ()
+
+let evaluate ?(test_oc = stdout) gen fv
+    (*(fv : string * (float -> 'a -> float))*) goal =
+  let name1, g = gen in
+  let name2, f = fv in
+
+  (* run initial *)
+  let start_time = Unix.gettimeofday () in
+  let results = collect sample_size [] g in
+  let end_time : float = Unix.gettimeofday () in
+  let (init_dist, _), _ = f goal results in
+  let init_weights = !weights in
+
+  (* run with adjustment *)
+  (* let score = get_score f in *)
+  let oc = open_out "bin/iterations.csv" in
+  let w, s, (fin_dist, _), fin_time =
+    random_restart oc g f goal iterations simulated_annealing
+  in
+  close_out oc;
+  let fin_weights = !weights in
+
+  pp_res Format.std_formatter
+    ( name1,
+      name2,
+      [ goal ],
+      iterations,
+      n_reset,
+      [ init_dist ],
+      start_time -. end_time,
+      init_weights,
+      None,
+      [ fin_dist ],
+      fin_time,
+      fin_weights,
+      None );
+
+  print_csv test_oc
+    ( [ goal ],
+      iterations,
+      n_reset,
+      [ init_dist ],
+      start_time -. end_time,
+      init_weights,
+      None,
+      [ fin_dist ],
+      fin_time,
+      fin_weights,
+      None );
+  ()
 
 (* generators *)
 let sizedlist_gen = ("sized list", sizedlist)
@@ -620,10 +699,12 @@ let depthbst_gen = ("BST", depthbst)
 let dragen_gen = ("dragen tree", dragen_tree)
 
 (* feature vectors *)
-let nil_list_fv = ("percent of lists that are nil", nil_fv)
+let nil_list_fv = ("percent of lists that are nil", get_score nil_fv)
+
+(* let nil_list_fv = ("percent of lists that are nil", nil_fv) *)
 let len_list_fv = ("avg len of list", len_fv)
 let b_rbtree_fv = ("percent of black nodes in a tree", b_fv)
-let height_tree_fv = ("percent of black nodes in a tree", height_fv)
+let height_tree_fv = ("avg height of tree", height_fv)
 let stick_tree_fv = ("percent of \"stick\" nodes in a tree", stick_fv)
 
 let h_balanced_tree_fv =
@@ -631,7 +712,8 @@ let h_balanced_tree_fv =
 
 let leafa_dragen_fv = ("percent of non-leaf a", leafa_fv)
 let withoutC_dragen_fv = ("percent of leaf c", withoutC_fv)
-let count_cons = ("constructors", count_constr_list)
+let count_cons = ("constructors", get_chi_score count_constr_list)
+let uniform = ("uniform via chi", uniform_fv)
 
 let () =
   let result_oc = open_out "bin/results/result" in
@@ -640,6 +722,7 @@ let () =
 
   (* weights := init_weight;
   evaluate sizedlist_gen nil_list_fv 0.1 ~test_oc:result_oc; *)
+
   (* weights := [| 100; 800 |];
   evaluate sizedlist_gen len_list_fv 2. ~test_oc:result_oc; *)
   (* weights := [| 500; 500; 500; 500 |];
@@ -652,14 +735,13 @@ let () =
   evaluate dragen_gen withoutC_dragen_fv 0.0 ~test_oc:result_oc; *)
   (* weights := [| 500; 500 |];
   evaluate depthtree_gen h_balanced_tree_fv 1.5 ~test_oc:result_oc; *)
-  weights := [| 500; 500 |];
-  evaluate depthtree_gen stick_tree_fv 0.2 ~test_oc:result_oc;
-
+  (* weights := [| 500; 500 |];
+  evaluate depthtree_gen stick_tree_fv 0.2 ~test_oc:result_oc; *)
   let fv_ = [ (h_balanced_tree_fv, 1.5); (stick_tree_fv, 0.5) ] in
   (* weights := [| 500; 500 |];
   evaluate depthtree_gen h_balanced_tree_fv 1.5 ~test_oc:result_oc; *)
 
-  (* Kolmogorov–Smirnov test / make buckets*)
+  (* Kolmogorov–Smirnov test / make buckets *)
 
   (* in dragen, weights were distr * size *)
   let uniform1 = [ 10.; 10.; 10.; 10. ] in
@@ -677,4 +759,7 @@ let () =
   weights := [| 500; 500; 500; 500; 500; 500 |];
 
   (* evaluate_chi dragen_gen count_cons without_leafC ~test_oc:result_oc; *)
+  weights := [| 500; 500 |];
+  evaluate sizedlist_gen uniform 10. ~test_oc:result_oc;
+
   close_out result_oc
