@@ -1,0 +1,38 @@
+Test: sizedlist_gen - dist of lists that are nil
+Goal: distr <= 0.10
+Ran 10000 iterations
+
+             dist     time
+
+---
+
+Initial: 0.50 0.0021s
+
+Final: 0.10 5.2531s
+
+when almost at sol, sample more 20k for final
+bar chart see how iter affectss score
+
+Test: rbt_tree - avg of black nodes in a tree
+Goal: distr <= 0.30
+Ran 10000 iterations
+
+             dist     time
+
+---
+
+Initial: 0.57 0.0112s
+
+Final: 0.39 35.4920s
+
+Test: rbt_tree - avg of black nodes in a tree
+Goal: distr <= 0.40
+Ran 10000 iterations
+
+             dist     time
+
+---
+
+Initial: 0.58 0.0060s
+
+Final: 0.45 34.7234s

@@ -1,9 +1,0 @@
-
-Test: dragen tree - percent of non-leaf a 
-Goal: distr <= 0.000
-Ran 20000 iterations 5 restarts
-
-                 dist       time       weights   
---------------------------------------------------
-Initial:         0.743      0.0018     (500, 500, 500, 500, 500, 500)
-Final:           0.541      113.5732   (668, 460, 220, 23, 312, 526)

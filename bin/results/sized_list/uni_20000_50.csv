@@ -1,3 +1,0 @@
-version,goal,dist,weights,chi,time,iterations,restarts
-initial,10.000,2358.440,"(500, 500)",,-0.000,20000,50
-final,10.000,221.760,"(102, 556)",,4.851,20000,50

@@ -4,15 +4,16 @@ open Feature_vectors
 open Stdlib
 
 (* meta parameters *)
-let iterations = 50
+let iterations = 60000
 let init_temp = 300.
 
 (* 300 *)
 (* scipy default temperature is 5230 *)
-let sample_size = 1000 (* Dragen sample size is 100000 *)
+
+let sample_size = !sample (* Dragen sample size is 100000 *)
 let step_size = 1
 let step_range = (1, 20)
-let n_reset = 5
+let n_reset = 200
 
 (* observation: simulated annealing will get stuck in a local min when 
 - temp is low 
@@ -227,6 +228,7 @@ let simulated_annealing (result_oc : out_channel) (gen : unit -> 'a) score_func
 
       (* calculates score *)
       let (dist, _), cand_score = score_func goal results in
+      (* Printf.printf "s = %f b = %f\n" cand_score curr_score; *)
 
       print_iterations result_oc (string_of_int n) curr_weight cand_score dist
         (start_time -. end_time);
@@ -249,7 +251,7 @@ let simulated_annealing (result_oc : out_channel) (gen : unit -> 'a) score_func
   in
 
   let best_weight, best_score, best_dist =
-    loop 0 temp true !weights 1. !weights 1000. 1000. 0 None
+    loop 0 temp true !weights 10000000000. !weights 10000000000. 10000000000. 0 None
   in
   let _ = print_solutions extra_oc best_weight best_score in
 
@@ -354,8 +356,8 @@ let random_restart (result_oc : out_channel) (gen : unit -> 'b)
         algor result_oc gen score_func goal restart_interval false
       in
 
-      Printf.printf " %d %f %f " n score dist;
-      Array.iter (fun x -> Printf.printf "%d " x) weight;
+      Printf.printf "fin %d %f %f " n score dist;
+      (* Array.iter (fun x -> Printf.printf "%d " x) weight; *)
       Printf.printf "\n";
 
       (* returns top three *)
@@ -374,13 +376,17 @@ let random_restart (result_oc : out_channel) (gen : unit -> 'b)
 
   let best_res = restart 0 [] in
 
+  (* chi doesn't work here because the sample size increased *)
   (* recomputes best results with 100,000 *)
   let best_res =
     List.map
       (fun (weight, _, _) ->
         weights := weight;
-        let results = collect 100000 [] gen in
+        (* let old_sample = !sample in *)
+        (* sample := 100000; *)
+        let results = collect 1000 [] gen in
         let dist, score = score_func goal results in
+        (* sample := old_sample; *)
 
         (* Printf.printf "\n %f  " score;
         Array.iter (fun x -> Printf.printf "%d " x) weight;
@@ -568,14 +574,14 @@ let print_csv oc
               if i > 0 then Printf.fprintf oc ", ";
               Printf.fprintf oc "%.3f" x)
             goal;
-          Printf.fprintf oc ")\",\"("
+          Printf.fprintf oc ")\","
     in
 
     let _ =
       match dist with
       | dist', [] -> Printf.fprintf oc "%.3f,\"(" dist'
       | dist', chi_pieces ->
-          (* Printf.fprintf oc "\"("; *)
+          Printf.fprintf oc "\"(";
           List.iteri
             (fun i x ->
               if i > 0 then Printf.fprintf oc ", ";
@@ -663,11 +669,10 @@ let rbtree_gen = ("red black tree", rbtree)
 let depthtree_gen = ("sized tree", depthtree)
 let depthbst_gen = ("BST", depthbst)
 let dragen_gen = ("dragen tree", dragen_tree)
+let ld_rbtree_gen = ("Loaded Dice rd black tree", ld_rbtree)
 
 (* feature vectors *)
 let nil_list_fv = ("percent of lists that are nil", get_score nil_fv)
-
-(* let nil_list_fv = ("percent of lists that are nil", nil_fv) *)
 let len_list_fv = ("avg len of list", get_score len_fv)
 let bail_list_fv = ("avg number of bailouts of list", get_score bailout_fv)
 let b_rbtree_fv = ("percent of black nodes in a tree", get_score b_fv)
@@ -678,18 +683,17 @@ let h_balanced_tree_fv =
   ( "avg difference in height between left and right subtree",
     get_score h_balanced_fv )
 
-let leafa_dragen_fv = ("percent of non-leaf a", leafa_fv)
-let withoutC_dragen_fv = ("percent of leaf c", withoutC_fv)
 let count_cons = ("constructors", get_chi_score count_constr_list)
-let uniform = ("uniform via chi", uniform_fv)
+let uniform = ("uniform length via chi", uniform_len_fv)
+let uniform_height_rbtree = ("uniform height via chi", uniform_height_fv)
 
 let () =
   let result_oc = open_out "bin/results/result.csv" in
   (* let result_oc = stdout in *)
   let init_weight = [| 500; 500 |] in
 
-  weights := init_weight;
-  evaluate sizedlist_gen nil_list_fv [ 0.1 ] ~test_oc:result_oc;
+  (* weights := init_weight;
+  evaluate sizedlist_gen nil_list_fv [ 0.1 ] ~test_oc:result_oc; *)
 
   (* weights := [| 100; 800 |];
   evaluate sizedlist_gen len_list_fv 2. ~test_oc:result_oc; *)
@@ -725,8 +729,10 @@ let () =
   let without_leafC_exp = [ 6.95; 6.95; 0.01; 12.91 ] in
 
   weights := [| 500; 500; 500; 500; 500; 500 |];
+  (* evaluate dragen_gen count_cons weight_A_exp ~test_oc:result_oc; *)
 
-  evaluate dragen_gen count_cons without_leafC ~test_oc:result_oc;
+  weights := Array.init (5 * 8) (fun _ -> 500);
+  evaluate ld_rbtree_gen uniform_height_rbtree [ 5.0 ] ~test_oc:result_oc;
 
   (* weights := [| 500; 500 |];
   evaluate sizedlist_gen uniform 10. ~test_oc:result_oc; *)

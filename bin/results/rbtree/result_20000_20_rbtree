@@ -1,0 +1,18 @@
+
+Test: rbtree_gen - avg of black nodes in a tree
+Goal: distr <= 0.30
+Ran 20000 iterations 20 restarts
+
+                 dist       time       weights   
+--------------------------------------------------
+Initial:         0.53       0.0021     (500, 500, 500, 500)
+Final:           0.37       7.2295     (55, 868, 298, 725)
+
+Test: rbtree_gen - avg of black nodes in a tree
+Goal: distr <= 0.40
+Ran 20000 iterations 20 restarts
+
+                 dist       time       weights   
+--------------------------------------------------
+Initial:         0.53       0.0020     (500, 500, 500, 500)
+Final:           0.42       6.9964     (1031, 858, 500, 610)

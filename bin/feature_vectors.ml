@@ -1,7 +1,7 @@
 open Frequency_combinators
 open Combinators
 
-let sample_size = 1000
+let sample = ref 1000
 let a = ref 1
 
 (** duplicatelist generator with size 10 and x = 5 *)
@@ -62,44 +62,15 @@ let depthtree () =
   let depth = 10 in
   Generators.Depthtree_freq.depth_tree_gen depth
 
-(* Dragen case study *)
-type dragen_tree = LeafA | LeafB | LeafC | Node of dragen_tree * dragen_tree
-
-(** generator for tree used in Dragen *)
+(* Dragen *)
 let dragen_tree () =
   let size = 10 in
-  let rec gen s =
-    if s <= 0 then
-      let w0 = get_weight_idx 0 in
-      let w1 = get_weight_idx 1 in
-      let w2 = get_weight_idx 2 in
-      QCheck.Gen.frequency
-        [ (w0, fun _ -> LeafA); (w1, fun _ -> LeafB); (w2, fun _ -> LeafC) ]
-        (QCheck_runner.random_state ())
-    else
-      let w0 = get_weight_idx 0 in
-      let w1 = get_weight_idx 1 in
-      let w2 = get_weight_idx 2 in
-      let w3 = get_weight_idx 3 in
-      let w4 = get_weight_idx 4 in
-      let w5 = get_weight_idx 5 in
-      frequency_gen_list
-        ( w4,
-          fun _ ->
-            QCheck.Gen.frequency
-              [
-                (w1, fun _ -> LeafA); (w2, fun _ -> LeafB); (w3, fun _ -> LeafC);
-              ]
-              (QCheck_runner.random_state ()) )
-        ( w5,
-          fun _ ->
-            let l = gen (s - 1) in
-            let r = gen (s - 1) in
-            Node (l, r) )
-  in
-  gen size
+  Dragen.Tree.dragen_tree size
 
-(* let uniform_fv acc x =  *)
+(* Loaded Dice *)
+let ld_rbtree () =
+  let size = 5 in
+  LoadedDice.Rbtree.rbtree_ld_gen size BranchC
 
 let get_score fv goal results : (float * float list) * float =
   let pass = List.fold_left fv 0. results in
@@ -155,21 +126,28 @@ let get_chi_score fv goal results : (float * float list) * float =
   ((chi, obs), chi -. crit)
 
 (* uniform length *)
-let uniform_acc acc x =
+let length_acc acc x =
   let length = List.length x in
   acc.(length) <- acc.(length) +. 1.;
   acc
 
-let uniform_fv (size : float) results =
+let uniform_len_fv (size : float list) results =
+  let size =
+    match size with
+    | s :: [] -> s
+    | _ -> failwith "expected single element for size"
+  in
+
+  (* buckets are each size *)
   let goal =
     List.init
       (int_of_float (size +. 1.))
-      (fun _ -> float_of_int sample_size /. size)
+      (fun _ -> float_of_int !sample /. size)
   in
   (* print_float (float_of_int 1000 /. size); *)
 
   let obs_arr =
-    List.fold_left uniform_acc
+    List.fold_left length_acc
       (Array.init (int_of_float (size +. 1.)) (fun _ -> 0.))
       results
   in
@@ -191,35 +169,25 @@ let uniform_fv (size : float) results =
   (* Printf.printf "%.3f %.3f %.3f \n" chi crit (chi -. crit); *)
   ((chi, obs), chi -. crit)
 
-let rec count_constr tree =
+let rec count_constr_list (tree : Dragen.Tree.dragen_tree) =
   match tree with
-  | LeafA -> (1, 0, 0, 0)
-  | LeafB -> (0, 1, 0, 0)
-  | LeafC -> (0, 0, 1, 0)
-  | Node (lt, rt) ->
-      let lta, ltb, ltc, ltn = count_constr lt in
-      let rta, rtb, rtc, rtn = count_constr rt in
-      (lta + rta, ltb + rtb, ltc + rtc, ltn + rtn + 1)
-
-let rec count_constr_list tree =
-  match tree with
-  | LeafA -> [ 1.; 0.; 0.; 0. ]
-  | LeafB -> [ 0.; 1.; 0.; 0. ]
-  | LeafC -> [ 0.; 0.; 1.; 0. ]
-  | Node (lt, rt) ->
+  | Dragen.Tree.LeafA -> [ 1.; 0.; 0.; 0. ]
+  | Dragen.Tree.LeafB -> [ 0.; 1.; 0.; 0. ]
+  | Dragen.Tree.LeafC -> [ 0.; 0.; 1.; 0. ]
+  | Dragen.Tree.Node (lt, rt) ->
       let ltc = count_constr_list lt in
       let rtc = count_constr_list rt in
       List.map2 ( +. ) ltc
         (List.mapi (fun i x -> if i = 3 then x +. 1. else x) rtc)
 
 (** percent of non - leafA *)
-let leafa_fv acc x =
+(* let leafa_fv acc x =
   let a, b, c, n = count_constr x in
   acc +. (float_of_int (b + c + n) /. float_of_int (a + b + c + n))
 
 let withoutC_fv acc x =
   let a, b, c, n = count_constr x in
-  acc +. (float_of_int c /. float_of_int (a + b + c + n))
+  acc +. (float_of_int c /. float_of_int (a + b + c + n)) *)
 
 (* let weighted_fv acc x = *)
 
@@ -235,7 +203,7 @@ let len_fv acc x =
 
 (* tree feature vectors *)
 
-(* avgg height of trees *)
+(* avg height of trees *)
 let rec get_height x =
   match x with
   | Leaf -> 1.
@@ -284,6 +252,56 @@ let stick_fv acc x =
 
 (* rbtree feature vectors *)
 
+let rec get_height_rbt x =
+  match x with
+  | Rbtleaf -> 0.
+  | Rbtnode (_, lt, _, rt) -> 1. +. max (get_height_rbt lt) (get_height_rbt rt)
+
+let height_rbt_acc acc x =
+  let height = int_of_float (get_height_rbt x) in
+  acc.(height) <- acc.(height) +. 1.;
+  acc
+
+let uniform_height_fv (size : float list) results =
+  let size =
+    match size with
+    | s :: [] -> s
+    | _ -> failwith "expected single element for size"
+  in
+
+  (* Printf.printf "sample is %d\n" !sample; *)
+
+  (* buckets are each size *)
+  let goal =
+    List.init
+      (int_of_float (size +. 1.))
+      (fun _ -> float_of_int !sample /. size)
+  in
+  (* print_float (float_of_int 1000 /. size); *)
+
+  let obs_arr =
+    List.fold_left height_rbt_acc
+      (Array.init (int_of_float (size +. 1.)) (fun _ -> 0.))
+      results
+  in
+  let obs = Array.to_list obs_arr in
+
+  (* List.iter (fun x -> Printf.printf "%.3f, " x) obs;
+  print_newline ();
+  print_newline (); *)
+  (* List.iter (fun x -> Printf.printf "%.3f, " x) goal;
+  print_newline (); *)
+  let chi =
+    List.fold_left2
+      (fun acc o e ->
+        if e = -1. then acc else ((o -. e) *. (o -. e) /. e) +. acc)
+      0. obs goal
+  in
+  let crit = crit_vals.(int_of_float size) in
+
+  (* Printf.printf "chi = %.3f %.3f %.3f \n" chi crit (chi -. crit);  *)
+  ((chi, obs), chi -. crit)
+
 let rec count_rb (tree : int Combinators.rbtree) (r, b) =
   match tree with
   | Rbtleaf -> (0, 0)
@@ -304,7 +322,7 @@ let bailout_fv acc x = match x with None -> acc +. 1. | Some _ -> acc
 (* let bailout_fv =
 
 let count_bailout n gen count =
-  if n >= sample_size then
+  if n >= sample then
     count
   else
     let count = 

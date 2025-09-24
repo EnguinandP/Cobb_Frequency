@@ -1,3 +1,0 @@
-version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
-initial,dragen tree,constructors,"(-1.000, -1.000, 0.010, -1.000)","(1.733, 1.780, 1.787, 4.300)","(500, 500, 500, 500, 500, 500)", 315.773,-0.002,50,50
-final,dragen tree,constructors,"(-1.000, -1.000, 0.010, -1.000)","(0.571, 0.604, 0.108, 0.283)","(474, 477, 509, 91, 853, 189)", 0.958,1.068,50,50

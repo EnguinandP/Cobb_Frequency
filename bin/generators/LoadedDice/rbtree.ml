@@ -2,27 +2,28 @@ open Combinators
 open Frequency_combinators
 (* from  Loaded Dice Paper (p.16) *)
 
-type color_ld = Red | Black
-type rbtree_ld = Leaf_ld | Branch_ld of rbtree_ld * int * color_ld * rbtree_ld
+(* type color_ld = Red | Black *)
+(* type rbtree_ld = Leaf_ld | Branch_ld of rbtree_ld * int * color_ld * rbtree_ld *)
 type color_c = RedC | BlackC
 type rbtree_c = LeafC | BranchC
 
 (* max height 5 *)
 let rec rbtree_ld_gen size chosenCtr =
   match size with
-  | 0 -> Leaf_ld
+  | 0 -> Rbtleaf
   | _ -> (
       match chosenCtr with
-      | LeafC -> Leaf_ld
+      | LeafC -> Rbtleaf
       | BranchC ->
-          let w0, w1, w2, w3, w4, w5, w6, w7  = ( get_weight_idx (size * 8),
-                  get_weight_idx ((size * 8) + 1),
-                  get_weight_idx ((size * 8) + 2),
-                  get_weight_idx ((size * 8) + 3),
-                  get_weight_idx ((size * 8) + 4),
-                  get_weight_idx ((size * 8) + 5),
-                  get_weight_idx ((size * 8) + 6),
-                  get_weight_idx ((size * 8) + 7) )
+        (* size : [1, 5] *)
+          let w0, w1, w2, w3, w4, w5, w6, w7  = ( get_weight_idx ((size - 1) * 8),
+                  get_weight_idx (((size - 1) * 8) + 1),
+                  get_weight_idx (((size - 1) * 8) + 2),
+                  get_weight_idx (((size - 1) * 8) + 3),
+                  get_weight_idx (((size - 1) * 8) + 4),
+                  get_weight_idx (((size - 1) * 8) + 5),
+                  get_weight_idx (((size - 1) * 8) + 6),
+                  get_weight_idx (((size - 1) * 8) + 7) )
           in
           let b1, c, _, b2 =
             QCheck.Gen.frequency
@@ -40,9 +41,9 @@ let rec rbtree_ld_gen size chosenCtr =
           in
 
           let branch1 = rbtree_ld_gen (size - 1) b1 in
-          let color = if c = RedC then Red else Black in
+          let color = if c = RedC then true else false in
           let x = int_gen () in
           let branch2 = rbtree_ld_gen (size - 1) b2 in
 
-          Branch_ld (branch1, x, color, branch2)
+          Rbtnode (color, branch1, x, branch2)
           )

@@ -1,6 +1,0 @@
-version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
-initial,sized list,percent of lists that are nil,0.100,0.491,"(500, 500)",,0.000,50,5
-final,sized list,percent of lists that are nil,0.100,0.190,"(146, 624)",,0.163,50,5
-version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
-initial,dragen tree,constructors,"(-1.000, -1.000, 0.010, -1.000)","(1.872, 1.867, 1.932, 4.671)","(500, 500, 500, 500, 500, 500)", 369.408,0.001,50,5
-final,dragen tree,constructors,"(-1.000, -1.000, 0.010, -1.000)","(0.186, 0.908, 0.188, 0.282)","(114, 66, 319, 66, 530, 117)", 3.176,0.224,50,5
