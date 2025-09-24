@@ -1,6 +1,18 @@
 open Frequency_combinators
 open Combinators
 
+let sample_size = 1000
+let a = ref 1
+
+(** duplicatelist generator with size 10 and x = 5 *)
+let uniquelist () =
+  let size = 1000 in
+  try Some (Generators.Uniquelist_freq.unique_list_gen size)
+  with Combinators.BailOut ->
+    a := !a + 1;
+    Printf.printf "bail %d\n" !a;
+    None
+
 (** duplicatelist generator with size 10 and x = 5 *)
 let duplicatelist () =
   let size = 10 in
@@ -22,7 +34,10 @@ let sortedlist () =
   let size = 10 in
   let x = 5 in
   try Some (Generators.Sortedlist_freq.sorted_list_gen size x)
-  with Combinators.BailOut -> None
+  with Combinators.BailOut ->
+    a := !a + 1;
+    Printf.printf "bail %d\n" !a;
+    None
 
 (** rb tree generator inv - tree height is 4 or 5 color - red h - black height
     is 2 (patrick uses max height 6) *)
@@ -90,7 +105,12 @@ let get_score fv goal results : (float * float list) * float =
   let pass = List.fold_left fv 0. results in
 
   let dist = pass /. float_of_int (List.length results) in
-  ((dist, []), dist -. goal)
+  let goal =
+    match goal with g :: [] -> g | _ -> failwith "goal format error"
+  in
+  let score = dist -. goal in
+
+  ((dist, []), score)
 
 (* alpha = .05 and (i + 1) degrees of freedom *)
 let crit_vals =
@@ -110,7 +130,7 @@ let crit_vals =
 
 (** chi-square goodness of fit
 
-    when target is multiple values (4 values hardcoded)*)
+    when target is multiple values*)
 let get_chi_score fv goal results : (float * float list) * float =
   let size = List.length goal in
   (* avg *)
@@ -130,7 +150,7 @@ let get_chi_score fv goal results : (float * float list) * float =
       (0., 0) obs goal
   in
 
-  (* alpha = .05 and 4 degrees of freedom *)
+  (* alpha = .05 *)
   let crit = crit_vals.(n_none - 1) in
   ((chi, obs), chi -. crit)
 
@@ -142,7 +162,9 @@ let uniform_acc acc x =
 
 let uniform_fv (size : float) results =
   let goal =
-    List.init (int_of_float (size +. 1.)) (fun _ -> float_of_int 1000 /. size)
+    List.init
+      (int_of_float (size +. 1.))
+      (fun _ -> float_of_int sample_size /. size)
   in
   (* print_float (float_of_int 1000 /. size); *)
 
@@ -167,7 +189,6 @@ let uniform_fv (size : float) results =
   let crit = crit_vals.(int_of_float size) in
 
   (* Printf.printf "%.3f %.3f %.3f \n" chi crit (chi -. crit); *)
-
   ((chi, obs), chi -. crit)
 
 let rec count_constr tree =
@@ -277,7 +298,12 @@ let b_fv acc x =
   acc +. (float_of_int b /. float_of_int (r + b))
 (* max r to b nodes is 2 : 1 (only possible for even h *)
 
-(* let count_bailout n gen count =
+let bailout_fv acc x = match x with None -> acc +. 1. | Some _ -> acc
+
+(* number of bailouts hit *)
+(* let bailout_fv =
+
+let count_bailout n gen count =
   if n >= sample_size then
     count
   else

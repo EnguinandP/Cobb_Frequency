@@ -1,8 +1,6 @@
 (library
  (name generators)
- (libraries 
-  Cobb_PBT.combinators
-  frequency_combinators)
+ (libraries Cobb_PBT.combinators frequency_combinators)
  (modules
   completetree_freq
   depthbst_freq
@@ -12,4 +10,6 @@
   rbtree_freq
   sizedlist_freq
   sortedlist_freq
+  uniquelist_freq
+  
   ))
