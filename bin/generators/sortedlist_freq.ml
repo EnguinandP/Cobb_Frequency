@@ -6,7 +6,10 @@ let rec sorted_list_gen = fun s ->
     match x_0 with
     | true -> []
     | false ->
-        let (y) = int_gen () in
+        let (w_0) = get_weight_idx 0 in
+        let (w_1) = get_weight_idx 1 in
+        let (w_2) = get_weight_idx 3 in
+        let (y) = nat_freq_x_gen x w_0 w_1 w_2 in
         let (x_1) = x <= y in
         (match x_1 with
          | true ->

@@ -35,8 +35,6 @@ let sortedlist () =
   let x = 5 in
   try Some (Generators.Sortedlist_freq.sorted_list_gen size x)
   with Combinators.BailOut ->
-    a := !a + 1;
-    Printf.printf "bail %d\n" !a;
     None
 
 (** rb tree generator inv - tree height is 4 or 5 color - red h - black height
@@ -169,12 +167,12 @@ let uniform_len_fv (size : float list) results =
   (* Printf.printf "%.3f %.3f %.3f \n" chi crit (chi -. crit); *)
   ((chi, obs), chi -. crit)
 
-let rec count_constr_list (tree : Dragen.Tree.dragen_tree) =
+let rec count_constr_list (tree : Frequency_combinators.dragen_tree) =
   match tree with
-  | Dragen.Tree.LeafA -> [ 1.; 0.; 0.; 0. ]
-  | Dragen.Tree.LeafB -> [ 0.; 1.; 0.; 0. ]
-  | Dragen.Tree.LeafC -> [ 0.; 0.; 1.; 0. ]
-  | Dragen.Tree.Node (lt, rt) ->
+  | Frequency_combinators.LeafA -> [ 1.; 0.; 0.; 0. ]
+  | Frequency_combinators.LeafB -> [ 0.; 1.; 0.; 0. ]
+  | Frequency_combinators.LeafC -> [ 0.; 0.; 1.; 0. ]
+  | Frequency_combinators.Node (lt, rt) ->
       let ltc = count_constr_list lt in
       let rtc = count_constr_list rt in
       List.map2 ( +. ) ltc
@@ -252,6 +250,24 @@ let stick_fv acc x =
 
 (* rbtree feature vectors *)
 
+let rec valid_rbt inv color tree =
+  match tree with
+  | Rbtleaf -> (color, 1)
+  | Rbtnode (c, rt, _, lt) ->
+      let rc, rinv = valid_rbt inv color rt in
+      let lc, linv = valid_rbt inv color lt in
+
+      let color =
+        rc && lc && rinv = linv
+        && (match (c, rt) with
+           | true, Rbtnode (true, _, _, _) -> false
+           | _ -> true)
+        &&
+        match (c, lt) with true, Rbtnode (true, _, _, _) -> false | _ -> true
+      in
+      let inv = if color = false then inv + 1 else inv in
+      (color, inv)
+
 let rec get_height_rbt x =
   match x with
   | Rbtleaf -> 0.
@@ -302,17 +318,17 @@ let uniform_height_fv (size : float list) results =
   (* Printf.printf "chi = %.3f %.3f %.3f \n" chi crit (chi -. crit);  *)
   ((chi, obs), chi -. crit)
 
-let rec count_rb (tree : int Combinators.rbtree) (r, b) =
+let rec count_rb (tree) =
   match tree with
   | Rbtleaf -> (0, 0)
   | Rbtnode (c, lt, _, rt) ->
-      let ltr, ltb = count_rb lt (0, 0) in
-      let rtr, rtb = count_rb rt (0, 0) in
+      let ltr, ltb = count_rb lt  in
+      let rtr, rtb = count_rb rt  in
       if c then (ltr + rtr + 1, ltb + rtb) else (ltr + rtr, ltb + rtb + 1)
 
 (** feature vector is the percentage of black nodes *)
 let b_fv acc x =
-  let r, b = count_rb x (0, 0) in
+  let r, b = count_rb x in
   acc +. (float_of_int b /. float_of_int (r + b))
 (* max r to b nodes is 2 : 1 (only possible for even h *)
 

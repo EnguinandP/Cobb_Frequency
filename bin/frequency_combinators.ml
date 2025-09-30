@@ -5,6 +5,8 @@ let weights = ref [| 100; 500 |]
 (** accesing the weight at index i*)
 let get_weight_idx (i : int) = !weights.(i)
 
+type dragen_tree = LeafA | LeafB | LeafC | Node of dragen_tree * dragen_tree
+
 (* for rbt, first 2 freq are for the leaf, and the last 2 are for the standard *)
 
 (* binary search tree example from patrick *)
@@ -55,34 +57,46 @@ let unif_gen fst_case snd_case =
     [ (1, fst_case); (1, snd_case) ]
     (QCheck_runner.random_state ())
 
-let nat_freq_gen w1 w2 w3 w4 w5 =
+let nat_freq_gen w0 w1 w2 w3 w4 =
   QCheck.Gen.frequency
     [
-      (w1, fun _ -> Random.State.int (QCheck_runner.random_state ()) 10);
+      (w0, fun _ -> Random.State.int (QCheck_runner.random_state ()) 10);
       (* 0 - 9 *)
-      (w2, fun _ -> Random.State.int (QCheck_runner.random_state ()) 100 + 10);
+      (w1, fun _ -> (Random.State.int (QCheck_runner.random_state ()) 100) + 10);
       (* 10 - 99 *)
-      (w3, fun _ -> Random.State.int (QCheck_runner.random_state ()) 1000 + 100);
+      (w2, fun _ -> (Random.State.int (QCheck_runner.random_state ()) 1000) + 100);
       (* 100 - 999 *)
-      ( w4,
-        fun _ -> Random.State.int (QCheck_runner.random_state ()) 10000 + 1000
+      ( w3,
+        fun _ -> (Random.State.int (QCheck_runner.random_state ()) 10000) + 1000
       );
       (* 1000 - 9999 *)
-      ( w5,
-        fun _ -> Random.State.int (QCheck_runner.random_state ()) 100000 + 10000
+      ( w4,
+        fun _ -> (Random.State.int (QCheck_runner.random_state ()) 100000) + 10000
       );
       (* 10000 - 99999 *)
     ]
     (QCheck_runner.random_state ())
 
-let nat_freq_size_gen size w1 w2 w3 w4 w5 =
+let nat_freq_size_gen size w0 w1 w2 =
   QCheck.Gen.frequency
     [
-      (w1, fun _ -> size);
+      (w0, fun _ -> size);
       (* size *)
-      (w2, fun _ -> Random.State.int (QCheck_runner.random_state ()) size);
-      (* < size *)
-      (w3, fun _ -> Random.State.int (QCheck_runner.random_state ()) 100 + size);
-      (* > size *)
+      (w1, fun _ -> Random.State.int (QCheck_runner.random_state ()) size);
+      (* x < size *)
+      (w2, fun _ -> (Random.State.int (QCheck_runner.random_state ()) 1000) + size);
+      (* size < x 1000 *)
+    ]
+    (QCheck_runner.random_state ())
+
+let nat_freq_x_gen x w0 w1 w2 =
+  QCheck.Gen.frequency
+    [
+      (w0, fun _ -> x);
+      (* size *)
+      (w1, fun _ -> Random.State.int (QCheck_runner.random_state ()) x);
+      (* x < size *)
+      (w2, fun _ -> (Random.State.int (QCheck_runner.random_state ()) 1000) + x);
+      (* size < x 1000 *)
     ]
     (QCheck_runner.random_state ())

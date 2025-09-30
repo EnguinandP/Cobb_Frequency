@@ -11,6 +11,7 @@
   Cobb.postprocess
   Cobb.tracking
   feature_vectors
+  Dragen
   qcheck_run))
 
 (library

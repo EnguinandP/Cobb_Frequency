@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
+initial,sized_list,len,2.000,0.990,"(500, 500)",,0.000,2000,5
+final,sized_list,len,2.000,0.000,"(1005, 1)",,0.438,2000,5

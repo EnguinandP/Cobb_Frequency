@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
+initial,sorted_list,bailouts,0.010,0.982,"(500, 500, 500, 500)",,0.001,1000,5
+final,sorted_list,bailouts,0.010,0.018,"(721, 2, 570, 270)",,0.625,1000,5

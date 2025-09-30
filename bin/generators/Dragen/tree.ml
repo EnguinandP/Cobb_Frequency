@@ -2,7 +2,6 @@ open Combinators
 open Frequency_combinators
 
 (* Dragen case study *)
-type dragen_tree = LeafA | LeafB | LeafC | Node of dragen_tree * dragen_tree
 
 (** generator for tree used in Dragen *)
 let rec dragen_tree s =

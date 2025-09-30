@@ -4,7 +4,7 @@ open Feature_vectors
 open Stdlib
 
 (* meta parameters *)
-let iterations = 60000
+let iterations = 2000
 let init_temp = 300.
 
 (* 300 *)
@@ -13,7 +13,14 @@ let init_temp = 300.
 let sample_size = !sample (* Dragen sample size is 100000 *)
 let step_size = 1
 let step_range = (1, 20)
-let n_reset = 200
+let n_reset = 5
+let data_type = ref ""
+let feature = ref ""
+let usage_msg = "Usage: dune exec Cobb_Frequency <data_type> [-f] <program_file"
+let set_data_type d = data_type := d
+
+let speclist =
+  [ ("-f", Arg.String (fun s -> data_type := s), "Set specific feature") ]
 
 (* observation: simulated annealing will get stuck in a local min when 
 - temp is low 
@@ -251,7 +258,8 @@ let simulated_annealing (result_oc : out_channel) (gen : unit -> 'a) score_func
   in
 
   let best_weight, best_score, best_dist =
-    loop 0 temp true !weights 10000000000. !weights 10000000000. 10000000000. 0 None
+    loop 0 temp true !weights 10000000000. !weights 10000000000. 10000000000. 0
+      None
   in
   let _ = print_solutions extra_oc best_weight best_score in
 
@@ -610,18 +618,71 @@ let print_csv oc
   aux "final" fin_dist fin_time fin_weights;
   ()
 
-let evaluate ?(test_oc = stdout) gen
+let print_table oc
+    ( gen_name,
+      n_weight,
+      n_bool,
+      n_nat,
+      fv_name,
+      goal,
+      iterations,
+      init_dist,
+      fin_dist,
+      fin_time ) =
+  let dist_aux dist =
+    match dist with
+    | dist', [] -> Printf.fprintf oc ",%.3f" dist'
+    | dist', chi_pieces ->
+        Printf.fprintf oc "\"(";
+        List.iteri
+          (fun i x ->
+            if i > 0 then Printf.fprintf oc ", ";
+            Printf.fprintf oc "%.3f" x)
+          chi_pieces;
+        Printf.fprintf oc ")\""
+  in
+
+  Printf.fprintf oc "%s,%s,%d,%d,%d,%d," gen_name fv_name n_bool n_nat n_weight 1;
+
+  let _ =
+    match goal with
+    | g :: [] -> Printf.fprintf oc "%.3f," g
+    | [] -> failwith "printing error"
+    | _ ->
+        Printf.fprintf oc "\"(";
+        List.iteri
+          (fun i x ->
+            if i > 0 then Printf.fprintf oc ", ";
+            Printf.fprintf oc "%.3f" x)
+          goal;
+        Printf.fprintf oc ")\","
+  in
+
+  dist_aux init_dist;
+  dist_aux fin_dist;
+
+  Printf.fprintf oc "%f,%d" fin_time iterations
+
+let evaluate test_oc gen
     (fv : string * (float list -> 'a list -> (float * float list) * float))
     (goal : float list) =
-  let gen_name, g = gen in
+  let gen_name, g, n_weights, n_bool, n_nat = gen in
   let fv_name, f = fv in
+
+  let file_path = Printf.sprintf "bin/results/%s/%s_%d_%d.csv" gen_name fv_name iterations
+         n_reset in
+  (* let file_path = "bin/results/results.csv" in *)
+
+  let results_oc =
+    open_out file_path
+  in
+
+  weights := Array.init n_weights (fun _ -> 500);
 
   (* run initial *)
   let start_time = Unix.gettimeofday () in
   let results = collect sample_size [] g in
   let end_time = Unix.gettimeofday () in
-  Printf.printf "s %f " start_time;
-  Printf.printf "e %f\n" end_time;
 
   let init_dist, _ = f goal results in
   let init_weights = !weights in
@@ -647,7 +708,7 @@ let evaluate ?(test_oc = stdout) gen
       fin_time,
       fin_weights );
 
-  print_csv test_oc
+  print_csv results_oc
     ( gen_name,
       fv_name,
       goal,
@@ -659,59 +720,176 @@ let evaluate ?(test_oc = stdout) gen
       fin_dist,
       fin_time,
       fin_weights );
+
+  print_table test_oc
+    ( gen_name,
+      n_weights,
+      n_bool,
+      n_nat,
+      fv_name,
+      goal,
+      iterations,
+      init_dist,
+      fin_dist,
+      fin_time );
   ()
 
 (* generators *)
-let sortedlist_gen = ("sorted list", sortedlist)
-let uniquelist_gen = ("unique list", uniquelist)
-let sizedlist_gen = ("sized list", sizedlist)
-let rbtree_gen = ("red black tree", rbtree)
-let depthtree_gen = ("sized tree", depthtree)
-let depthbst_gen = ("BST", depthbst)
-let dragen_gen = ("dragen tree", dragen_tree)
-let ld_rbtree_gen = ("Loaded Dice rd black tree", ld_rbtree)
+let sortedlist_gen = ("sorted_list", sortedlist, 4, 0, 0)
+let uniquelist_gen = ("unique_list", uniquelist, 0, 0, 0)
+let sizedlist_gen = ("sized_list", sizedlist, 2, 1, 0)
+let rbtree_gen = ("rb_tree", rbtree, 4, 2, 0)
+let depthtree_gen = ("sized_tree", depthtree, 2, 1, 0)
+let depthbst_gen = ("BST", depthbst, 0, 0, 0)
+let dragen_gen = ("Dragen_tree", dragen_tree, 6, 2, 0)
+let ld_rbtree_gen = ("Loaded_Dice_rbtree", ld_rbtree, 5 * 8, 0, 0)
 
 (* feature vectors *)
-let nil_list_fv = ("percent of lists that are nil", get_score nil_fv)
-let len_list_fv = ("avg len of list", get_score len_fv)
-let bail_list_fv = ("avg number of bailouts of list", get_score bailout_fv)
-let b_rbtree_fv = ("percent of black nodes in a tree", get_score b_fv)
-let height_tree_fv = ("avg height of tree", get_score height_fv)
-let stick_tree_fv = ("percent of \"stick\" nodes in a tree", get_score stick_fv)
-
-let h_balanced_tree_fv =
-  ( "avg difference in height between left and right subtree",
-    get_score h_balanced_fv )
-
+let nil_list_fv = ("nil", get_score nil_fv)
+let len_list_fv = ("len", get_score len_fv)
+let bail_list_fv = ("bailouts", get_score bailout_fv)
+let b_rbtree_fv = ("black", get_score b_fv)
+let height_tree_fv = ("height", get_score height_fv)
+let stick_tree_fv = ("stick", get_score stick_fv)
+let h_balanced_tree_fv = ("height_bal", get_score h_balanced_fv)
 let count_cons = ("constructors", get_chi_score count_constr_list)
-let uniform = ("uniform length via chi", uniform_len_fv)
-let uniform_height_rbtree = ("uniform height via chi", uniform_height_fv)
+let uniform = ("len_uni", uniform_len_fv)
+let uniform_height_rbtree = ("heigh_uni", uniform_height_fv)
+
+(* (fv, goal) *)
+let (sizedlist_tests :
+      ((string * (float list -> 'a list list -> (float * float list) * float))
+      * float list)
+      list) =
+  [ (nil_list_fv, [ 0.1 ]); 
+  (len_list_fv, [ 2. ]) ]
+
+let sortedlist_tests = [
+  (bail_list_fv, [0.01])
+]
+
+let evenlist_tests = []
+
+let depthbst_tests = []
+
+let rbtree_tests = [ (b_rbtree_fv, [ 0.2 ]); (b_rbtree_fv, [ 0.4 ]) ]
+
+let depthtree_tests =
+  [ (h_balanced_tree_fv, [ 1.5 ]); (stick_tree_fv, [ 0.5 ]) ]
+
+let dragen_tests =
+  [
+    (count_cons, [ 10.; 10.; 10.; 10. ]);
+    (* uniform *)
+    (count_cons, [ 30.; 10.; 10.; -1. ]);
+    (* weighted A *)
+    (count_cons, [ 10.; -1.; -1.; 30. ]);
+    (* weighted B *)
+    (count_cons, [ 10.; 0.01; 0.01; 0.01 ]);
+    (* only A *)
+    (count_cons, [ -1.; -1.; 0.01; -1. ]) (* without A *);
+  ]
+
+type test =
+  | List_type of
+      ((string * (unit -> int list) * int * int * int)
+      * ((string
+         * (float list -> int list list -> (float * float list) * float))
+        * float list)
+        list)
+  | List_opt_type of
+      ((string * (unit -> int list option) * int * int * int)
+      * ((string
+         * (float list -> (int list option) list -> (float * float list) * float))
+        * float list)
+        list)
+  | Rb_type of
+      ((string * (unit -> int Combinators.rbtree) * int * int * int)
+      * ((string
+         * (float list ->
+           int Combinators.rbtree list ->
+           (float * float list) * float))
+        * float list)
+        list)
+  | Depthtree_type of
+      ((string * (unit -> int Combinators.tree) * int * int * int)
+      * ((string
+         * (float list ->
+           int Combinators.tree list ->
+           (float * float list) * float))
+        * float list)
+        list)
+  | Dragen_type of
+      ((string * (unit -> Frequency_combinators.dragen_tree) * int * int * int)
+      * ((string
+         * (float list ->
+          Frequency_combinators.dragen_tree list ->
+           (float * float list) * float))
+        * float list)
+        list)
+
+let tests =
+  [
+    ("sized_list", List_type (sizedlist_gen, sizedlist_tests));
+    ("rb_tree", Rb_type (rbtree_gen, rbtree_tests));
+    ("depth_tree", Depthtree_type (depthbst_gen, depthtree_tests));
+    ("dragen_tree", Dragen_type (dragen_gen, dragen_tests));
+    ("sorted_list", List_opt_type (sortedlist_gen, sortedlist_tests));
+  ]
+
+let evaluate_test test_list oc =
+  match test_list with
+  | List_type (g, fvl) ->
+      List.iter
+        (fun x ->
+          let fv, goal = x in
+          evaluate oc g fv goal)
+        fvl
+  | List_opt_type (g, fvl) ->
+      List.iter
+        (fun x ->
+          let fv, goal = x in
+          evaluate oc g fv goal)
+        fvl
+  | Rb_type (g, fvl) ->
+      List.iter
+        (fun x ->
+          let fv, goal = x in
+          evaluate oc g fv goal)
+        fvl
+  | Depthtree_type (g, fvl) ->
+      List.iter
+        (fun x ->
+          let fv, goal = x in
+          evaluate oc g fv goal)
+        fvl
+  | Dragen_type (g, fvl) ->
+      List.iter
+        (fun x ->
+          let fv, goal = x in
+          evaluate oc g fv goal)
+        fvl
+  
 
 let () =
-  let result_oc = open_out "bin/results/result.csv" in
-  (* let result_oc = stdout in *)
-  let init_weight = [| 500; 500 |] in
+  Arg.parse speclist set_data_type usage_msg;
 
-  (* weights := init_weight;
-  evaluate sizedlist_gen nil_list_fv [ 0.1 ] ~test_oc:result_oc; *)
+  let table_oc = open_out "bin/tables/table1.csv" in
+  Printf.fprintf table_oc
+    "data type,feature \
+     vector,#bool_gen,#nat_gen,#weights,#features,target,start dist,end \
+     dist,time,iterations\n";
 
-  (* weights := [| 100; 800 |];
-  evaluate sizedlist_gen len_list_fv 2. ~test_oc:result_oc; *)
-  (* weights := [| 500; 500; 500; 500 |];
-  evaluate rbtree_gen b_rbtree_fv 0.2 ~test_oc:result_oc; *)
-  (* weights := [| 500; 500; 500; 500 |];
-  evaluate rbtree_gen b_rbtree_fv 0.4 ~test_oc:result_oc; *)
-  (* weights := [| 500; 500; 500; 500; 500; 500 |];
-  evaluate dragen_gen leafa_dragen_fv 0.0 ~test_oc:result_oc; *)
-  (* weights := [| 500; 500; 500; 500; 500; 500 |];
-  evaluate dragen_gen withoutC_dragen_fv 0.0 ~test_oc:result_oc; *)
-  (* weights := [| 500; 500 |];
-  evaluate depthtree_gen h_balanced_tree_fv 1.5 ~test_oc:result_oc; *)
-  (* weights := [| 500; 500 |];
-  evaluate depthtree_gen stick_tree_fv 0.2 ~test_oc:result_oc; *)
+  let test =
+    match List.assoc_opt !data_type tests with
+    | Some s -> s
+    | None -> failwith "unknown test"
+  in
+
+  let res = evaluate_test test table_oc in
+
   let fv_ = [ (h_balanced_tree_fv, 1.5); (stick_tree_fv, 0.5) ] in
-  (* weights := [| 500; 500 |];
-  evaluate depthtree_gen h_balanced_tree_fv 1.5 ~test_oc:result_oc; *)
+
 
   (* Kolmogorov–Smirnov test / make buckets *)
 
@@ -728,11 +906,11 @@ let () =
   let only_leafA_exp = [ 10.41; 0.01; 0.01; 9.41 ] in
   let without_leafC_exp = [ 6.95; 6.95; 0.01; 12.91 ] in
 
-  weights := [| 500; 500; 500; 500; 500; 500 |];
-  (* evaluate dragen_gen count_cons weight_A_exp ~test_oc:result_oc; *)
+  (* weights := [| 500; 500; 500; 500; 500; 500 |];
+  evaluate dragen_gen count_cons weight_A_exp ~test_oc:result_oc; *)
 
-  weights := Array.init (5 * 8) (fun _ -> 500);
-  evaluate ld_rbtree_gen uniform_height_rbtree [ 5.0 ] ~test_oc:result_oc;
+  (* weights := Array.init (5 * 8) (fun _ -> 500);
+  evaluate ld_rbtree_gen uniform_height_rbtree [ 5.0 ] ~test_oc:result_oc; *)
 
   (* weights := [| 500; 500 |];
   evaluate sizedlist_gen uniform 10. ~test_oc:result_oc; *)
@@ -740,4 +918,4 @@ let () =
   evaluate uniquelist_gen len_list_fv 5. ~test_oc:result_oc; *)
   (* weights := [| 500; 500 |];
   evaluate uniquelist_gen bail_list_fv 5. ~test_oc:result_oc; *)
-  close_out result_oc
+  close_out table_oc
