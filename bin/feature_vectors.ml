@@ -81,6 +81,17 @@ let get_score fv goal results : (float * float list) * float =
 
   ((dist, []), score)
 
+let get_exact_score fv goal results : (float * float list) * float =
+  let pass = List.fold_left fv 0. results in
+
+  let dist = pass /. float_of_int (List.length results) in
+  let goal =
+    match goal with g :: [] -> g | _ -> failwith "goal format error"
+  in
+  let score = Float.abs (dist -. goal) in
+
+  ((dist, []), score)
+
 (* alpha = .05 and (i + 1) degrees of freedom *)
 let crit_vals =
   [|

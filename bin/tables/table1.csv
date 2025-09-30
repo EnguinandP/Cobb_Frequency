@@ -1,2 +1,1 @@
 data type,feature vector,#bool_gen,#nat_gen,#weights,#features,target,start dist,end dist,time,iterations
-sized_list,nil,1,0,2,1,0.100,,0.491,0.0520.257174,2000sized_list,len,1,0,2,1,2.000,,0.990,0.0000.438209,2000

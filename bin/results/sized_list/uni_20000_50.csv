@@ -1,3 +1,0 @@
-version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
-initial,sized_list,nil,0.100,0.491,"(500, 500)",,0.000,1000,5
-final,sized_list,nil,0.100,0.057,"(27, 359)",,0.345,1000,5

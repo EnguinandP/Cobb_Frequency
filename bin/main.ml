@@ -4,7 +4,7 @@ open Feature_vectors
 open Stdlib
 
 (* meta parameters *)
-let iterations = 2000
+let iterations = 5000
 let init_temp = 300.
 
 (* 300 *)
@@ -13,7 +13,7 @@ let init_temp = 300.
 let sample_size = !sample (* Dragen sample size is 100000 *)
 let step_size = 1
 let step_range = (1, 20)
-let n_reset = 5
+let n_reset = 10
 let data_type = ref ""
 let feature = ref ""
 let usage_msg = "Usage: dune exec Cobb_Frequency <data_type> [-f] <program_file"
@@ -364,9 +364,9 @@ let random_restart (result_oc : out_channel) (gen : unit -> 'b)
         algor result_oc gen score_func goal restart_interval false
       in
 
-      Printf.printf "fin %d %f %f " n score dist;
+      (* Printf.printf "fin %d %f %f " n score dist;
       (* Array.iter (fun x -> Printf.printf "%d " x) weight; *)
-      Printf.printf "\n";
+      Printf.printf "\n"; *)
 
       (* returns top three *)
       let best_res = (weight, score, dist) :: best_res in
@@ -413,13 +413,11 @@ let random_restart (result_oc : out_channel) (gen : unit -> 'b)
       best_res
   in
 
-  List.iter (fun (_, s2, _) -> Printf.printf "%f " s2) best_res;
-  print_newline ();
-
+  (* List.iter (fun (_, s2, _) -> Printf.printf "%f " s2) best_res;
+  print_newline (); *)
   let best_weight, best_score, best_dist = List.hd best_res in
 
-  Printf.printf "%f\n" best_score;
-
+  (* Printf.printf "%f\n" best_score; *)
   let best_dist, chi_pieces = best_dist in
 
   let end_time = Unix.gettimeofday () in
@@ -539,7 +537,7 @@ let pp_res fmt
   fprintf fmt "\nTest: %s - %s \n" gen_name fv_name;
   let _ =
     match goal with
-    | g :: [] -> fprintf fmt "Goal: distr <= %.3f" g
+    | g :: [] -> fprintf fmt "Goal: %.3f" g
     | [] -> failwith "printing error"
     | _ ->
         fprintf fmt "Goal: ";
@@ -629,6 +627,7 @@ let print_table oc
       init_dist,
       fin_dist,
       fin_time ) =
+
   let dist_aux dist =
     match dist with
     | dist', [] -> Printf.fprintf oc ",%.3f" dist'
@@ -642,7 +641,8 @@ let print_table oc
         Printf.fprintf oc ")\""
   in
 
-  Printf.fprintf oc "%s,%s,%d,%d,%d,%d," gen_name fv_name n_bool n_nat n_weight 1;
+  Printf.fprintf oc "%s,%s,%d,%d,%d,%d," gen_name fv_name n_bool n_nat n_weight
+    1;
 
   let _ =
     match goal with
@@ -665,17 +665,17 @@ let print_table oc
 
 let evaluate test_oc gen
     (fv : string * (float list -> 'a list -> (float * float list) * float))
-    (goal : float list) =
+    (goal_list : float list) =
   let gen_name, g, n_weights, n_bool, n_nat = gen in
   let fv_name, f = fv in
 
-  let file_path = Printf.sprintf "bin/results/%s/%s_%d_%d.csv" gen_name fv_name iterations
-         n_reset in
-  (* let file_path = "bin/results/results.csv" in *)
-
-  let results_oc =
-    open_out file_path
+  let file_path =
+    Printf.sprintf "bin/results/%s/%s_%s%d_%d.csv" gen_name fv_name
+      (List.fold_left (fun acc x -> acc ^ string_of_float x ^ "_") "" goal_list)
+      iterations n_reset
   in
+
+  let results_oc = open_out file_path in
 
   weights := Array.init n_weights (fun _ -> 500);
 
@@ -684,13 +684,13 @@ let evaluate test_oc gen
   let results = collect sample_size [] g in
   let end_time = Unix.gettimeofday () in
 
-  let init_dist, _ = f goal results in
+  let init_dist, _ = f goal_list results in
   let init_weights = !weights in
 
   (* run with adjustment *)
   let oc = open_out "bin/iterations.csv" in
   let w, s, fin_dist, fin_time =
-    random_restart oc g f goal iterations simulated_annealing
+    random_restart oc g f goal_list iterations simulated_annealing
   in
   close_out oc;
   let fin_weights = !weights in
@@ -698,7 +698,7 @@ let evaluate test_oc gen
   pp_res Format.std_formatter
     ( gen_name,
       fv_name,
-      goal,
+      goal_list,
       iterations,
       n_reset,
       init_dist,
@@ -711,7 +711,7 @@ let evaluate test_oc gen
   print_csv results_oc
     ( gen_name,
       fv_name,
-      goal,
+      goal_list,
       iterations,
       n_reset,
       init_dist,
@@ -721,17 +721,17 @@ let evaluate test_oc gen
       fin_time,
       fin_weights );
 
-  print_table test_oc
+  (* print_table test_oc
     ( gen_name,
       n_weights,
       n_bool,
       n_nat,
       fv_name,
-      goal,
+      goal_list,
       iterations,
       init_dist,
       fin_dist,
-      fin_time );
+      fin_time ); *)
   ()
 
 (* generators *)
@@ -745,33 +745,35 @@ let dragen_gen = ("Dragen_tree", dragen_tree, 6, 2, 0)
 let ld_rbtree_gen = ("Loaded_Dice_rbtree", ld_rbtree, 5 * 8, 0, 0)
 
 (* feature vectors *)
-let nil_list_fv = ("nil", get_score nil_fv)
-let len_list_fv = ("len", get_score len_fv)
+let nil_list_fv = ("nil", get_exact_score nil_fv)
+let min_nil_list_fv = ("nil_min", get_score nil_fv)
+let len_list_fv = ("len", get_exact_score len_fv)
+let min_len_list_fv = ("len_min", get_score len_fv)
 let bail_list_fv = ("bailouts", get_score bailout_fv)
 let b_rbtree_fv = ("black", get_score b_fv)
 let height_tree_fv = ("height", get_score height_fv)
 let stick_tree_fv = ("stick", get_score stick_fv)
 let h_balanced_tree_fv = ("height_bal", get_score h_balanced_fv)
 let count_cons = ("constructors", get_chi_score count_constr_list)
-let uniform = ("len_uni", uniform_len_fv)
-let uniform_height_rbtree = ("heigh_uni", uniform_height_fv)
+let uni_len_list_fv = ("len_uni", uniform_len_fv)
+let uni_height_rbtree_fv = ("heigh_uni", uniform_height_fv)
 
 (* (fv, goal) *)
 let (sizedlist_tests :
       ((string * (float list -> 'a list list -> (float * float list) * float))
       * float list)
       list) =
-  [ (nil_list_fv, [ 0.1 ]); 
-  (len_list_fv, [ 2. ]) ]
+  [ 
+    (nil_list_fv, [ 0.1 ]);  
+    (min_nil_list_fv, [ 0.1 ]);  
+    (len_list_fv, [ 5. ]);
+    (min_len_list_fv, [ 5. ]);
+    (uni_len_list_fv, [10.]);
+    ]
 
-let sortedlist_tests = [
-  (bail_list_fv, [0.01])
-]
-
+let sortedlist_tests = [ (bail_list_fv, [ 0.01 ]) ]
 let evenlist_tests = []
-
 let depthbst_tests = []
-
 let rbtree_tests = [ (b_rbtree_fv, [ 0.2 ]); (b_rbtree_fv, [ 0.4 ]) ]
 
 let depthtree_tests =
@@ -800,7 +802,7 @@ type test =
   | List_opt_type of
       ((string * (unit -> int list option) * int * int * int)
       * ((string
-         * (float list -> (int list option) list -> (float * float list) * float))
+         * (float list -> int list option list -> (float * float list) * float))
         * float list)
         list)
   | Rb_type of
@@ -823,7 +825,7 @@ type test =
       ((string * (unit -> Frequency_combinators.dragen_tree) * int * int * int)
       * ((string
          * (float list ->
-          Frequency_combinators.dragen_tree list ->
+           Frequency_combinators.dragen_tree list ->
            (float * float list) * float))
         * float list)
         list)
@@ -869,7 +871,6 @@ let evaluate_test test_list oc =
           let fv, goal = x in
           evaluate oc g fv goal)
         fvl
-  
 
 let () =
   Arg.parse speclist set_data_type usage_msg;
@@ -889,7 +890,6 @@ let () =
   let res = evaluate_test test table_oc in
 
   let fv_ = [ (h_balanced_tree_fv, 1.5); (stick_tree_fv, 0.5) ] in
-
 
   (* Kolmogorov–Smirnov test / make buckets *)
 
