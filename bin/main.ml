@@ -4,7 +4,7 @@ open Feature_vectors
 open Stdlib
 
 (* meta parameters *)
-let iterations = 5000
+let iterations = 20000
 let init_temp = 300.
 
 (* 300 *)
@@ -13,7 +13,7 @@ let init_temp = 300.
 let sample_size = !sample (* Dragen sample size is 100000 *)
 let step_size = 1
 let step_range = (1, 20)
-let n_reset = 10
+let n_reset = 20
 let data_type = ref ""
 let feature = ref ""
 let usage_msg = "Usage: dune exec Cobb_Frequency <data_type> [-f] <program_file"
@@ -627,7 +627,6 @@ let print_table oc
       init_dist,
       fin_dist,
       fin_time ) =
-
   let dist_aux dist =
     match dist with
     | dist', [] -> Printf.fprintf oc ",%.3f" dist'
@@ -738,10 +737,11 @@ let evaluate test_oc gen
 let sortedlist_gen = ("sorted_list", sortedlist, 4, 0, 0)
 let uniquelist_gen = ("unique_list", uniquelist, 0, 0, 0)
 let sizedlist_gen = ("sized_list", sizedlist, 2, 1, 0)
+let evenlist_gen = ("even_list", evenlist, 2, 1, 0)
 let rbtree_gen = ("rb_tree", rbtree, 4, 2, 0)
-let depthtree_gen = ("sized_tree", depthtree, 2, 1, 0)
-let depthbst_gen = ("BST", depthbst, 0, 0, 0)
-let dragen_gen = ("Dragen_tree", dragen_tree, 6, 2, 0)
+let depthtree_gen = ("depth_tree", depthtree, 2, 1, 0)
+let depthbst_gen = ("depth_bst", depthbst, 2, 0, 0)
+let dragen_gen = ("Dragen", dragen_tree, 6, 2, 0)
 let ld_rbtree_gen = ("Loaded_Dice_rbtree", ld_rbtree, 5 * 8, 0, 0)
 
 (* feature vectors *)
@@ -750,10 +750,12 @@ let min_nil_list_fv = ("nil_min", get_score nil_fv)
 let len_list_fv = ("len", get_exact_score len_fv)
 let min_len_list_fv = ("len_min", get_score len_fv)
 let bail_list_fv = ("bailouts", get_score bailout_fv)
-let b_rbtree_fv = ("black", get_score b_fv)
-let height_tree_fv = ("height", get_score height_fv)
-let stick_tree_fv = ("stick", get_score stick_fv)
-let h_balanced_tree_fv = ("height_bal", get_score h_balanced_fv)
+let b_rbtree_fv = ("black", get_exact_score b_fv)
+let height_tree_fv = ("height", get_exact_score height_fv)
+let min_height_tree_fv = ("height_min", get_score height_fv)
+let stick_tree_fv = ("stick", get_exact_score stick_fv)
+let min_stick_tree_fv = ("stick_min", get_score stick_fv)
+let h_balanced_tree_fv = ("h_bal", get_exact_score h_balanced_fv)
 let count_cons = ("constructors", get_chi_score count_constr_list)
 let uni_len_list_fv = ("len_uni", uniform_len_fv)
 let uni_height_rbtree_fv = ("heigh_uni", uniform_height_fv)
@@ -763,21 +765,55 @@ let (sizedlist_tests :
       ((string * (float list -> 'a list list -> (float * float list) * float))
       * float list)
       list) =
-  [ 
-    (nil_list_fv, [ 0.1 ]);  
-    (min_nil_list_fv, [ 0.1 ]);  
+  [
+    (nil_list_fv, [ 0.1 ]);
+    (min_nil_list_fv, [ 0.1 ]);
     (len_list_fv, [ 5. ]);
     (min_len_list_fv, [ 5. ]);
-    (uni_len_list_fv, [10.]);
-    ]
+    (uni_len_list_fv, [ 10. ]);
+  ]
 
 let sortedlist_tests = [ (bail_list_fv, [ 0.01 ]) ]
-let evenlist_tests = []
-let depthbst_tests = []
-let rbtree_tests = [ (b_rbtree_fv, [ 0.2 ]); (b_rbtree_fv, [ 0.4 ]) ]
+
+let evenlist_tests =
+  [
+    (nil_list_fv, [ 0.1 ]);
+    (min_nil_list_fv, [ 0.1 ]);
+    (len_list_fv, [ 5. ]);
+    (min_len_list_fv, [ 5. ]);
+    (uni_len_list_fv, [ 11. ]);
+  ]
+
+let rbtree_tests =
+  [
+    (b_rbtree_fv, [ 0.2 ]);
+    (b_rbtree_fv, [ 0.4 ]);
+    (b_rbtree_fv, [ 0.333 ]);
+    (b_rbtree_fv, [ 0.6 ]);
+  ]
 
 let depthtree_tests =
-  [ (h_balanced_tree_fv, [ 1.5 ]); (stick_tree_fv, [ 0.5 ]) ]
+  [
+    (height_tree_fv, [ 3. ]);
+    (h_balanced_tree_fv, [ 1.5 ]);
+    (h_balanced_tree_fv, [ 0.3 ]);
+    (stick_tree_fv, [ 0.5 ]);
+    (stick_tree_fv, [ 0.1 ]);
+    (min_height_tree_fv, [ 3. ]);
+    (min_stick_tree_fv, [ 0.1 ]);
+    (* (uni_height_rbtree_fv, [5.]) *)
+  ]
+
+let depthbst_tests =
+  [
+    (height_tree_fv, [ 5. ]);
+    (h_balanced_tree_fv, [ 0.3 ]);
+    (h_balanced_tree_fv, [ 2. ]);
+    (stick_tree_fv, [ 0.5 ]);
+    (stick_tree_fv, [ 0.1 ]);
+    (min_height_tree_fv, [ 3. ]);
+    (min_stick_tree_fv, [ 0.1 ]);
+  ]
 
 let dragen_tests =
   [
@@ -813,7 +849,7 @@ type test =
            (float * float list) * float))
         * float list)
         list)
-  | Depthtree_type of
+  | Tree_type of
       ((string * (unit -> int Combinators.tree) * int * int * int)
       * ((string
          * (float list ->
@@ -833,9 +869,11 @@ type test =
 let tests =
   [
     ("sized_list", List_type (sizedlist_gen, sizedlist_tests));
+    ("even_list", List_type (evenlist_gen, evenlist_tests));
     ("rb_tree", Rb_type (rbtree_gen, rbtree_tests));
-    ("depth_tree", Depthtree_type (depthbst_gen, depthtree_tests));
-    ("dragen_tree", Dragen_type (dragen_gen, dragen_tests));
+    ("depth_tree", Tree_type (depthtree_gen, depthtree_tests));
+    ("depth_bst", Tree_type (depthbst_gen, depthbst_tests));
+    ("dragen", Dragen_type (dragen_gen, dragen_tests));
     ("sorted_list", List_opt_type (sortedlist_gen, sortedlist_tests));
   ]
 
@@ -859,7 +897,7 @@ let evaluate_test test_list oc =
           let fv, goal = x in
           evaluate oc g fv goal)
         fvl
-  | Depthtree_type (g, fvl) ->
+  | Tree_type (g, fvl) ->
       List.iter
         (fun x ->
           let fv, goal = x in

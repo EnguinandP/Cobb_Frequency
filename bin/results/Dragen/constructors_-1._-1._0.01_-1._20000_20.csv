@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
+initial,Dragen,constructors,"(-1.000, -1.000, 0.010, -1.000)","(2.094, 2.112, 2.094, 5.300)","(500, 500, 500, 500, 500, 500)", 434.306,0.001,20000,20
+final,Dragen,constructors,"(-1.000, -1.000, 0.010, -1.000)","(0.962, 0.784, 0.007, 0.753)","(770, 487, 27, 8, 119, 13)", 0.001,62.453,20000,20

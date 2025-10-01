@@ -1,9 +1,0 @@
-
-Test: sized tree - percent of "stick" nodes in a tree 
-Goal: distr <= 0.200
-Ran 5000 iterations 5 restarts
-
-                 dist       time       weights   
---------------------------------------------------
-Initial:         0.363      0.0018     (500, 500)
-Final:           0.015      53.0551    (586, 3)

@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
+initial,depth_tree,height_bal,2.000,0.844,"(500, 500)",,0.000,5000,10
+final,depth_tree,height_bal,2.000,1.309,"(210, 538)",,3.432,5000,10

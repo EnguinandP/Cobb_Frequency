@@ -51,13 +51,13 @@ let completetree () =
   Generators.Completetree_freq.complete_tree_gen size
 
 let depthbst () =
-  let depth = 10 in
+  let depth = 5 in
   let low = 0 in
   let high = 100 in
   Generators.Depthbst_freq.size_bst_gen depth low high
 
 let depthtree () =
-  let depth = 10 in
+  let depth = 5 in
   Generators.Depthtree_freq.depth_tree_gen depth
 
 (* Dragen *)
@@ -106,6 +106,7 @@ let crit_vals =
     16.919;
     18.307;
     19.675;
+    21.026;
   |]
 
 (** chi-square goodness of fit
@@ -137,6 +138,8 @@ let get_chi_score fv goal results : (float * float list) * float =
 (* uniform length *)
 let length_acc acc x =
   let length = List.length x in
+  let l = Array.length acc in
+  Printf.printf "%d %d\n" l length;
   acc.(length) <- acc.(length) +. 1.;
   acc
 
@@ -173,6 +176,7 @@ let uniform_len_fv (size : float list) results =
         if e = -1. then acc else ((o -. e) *. (o -. e) /. e) +. acc)
       0. obs goal
   in
+  Printf.printf "%f\n" size;
   let crit = crit_vals.(int_of_float size) in
 
   (* Printf.printf "%.3f %.3f %.3f \n" chi crit (chi -. crit); *)
@@ -223,7 +227,7 @@ let height_fv acc x = acc +. get_height x
 (** avg difference between right subtree and left subtree
 
     tree is height balanced when each lt and rt height difference is <= 1 *)
-let h_balanced_fv acc x =
+let h_balanced_fvX acc x =
   let rec aux acc' x' =
     match x' with
     | Leaf -> (1., acc')
@@ -234,7 +238,22 @@ let h_balanced_fv acc x =
   in
 
   let acc, _ = aux acc x in
+  Printf.printf "%f" acc;
   acc
+
+let h_balanced_fv acc x =
+  let rec aux acc' x' =
+    match x' with
+    | Leaf -> (1., acc')
+    | Node (_, lt, rt) ->
+        let lth, rtacc = aux acc' lt in
+        let rth, ltacc = aux acc' rt in
+        (1. +. max lth rth, acc' +. Float.abs (lth -. rth))
+  in
+
+  let h, h_bal = aux acc x in
+  (* Printf.printf "%f" h_bal; *)
+  h_bal
 
 let rec count_stick (s, ns) x =
   match x with
