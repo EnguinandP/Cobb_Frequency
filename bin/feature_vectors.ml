@@ -70,6 +70,7 @@ let ld_rbtree () =
   let size = 5 in
   LoadedDice.Rbtree.rbtree_ld_gen size BranchC
 
+(* minimizes dist *)
 let get_score fv goal results : (float * float list) * float =
   let pass = List.fold_left fv 0. results in
 
@@ -81,6 +82,8 @@ let get_score fv goal results : (float * float list) * float =
 
   ((dist, []), score)
 
+
+(* minimizes distance to dist *)
 let get_exact_score fv goal results : (float * float list) * float =
   let pass = List.fold_left fv 0. results in
 
@@ -135,11 +138,50 @@ let get_chi_score fv goal results : (float * float list) * float =
   let crit = crit_vals.(n_none - 1) in
   ((chi, obs), chi -. crit)
 
+(* score where target is uniform dist *)
+
+let get_uniform_score acc (size : float list) results  =
+  let size =
+    match size with
+    | s :: [] -> s
+    | _ -> failwith "expected single element for size"
+  in
+
+  (* buckets are each size *)
+  let goal =
+    List.init
+      (int_of_float (size +. 1.))
+      (fun _ -> float_of_int !sample /. size)
+  in
+  (* print_float (float_of_int 1000 /. size); *)
+
+  let obs_arr =
+    List.fold_left acc
+      (Array.init (int_of_float (size +. 1.)) (fun _ -> 0.))
+      results
+  in
+  let obs = Array.to_list obs_arr in
+
+  (* List.iter (fun x -> Printf.printf "%.3f, " x) obs;
+  print_newline ();
+  print_newline (); *)
+  (* List.iter (fun x -> Printf.printf "%.3f, " x) goal;
+  print_newline (); *)
+  let chi =
+    List.fold_left2
+      (fun acc o e ->
+        if e = -1. then acc else ((o -. e) *. (o -. e) /. e) +. acc)
+      0. obs goal
+  in
+  let crit = crit_vals.(int_of_float size) in
+
+  (* Printf.printf "chi = %.3f %.3f %.3f \n" chi crit (chi -. crit);  *)
+  ((chi, obs), chi -. crit)
+
 (* uniform length *)
 let length_acc acc x =
   let length = List.length x in
   let l = Array.length acc in
-  Printf.printf "%d %d\n" l length;
   acc.(length) <- acc.(length) +. 1.;
   acc
 
@@ -193,17 +235,6 @@ let rec count_constr_list (tree : Frequency_combinators.dragen_tree) =
       List.map2 ( +. ) ltc
         (List.mapi (fun i x -> if i = 3 then x +. 1. else x) rtc)
 
-(** percent of non - leafA *)
-(* let leafa_fv acc x =
-  let a, b, c, n = count_constr x in
-  acc +. (float_of_int (b + c + n) /. float_of_int (a + b + c + n))
-
-let withoutC_fv acc x =
-  let a, b, c, n = count_constr x in
-  acc +. (float_of_int c /. float_of_int (a + b + c + n)) *)
-
-(* let weighted_fv acc x = *)
-
 (* list feature vectors *)
 
 (** distrition of lists that are nil *)
@@ -219,32 +250,24 @@ let len_fv acc x =
 (* avg height of trees *)
 let rec get_height x =
   match x with
-  | Leaf -> 1.
+  | Leaf -> 0.
   | Node (_, lt, rt) -> 1. +. max (get_height lt) (get_height rt)
 
 let height_fv acc x = acc +. get_height x
 
+let height_tree_acc acc x =
+  let height = int_of_float (get_height x) in
+  acc.(height) <- acc.(height) +. 1.;
+  acc
+
 (** avg difference between right subtree and left subtree
 
     tree is height balanced when each lt and rt height difference is <= 1 *)
-let h_balanced_fvX acc x =
-  let rec aux acc' x' =
-    match x' with
-    | Leaf -> (1., acc')
-    | Node (_, lt, rt) ->
-        let lth, rtacc = aux acc' lt in
-        let rth, ltacc = aux acc' rt in
-        (1. +. max lth rth, acc' +. Float.abs (lth -. rth))
-  in
-
-  let acc, _ = aux acc x in
-  Printf.printf "%f" acc;
-  acc
 
 let h_balanced_fv acc x =
   let rec aux acc' x' =
     match x' with
-    | Leaf -> (1., acc')
+    | Leaf -> (0., acc')
     | Node (_, lt, rt) ->
         let lth, rtacc = aux acc' lt in
         let rth, ltacc = aux acc' rt in
@@ -252,7 +275,6 @@ let h_balanced_fv acc x =
   in
 
   let h, h_bal = aux acc x in
-  (* Printf.printf "%f" h_bal; *)
   h_bal
 
 let rec count_stick (s, ns) x =
@@ -274,8 +296,6 @@ let stick_fv acc x =
       let s, ns = count_stick (0., 0.) x in
       s /. (ns +. s)
   in
-  (* Printf.printf "s=%f ns=%f p=%f\n" s ns p; *)
-  (* Printf.printf "p=%f\n" p; *)
   acc +. p
 
 (* rbtree feature vectors *)
@@ -305,17 +325,17 @@ let rec get_height_rbt x =
 
 let height_rbt_acc acc x =
   let height = int_of_float (get_height_rbt x) in
+  (* Printf.printf "%d\n" height; *)
+
   acc.(height) <- acc.(height) +. 1.;
   acc
 
-let uniform_height_fv (size : float list) results =
+let uniform_height_rbt_fv (size : float list) results =
   let size =
     match size with
     | s :: [] -> s
     | _ -> failwith "expected single element for size"
   in
-
-  (* Printf.printf "sample is %d\n" !sample; *)
 
   (* buckets are each size *)
   let goal =

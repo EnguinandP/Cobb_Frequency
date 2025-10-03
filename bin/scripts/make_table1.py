@@ -43,8 +43,6 @@ with open(out_str, "w") as fout:
                             else:
                                 end = line["dist"]
 
-                            # fout.write(f"{d} & {line["fv"]} & {n_weights[d] / 2} & 0 & {n_weights[d]} & 1 & {line["goal"]} &  \n")
-
                         fout.write(f"{d.replace("_", "\\_")} & {fv} & {int (n_weights[d] / 2)} & {n_weights[d]} & {goal} & {start} & {end} & {time} & {iterations} \\\\ \n")
     
                 except FileNotFoundError:
@@ -52,38 +50,4 @@ with open(out_str, "w") as fout:
 
         # fout.write("\\midrule \n")
         
-
-
-
-    # match = re.search(r"^(?!.*_freq\.ml$).+\.ml$", f)
-    # if match: 
-    #     in_file = f"{out_dir_str}/{f}"
-    #     base, ext, nothing = f.partition(".ml")
-    #     out_file = f"{out_dir_str}/{base}_freq{ext}"
-
-    #     try:
-    #         with open(in_file, "r") as fin:
-    #             lines = fin.readlines()
-
-    #         with open(in_file, "w") as fout:
-    #             for line in lines:
-    #                 new_line = re.sub(t_pattern, "True", line) 
-    #                 new_line = re.sub(f_pattern, "False", new_line) 
-    #                 fout.write(new_line)
-        
-    #     except FileNotFoundError:
-    #         print(f"Error: The file '{file}' was not found.")
-        
-
-    #     cmd = f"dune exec frequify -- -f frequency_gen_list -o {out_file} {in_file}".split(" ")
-    #     subprocess.run(cmd)
-    #     # print(in_file, out_file)
-
-    #     try:
-    #         with open(in_file, "w") as fout:
-    #             for line in lines:
-    #                 fout.write(line)
-        
-    #     except FileNotFoundError:
-    #         print(f"Error: The file '{file}' was not found.")
 

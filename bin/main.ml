@@ -4,7 +4,7 @@ open Feature_vectors
 open Stdlib
 
 (* meta parameters *)
-let iterations = 20000
+let iterations = 5000
 let init_temp = 300.
 
 (* 300 *)
@@ -13,7 +13,7 @@ let init_temp = 300.
 let sample_size = !sample (* Dragen sample size is 100000 *)
 let step_size = 1
 let step_range = (1, 20)
-let n_reset = 20
+let n_reset = 10
 let data_type = ref ""
 let feature = ref ""
 let usage_msg = "Usage: dune exec Cobb_Frequency <data_type> [-f] <program_file"
@@ -432,7 +432,7 @@ let () = QCheck_runner.set_seed 42
 
 (* maybe functorize evaluate? *)
 
-(*let evaluate_list ?(test_oc = stdout) gen fv goals =
+(* let evaluate_list ?(test_oc = stdout) gen fv goals =
   let gen_name, g = gen in
   (* let fv_name, f = fv in *)
   (* run initial *)
@@ -441,60 +441,16 @@ let () = QCheck_runner.set_seed 42
   in
 
   (* print initial *)
-  Printf.fprintf test_oc "\nTest: %s - " gen_name;
-  List.iteri
-    (fun i (fv_name, _) ->
-      if i > 0 then Printf.fprintf test_oc ", ";
-      Printf.fprintf test_oc "%s" fv_name)
-    fv;
-  Printf.fprintf test_oc "\nGoal: distr = ";
-
-  List.iteri
-    (fun i x ->
-      if i > 0 then Printf.fprintf test_oc ", ";
-      Printf.fprintf test_oc "%.3f" x)
-    goals;
-  Printf.fprintf test_oc "\nRan %d iterations & %d restarts\n\n" iterations
-    n_reset;
-  Printf.fprintf test_oc "%16s %-35s %-10s %-10s %-10s\n" "" "dist" "chi" "time"
-    "weights";
-  Printf.fprintf test_oc "%s\n" (String.make 100 '-');
-  Printf.fprintf test_oc "%-16s %s" "Initial:" "(";
-  List.iteri
-    (fun i x ->
-      if i > 0 then Printf.fprintf test_oc ", ";
-      Printf.fprintf test_oc "%.3f" x)
-    init_dist;
-  Printf.fprintf test_oc ") %-5s %-10.3f %-10.4f %s" " " init_chi int_time "(";
-  Array.iteri
-    (fun i x ->
-      if i > 0 then Printf.fprintf test_oc ", ";
-      Printf.fprintf test_oc "%d" x)
-    !weights;
-  Printf.fprintf test_oc ")\n";
 
   (* run with adjustment *)
-  (* weights := [|1000,1000,1000,1000|]; *)
+
   let oc = open_out "bin/iterations.csv" in
   let w, s, (fin_chi, fin_dist), fin_time =
     random_restart oc g (get_list_score fv) goals iterations simulated_annealing
   in
-  close_out oc;
+  close_out oc; *)
 
-  (* Print final results *)
-  Printf.fprintf test_oc "%-16s %s" "Final:" "(";
-  List.iteri
-    (fun i x ->
-      if i > 0 then Printf.fprintf test_oc ", ";
-      Printf.fprintf test_oc "%.3f" x)
-    fin_dist;
-  Printf.fprintf test_oc ") %-5s %-10.3f %-10.4f %s" " " fin_chi fin_time "(";
-  Array.iteri
-    (fun i x ->
-      if i > 0 then Printf.fprintf test_oc ", ";
-      Printf.fprintf test_oc "%d" x)
-    !weights;
-  Printf.fprintf test_oc ")\n"*)
+(* Print final results *)
 
 let pp_res fmt
     ( gen_name,
@@ -746,19 +702,20 @@ let ld_rbtree_gen = ("Loaded_Dice_rbtree", ld_rbtree, 5 * 8, 0, 0)
 
 (* feature vectors *)
 let nil_list_fv = ("nil", get_exact_score nil_fv)
-let min_nil_list_fv = ("nil_min", get_score nil_fv)
+let min_nil_list_fv = ("min_nil", get_score nil_fv)
 let len_list_fv = ("len", get_exact_score len_fv)
-let min_len_list_fv = ("len_min", get_score len_fv)
+let min_len_list_fv = ("min_len", get_score len_fv)
 let bail_list_fv = ("bailouts", get_score bailout_fv)
 let b_rbtree_fv = ("black", get_exact_score b_fv)
 let height_tree_fv = ("height", get_exact_score height_fv)
-let min_height_tree_fv = ("height_min", get_score height_fv)
+let min_height_tree_fv = ("min_height", get_score height_fv)
 let stick_tree_fv = ("stick", get_exact_score stick_fv)
-let min_stick_tree_fv = ("stick_min", get_score stick_fv)
+let min_stick_tree_fv = ("min_stick", get_score stick_fv)
 let h_balanced_tree_fv = ("h_bal", get_exact_score h_balanced_fv)
 let count_cons = ("constructors", get_chi_score count_constr_list)
-let uni_len_list_fv = ("len_uni", uniform_len_fv)
-let uni_height_rbtree_fv = ("heigh_uni", uniform_height_fv)
+let uni_len_list_fv = ("uni_len", get_uniform_score length_acc)
+let uni_height_rbtree_fv = ("uni_height", get_uniform_score height_rbt_acc)
+let uni_height_tree_fv = ("uni_heightj", get_uniform_score height_tree_acc)
 
 (* (fv, goal) *)
 let (sizedlist_tests :
@@ -766,10 +723,10 @@ let (sizedlist_tests :
       * float list)
       list) =
   [
-    (nil_list_fv, [ 0.1 ]);
+    (* (nil_list_fv, [ 0.1 ]);
     (min_nil_list_fv, [ 0.1 ]);
     (len_list_fv, [ 5. ]);
-    (min_len_list_fv, [ 5. ]);
+    (min_len_list_fv, [ 5. ]); *)
     (uni_len_list_fv, [ 10. ]);
   ]
 
@@ -786,22 +743,23 @@ let evenlist_tests =
 
 let rbtree_tests =
   [
-    (b_rbtree_fv, [ 0.2 ]);
+    (* (b_rbtree_fv, [ 0.2 ]);
     (b_rbtree_fv, [ 0.4 ]);
     (b_rbtree_fv, [ 0.333 ]);
-    (b_rbtree_fv, [ 0.6 ]);
+    (b_rbtree_fv, [ 0.6 ]); *)
+    (uni_height_rbtree_fv, [4.])
   ]
 
 let depthtree_tests =
   [
-    (height_tree_fv, [ 3. ]);
+    (* (height_tree_fv, [ 3. ]);
     (h_balanced_tree_fv, [ 1.5 ]);
     (h_balanced_tree_fv, [ 0.3 ]);
     (stick_tree_fv, [ 0.5 ]);
     (stick_tree_fv, [ 0.1 ]);
     (min_height_tree_fv, [ 3. ]);
-    (min_stick_tree_fv, [ 0.1 ]);
-    (* (uni_height_rbtree_fv, [5.]) *)
+    (min_stick_tree_fv, [ 0.1 ]); *)
+    (uni_height_tree_fv, [5.])
   ]
 
 let depthbst_tests =
@@ -944,16 +902,6 @@ let () =
   let only_leafA_exp = [ 10.41; 0.01; 0.01; 9.41 ] in
   let without_leafC_exp = [ 6.95; 6.95; 0.01; 12.91 ] in
 
-  (* weights := [| 500; 500; 500; 500; 500; 500 |];
-  evaluate dragen_gen count_cons weight_A_exp ~test_oc:result_oc; *)
-
   (* weights := Array.init (5 * 8) (fun _ -> 500);
   evaluate ld_rbtree_gen uniform_height_rbtree [ 5.0 ] ~test_oc:result_oc; *)
-
-  (* weights := [| 500; 500 |];
-  evaluate sizedlist_gen uniform 10. ~test_oc:result_oc; *)
-  (* weights := [| 500; 500 |];
-  evaluate uniquelist_gen len_list_fv 5. ~test_oc:result_oc; *)
-  (* weights := [| 500; 500 |];
-  evaluate uniquelist_gen bail_list_fv 5. ~test_oc:result_oc; *)
   close_out table_oc
