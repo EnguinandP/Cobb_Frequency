@@ -4,7 +4,7 @@ open Feature_vectors
 open Stdlib
 
 (* meta parameters *)
-let iterations = 5000
+let iterations = 20000
 let init_temp = 300.
 
 (* 300 *)
@@ -12,8 +12,8 @@ let init_temp = 300.
 
 let sample_size = !sample (* Dragen sample size is 100000 *)
 let step_size = 1
-let step_range = (1, 20)
-let n_reset = 10
+let step_range = (1, 40)
+let n_reset = 50
 let data_type = ref ""
 let feature = ref ""
 let usage_msg = "Usage: dune exec Cobb_Frequency <data_type> [-f] <program_file"
@@ -153,7 +153,7 @@ let step_in_range cand_weight step_range =
   else !weights.(direction) <- cand_weight.(direction) - step;
   !weights
 
-let step_n_param (cand_weight : int array) =
+let step (cand_weight : int array) =
   let step = Random.int (snd step_range) + fst step_range in
 
   let n = Array.length cand_weight in
@@ -171,8 +171,25 @@ let step_n_param (cand_weight : int array) =
   !weights.(direction) <- cand_weight.(direction) + s;
   weights
 
+(* returnss true if all pos *)
+let check_w () =
+  Array.fold_left (fun acc x -> if x < 0 then acc && false else acc) true !w_
+
+let step_all (cand_weight : int array) =
+  let step = Random.int (snd step_range) + fst step_range in
+
+  let n = Array.length cand_weight in
+  let direction = Random.int n in
+
+  let s = if Random.bool () then step else step * -1 in
+  !weights.(direction) <- cand_weight.(direction) + s;
+  (* Printf.printf "%d\n" !weights.(direction); *)
+  weights
+
 (* updates the temperature *)
 let update_temp n = init_temp /. (float_of_int n +. 1.)
+
+let update_step_range n = init_temp /. (float_of_int n +. 1.)
 
 (** prints one iteration of results as "n, curr_weights, cand weight, cand
     weights, score, dist, time" *)
@@ -221,49 +238,60 @@ let simulated_annealing (result_oc : out_channel) (gen : unit -> 'a) score_func
   print_header extra_oc;
 
   let rec loop n temp direction curr_weight curr_score best_weight best_score
-      (best_dist : float) count spare =
+      best_dist best_chi_buckets count spare =
     if n = niter (*|| exit_cond best_dist goal*) then
-      (best_weight, best_score, best_dist)
+      (best_weight, best_score, best_dist, best_chi_buckets)
     else
-      let _ = step_n_param curr_weight in
+      (* let _ = step curr_weight in *)
+      let _ = step_all curr_weight in
 
       let temp = update_temp n in
+      try
+        let start_time = Unix.gettimeofday () in
+        let results = collect sample_size [] gen in
+        let end_time : float = Unix.gettimeofday () in
 
-      let start_time = Unix.gettimeofday () in
-      let results = collect sample_size [] gen in
-      let end_time : float = Unix.gettimeofday () in
+        (* calculates score *)
+        let (dist, chi_buckets), cand_score = score_func goal results in
+        (* Printf.printf "s = %f b = %f\n" cand_score curr_score; *)
 
-      (* calculates score *)
-      let (dist, _), cand_score = score_func goal results in
-      (* Printf.printf "s = %f b = %f\n" cand_score curr_score; *)
+        print_iterations result_oc (string_of_int n) curr_weight cand_score dist
+          (start_time -. end_time);
 
-      print_iterations result_oc (string_of_int n) curr_weight cand_score dist
-        (start_time -. end_time);
+        
 
-      (* when score is worse, e^+ -> true *)
-      if Random.float 1.0 < Float.exp (-.(cand_score -. curr_score) /. temp)
-      then
-        (* keep weight just tested *)
-        (* let _ = Printf.fprintf result_oc "ACCEPT " in *)
-        let w = Array.map (fun r -> r) !weights in
-        if cand_score < best_score then
-          loop (n + 1) temp direction w cand_score w cand_score dist count spare
+        (* when score is worse, e^+ -> true *)
+        if Random.float 1.0 < Float.exp (-.(cand_score -. curr_score) /. temp)
+        then
+          (* keep weight just tested *)
+          (* let _ = Printf.fprintf result_oc "ACCEPT " in *)
+          let w = Array.map (fun r -> r) !weights in
+          if cand_score < best_score then
+            loop (n + 1) temp direction w cand_score w cand_score dist
+              chi_buckets count spare
+          else
+            loop (n + 1) temp direction w cand_score best_weight best_score
+              best_dist best_chi_buckets count spare
         else
-          loop (n + 1) temp direction w cand_score best_weight best_score
-            best_dist count spare
-      else
-        (* let _ = Printf.fprintf result_oc "REJECT " in *)
+          (* let _ = Printf.fprintf result_oc "REJECT " in *)
+          (* let _ = Printf.printf "reject %f %f\n" cand_score curr_score in *)
+          loop (n + 1) temp (not direction) curr_weight curr_score best_weight
+            best_score best_dist best_chi_buckets (count + 1) spare
+
+      (* if neg wait, reject *)
+      with Neg_Weight s ->
+        Printf.printf "\nskip %s\n" s;
         loop (n + 1) temp (not direction) curr_weight curr_score best_weight
-          best_score best_dist (count + 1) spare
+          best_score best_dist best_chi_buckets (count + 1) spare
   in
 
-  let best_weight, best_score, best_dist =
-    loop 0 temp true !weights 10000000000. !weights 10000000000. 10000000000. 0
-      None
+  let best_weight, best_score, best_dist, best_chi_buckets =
+    loop 0 temp true !weights 10000000000. !weights 10000000000. 10000000000. []
+      0 None
   in
   let _ = print_solutions extra_oc best_weight best_score in
 
-  (best_weight, best_score, best_dist)
+  (best_weight, best_score, best_dist, best_chi_buckets)
 
 let basin_hoppping (result_oc : out_channel) gen calc_score (niter : int) goal
     print_all =
@@ -274,7 +302,7 @@ let basin_hoppping (result_oc : out_channel) gen calc_score (niter : int) goal
   (* minimize is local min search *)
   let rec minimize n best_weight best_score best_dist spare =
     (* next step *)
-    let _ = step_n_param best_weight in
+    let _ = step best_weight in
     let results = collect sample_size [] gen in
     let dist, next_score = calc_score results goal in
     (* let results = gen () in
@@ -344,7 +372,13 @@ let basin_hoppping (result_oc : out_channel) gen calc_score (niter : int) goal
 (** uses random restart with specified optimization algorithm *)
 let random_restart (result_oc : out_channel) (gen : unit -> 'b)
     (score_func : 'a -> 'b list -> (float * float list) * float) (goal : 'a)
-    (niter : int) algor =
+    (niter : int)
+    algor
+      (* : out_channel ->
+         (unit -> 'a) ->
+         (float list -> 'a list -> (float * float list) * float) ->
+         float list -> int -> bool -> int array * float * float * float list *)
+    =
   let start_time = Unix.gettimeofday () in
 
   let restart_interval = niter / n_reset in
@@ -352,27 +386,29 @@ let random_restart (result_oc : out_channel) (gen : unit -> 'b)
   (* let result_oc = open_out output in *)
   print_header (Some result_oc);
 
-  let rec restart n (best_res : (int array * float * float) list) :
-      (int array * float * float) list =
+  let rec restart n best_res (* : (int array * float * float * 'a list) list *)
+      =
     if n >= n_reset then best_res
     else
       (* new location between 0 and 1000 *)
       let new_start = Array.map (fun _ -> Random.int 1000) !weights in
       weights := new_start;
       (* Printf.printf "\n%d\n" !weights.(0); *)
-      let weight, score, dist =
+      let a = algor result_oc gen score_func goal restart_interval false in
+      (* let weight, score, dist, chi_buckets =
         algor result_oc gen score_func goal restart_interval false
-      in
+      in *)
 
       (* Printf.printf "fin %d %f %f " n score dist;
       (* Array.iter (fun x -> Printf.printf "%d " x) weight; *)
       Printf.printf "\n"; *)
 
       (* returns top three *)
-      let best_res = (weight, score, dist) :: best_res in
+      let best_res = a :: best_res in
       let best_res =
-        List.sort (fun (_, s1, _) (_, s2, _) -> compare s2 s1) best_res
+        List.sort (fun (_, s1, _, _) (_, s2, _, _) -> compare s2 s1) best_res
       in
+
       let best_res =
         match best_res with
         | [ _; x1; x2; x3 ] -> [ x1; x2; x3 ]
@@ -388,25 +424,29 @@ let random_restart (result_oc : out_channel) (gen : unit -> 'b)
   (* recomputes best results with 100,000 *)
   let best_res =
     List.map
-      (fun (weight, _, _) ->
+      (fun (weight, score, dist, chi_buckets) ->
         weights := weight;
         (* let old_sample = !sample in *)
         (* sample := 100000; *)
-        let results = collect 1000 [] gen in
-        let dist, score = score_func goal results in
+        let results = collect 100000 [] gen in
+        let precise_dist, precise_score = score_func goal results in
         (* sample := old_sample; *)
 
-        (* Printf.printf "\n %f  " score;
-        Array.iter (fun x -> Printf.printf "%d " x) weight;
+        let c, pieces = precise_dist in
+
+        Printf.printf "\n %f vs %f " precise_score score;
+        Printf.printf "\n chi = %f  " c;
+        (* Array.iter (fun x -> Printf.printf "%d " x) weight;
+        Array.iter (fun (x, _) -> Printf.printf "%f " x) precise_dist;
         Printf.printf "\n"; *)
-        (weight, score, dist))
+        (weight, precise_score, precise_dist, score, dist, chi_buckets))
       best_res
   in
 
   (* sorts by top score *)
   let best_res =
     List.sort
-      (fun (_, s1, _) (_, s2, _) ->
+      (fun (_, s1, _, _, _, _) (_, s2, _, _, _, _) ->
         let s11 = 0. -. s1 in
         let s22 = 0. -. s2 in
         compare s1 s2)
@@ -415,18 +455,21 @@ let random_restart (result_oc : out_channel) (gen : unit -> 'b)
 
   (* List.iter (fun (_, s2, _) -> Printf.printf "%f " s2) best_res;
   print_newline (); *)
-  let best_weight, best_score, best_dist = List.hd best_res in
+  let best_weight, _, _, best_score, best_dist, chi_buckets =
+    List.hd best_res
+  in
+
+  Printf.printf "\n s = %f  " best_score;
 
   (* Printf.printf "%f\n" best_score; *)
-  let best_dist, chi_pieces = best_dist in
-
+  (* let best_dist, chi_buckets = best_dist in *)
   let end_time = Unix.gettimeofday () in
   let _ =
     print_iterations result_oc "solution" best_weight best_score best_dist
       (end_time -. start_time)
   in
   (* return lowest dist under goal or return closest to goal but under or returns under closest to goal  *)
-  (best_weight, best_score, (best_dist, chi_pieces), end_time -. start_time)
+  (best_weight, best_score, (best_dist, chi_buckets), end_time -. start_time)
 
 let () = QCheck_runner.set_seed 42
 
@@ -700,6 +743,20 @@ let depthbst_gen = ("depth_bst", depthbst, 2, 0, 0)
 let dragen_gen = ("Dragen", dragen_tree, 6, 2, 0)
 let ld_rbtree_gen = ("Loaded_Dice_rbtree", ld_rbtree, 5 * 8, 0, 0)
 
+let sizedlist_para_enum_gen_5 =
+  ("parametrized_enumeration/sized_list_5", sizedlist_para_enum, 12, 1, 0)
+
+let sizedlist_para_enum_gen_10 =
+  ("parametrized_enumeration/sized_list_10", sizedlist_para_enum, 22, 1, 0)
+
+let sizedlist_para_1_gen =
+  ("parametrized/sized_list_1", sizedlist_para_1, 3, 1, 0)
+
+let sizedlist_para_2_gen =
+  ("parametrized/sized_list_2", sizedlist_para_2, 4, 1, 0)
+
+let ur_depthtree_gen = ("unrolled/depth_tree", depthtree_ur, 6, 2, 0)
+
 (* feature vectors *)
 let nil_list_fv = ("nil", get_exact_score nil_fv)
 let min_nil_list_fv = ("min_nil", get_score nil_fv)
@@ -715,7 +772,7 @@ let h_balanced_tree_fv = ("h_bal", get_exact_score h_balanced_fv)
 let count_cons = ("constructors", get_chi_score count_constr_list)
 let uni_len_list_fv = ("uni_len", get_uniform_score length_acc)
 let uni_height_rbtree_fv = ("uni_height", get_uniform_score height_rbt_acc)
-let uni_height_tree_fv = ("uni_heightj", get_uniform_score height_tree_acc)
+let uni_height_tree_fv = ("uni_height", get_uniform_score height_tree_acc)
 
 (* (fv, goal) *)
 let (sizedlist_tests :
@@ -747,7 +804,7 @@ let rbtree_tests =
     (b_rbtree_fv, [ 0.4 ]);
     (b_rbtree_fv, [ 0.333 ]);
     (b_rbtree_fv, [ 0.6 ]); *)
-    (uni_height_rbtree_fv, [4.])
+    (uni_height_rbtree_fv, [ 4. ]);
   ]
 
 let depthtree_tests =
@@ -759,7 +816,7 @@ let depthtree_tests =
     (stick_tree_fv, [ 0.1 ]);
     (min_height_tree_fv, [ 3. ]);
     (min_stick_tree_fv, [ 0.1 ]); *)
-    (uni_height_tree_fv, [5.])
+    (uni_height_tree_fv, [ 5. ]);
   ]
 
 let depthbst_tests =
@@ -784,6 +841,20 @@ let dragen_tests =
     (count_cons, [ 10.; 0.01; 0.01; 0.01 ]);
     (* only A *)
     (count_cons, [ -1.; -1.; 0.01; -1. ]) (* without A *);
+  ]
+
+let para_enum_10_sizedlist_tests = [ (uni_len_list_fv, [ 10. ]) ]
+let para_enum_5_sizedlist_tests = [ (uni_len_list_fv, [ 5. ]) ]
+let p_sizedlist_tests = [ (uni_len_list_fv, [ 10. ]) ]
+
+let ur_depthtree_tests =
+  [
+    (* (uni_height_tree_fv, [ 5. ]) ; *)
+    (* (stick_tree_fv, [ 0.5 ]) ; *)
+    (* (stick_tree_fv, [ 0.1 ]) ; *)
+    (* (stick_tree_fv, [ 0.1 ]) ; *)
+    (* (stick_tree_fv, [ 0.5 ]) ; *)
+    (stick_tree_fv, [ 0.8 ]);
   ]
 
 type test =
@@ -833,6 +904,13 @@ let tests =
     ("depth_bst", Tree_type (depthbst_gen, depthbst_tests));
     ("dragen", Dragen_type (dragen_gen, dragen_tests));
     ("sorted_list", List_opt_type (sortedlist_gen, sortedlist_tests));
+    ( "p_sized_list_5",
+      List_type (sizedlist_para_enum_gen_5, para_enum_5_sizedlist_tests) );
+    ( "p_sized_list_10",
+      List_type (sizedlist_para_enum_gen_10, para_enum_10_sizedlist_tests) );
+    ("p1_sized_list", List_type (sizedlist_para_1_gen, p_sizedlist_tests));
+    ("p2_sized_list", List_type (sizedlist_para_2_gen, p_sizedlist_tests));
+    ("ur_depth_tree", Tree_type (ur_depthtree_gen, ur_depthtree_tests));
   ]
 
 let evaluate_test test_list oc =
@@ -873,9 +951,8 @@ let () =
 
   let table_oc = open_out "bin/tables/table1.csv" in
   Printf.fprintf table_oc
-    "data type,feature \
-     vector,#bool_gen,#nat_gen,#weights,#features,target,start dist,end \
-     dist,time,iterations\n";
+    "data type,feature vector,#bool_gen,#nat_gen,#features,target,start \
+     dist,end dist,time,iterations\n";
 
   let test =
     match List.assoc_opt !data_type tests with

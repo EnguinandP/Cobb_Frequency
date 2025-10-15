@@ -1,1 +1,1 @@
-data type,feature vector,#bool_gen,#nat_gen,#weights,#features,target,start dist,end dist,time,iterations
+data type,feature vector,#bool_gen,#nat_gen,#features,target,start dist,end dist,time,iterations

@@ -70,6 +70,22 @@ let ld_rbtree () =
   let size = 5 in
   LoadedDice.Rbtree.rbtree_ld_gen size BranchC
 
+let sizedlist_para_enum () =
+  let size = 5 in
+  Parametrized_enumeration.Sizedlist_freq.sized_list_gen size
+
+let sizedlist_para_1 () =
+  let size = 10 in
+  Parametrized.Sizedlist_freq_1_const.sized_list_gen size
+
+let sizedlist_para_2 () =
+  let size = 10 in
+  Parametrized.Sizedlist_freq_2_const.sized_list_gen size
+
+let depthtree_ur () =
+  let depth = 5 in
+  Unrolled.Depthtree_freq.depth_tree_gen depth
+
 (* minimizes dist *)
 let get_score fv goal results : (float * float list) * float =
   let pass = List.fold_left fv 0. results in
@@ -140,7 +156,7 @@ let get_chi_score fv goal results : (float * float list) * float =
 
 (* score where target is uniform dist *)
 
-let get_uniform_score acc (size : float list) results  =
+let get_uniform_score accumulator (size : float list) results  =
   let size =
     match size with
     | s :: [] -> s
@@ -156,7 +172,7 @@ let get_uniform_score acc (size : float list) results  =
   (* print_float (float_of_int 1000 /. size); *)
 
   let obs_arr =
-    List.fold_left acc
+    List.fold_left accumulator
       (Array.init (int_of_float (size +. 1.)) (fun _ -> 0.))
       results
   in

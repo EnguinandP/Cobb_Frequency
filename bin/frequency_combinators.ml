@@ -2,10 +2,16 @@
 (* let weights_f1 = ref (-400) *)
 let weights = ref [| 100; 500 |]
 
+let w_ = ref [| 0 |]
+
 (** accesing the weight at index i*)
 let get_weight_idx (i : int) = !weights.(i)
 
+let set_w_idx (i : int) (x :int) = !weights.(i) <- x
+
 type dragen_tree = LeafA | LeafB | LeafC | Node of dragen_tree * dragen_tree
+
+exception Neg_Weight of string
 
 (* for rbt, first 2 freq are for the leaf, and the last 2 are for the standard *)
 
@@ -26,7 +32,7 @@ let frequency_gen_list base_case recursive_case =
     [ (fst base_case, snd base_case); (fst recursive_case, snd recursive_case) ]
     (QCheck_runner.random_state ())
 
-let frequency_gen_list_size base_case recursive_case size =
+let freq_para_enum_gen size base_case recursive_case =
   let weights =
     match size with
     | 0 -> (get_weight_idx 0, get_weight_idx 1)
@@ -39,11 +45,35 @@ let frequency_gen_list_size base_case recursive_case size =
     | 7 -> (get_weight_idx 14, get_weight_idx 15)
     | 8 -> (get_weight_idx 16, get_weight_idx 17)
     | 9 -> (get_weight_idx 18, get_weight_idx 19)
+    | 10 -> (get_weight_idx 20, get_weight_idx 21)
     | _ -> (1, 1)
   in
 
   QCheck.Gen.frequency
     [ (fst weights, snd base_case); (snd weights, snd recursive_case) ]
+    (QCheck_runner.random_state ())
+
+let freq_para_1_gen size c base_case recursive_case =
+  QCheck.Gen.frequency
+    [
+      ((fst base_case * size) + c, snd base_case);
+      ((fst recursive_case * size) + c, snd recursive_case);
+    ]
+    (QCheck_runner.random_state ())
+
+let freq_para_2_gen size c_b c_rec m_b m_rec =
+  let base_case = ((fst m_b * size) + c_b) in
+  let recursive_case = ((fst m_rec * size) + c_rec) in
+  
+  if base_case < 0 || recursive_case < 0 then
+    raise (Neg_Weight (Printf.sprintf "%d %d" base_case recursive_case))
+  else
+
+  QCheck.Gen.frequency
+    [
+      (base_case, snd m_b);
+      (recursive_case, snd m_rec);
+    ]
     (QCheck_runner.random_state ())
 
 let frequency_gen_n base_case recursive_case =
@@ -62,16 +92,16 @@ let nat_freq_gen w0 w1 w2 w3 w4 =
     [
       (w0, fun _ -> Random.State.int (QCheck_runner.random_state ()) 10);
       (* 0 - 9 *)
-      (w1, fun _ -> (Random.State.int (QCheck_runner.random_state ()) 100) + 10);
+      (w1, fun _ -> Random.State.int (QCheck_runner.random_state ()) 100 + 10);
       (* 10 - 99 *)
-      (w2, fun _ -> (Random.State.int (QCheck_runner.random_state ()) 1000) + 100);
+      (w2, fun _ -> Random.State.int (QCheck_runner.random_state ()) 1000 + 100);
       (* 100 - 999 *)
       ( w3,
-        fun _ -> (Random.State.int (QCheck_runner.random_state ()) 10000) + 1000
+        fun _ -> Random.State.int (QCheck_runner.random_state ()) 10000 + 1000
       );
       (* 1000 - 9999 *)
       ( w4,
-        fun _ -> (Random.State.int (QCheck_runner.random_state ()) 100000) + 10000
+        fun _ -> Random.State.int (QCheck_runner.random_state ()) 100000 + 10000
       );
       (* 10000 - 99999 *)
     ]
@@ -84,7 +114,7 @@ let nat_freq_size_gen size w0 w1 w2 =
       (* size *)
       (w1, fun _ -> Random.State.int (QCheck_runner.random_state ()) size);
       (* x < size *)
-      (w2, fun _ -> (Random.State.int (QCheck_runner.random_state ()) 1000) + size);
+      (w2, fun _ -> Random.State.int (QCheck_runner.random_state ()) 1000 + size);
       (* size < x 1000 *)
     ]
     (QCheck_runner.random_state ())
@@ -96,7 +126,7 @@ let nat_freq_x_gen x w0 w1 w2 =
       (* size *)
       (w1, fun _ -> Random.State.int (QCheck_runner.random_state ()) x);
       (* x < size *)
-      (w2, fun _ -> (Random.State.int (QCheck_runner.random_state ()) 1000) + x);
+      (w2, fun _ -> Random.State.int (QCheck_runner.random_state ()) 1000 + x);
       (* size < x 1000 *)
     ]
     (QCheck_runner.random_state ())

@@ -32,7 +32,7 @@
 (library
  (name feature_vectors)
  (modules feature_vectors)
- (libraries generators LoadedDice Dragen))
+ (libraries generators LoadedDice Dragen Parametrized Parametrized_enumeration Unrolled))
 
 (executable
  (public_name transformation)

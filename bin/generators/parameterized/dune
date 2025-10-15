@@ -1,0 +1,5 @@
+(library
+ (name Parametrized)
+ (libraries Cobb_PBT.combinators frequency_combinators)
+ (modules sizedlist_freq_1_const sizedlist_freq_2_const)
+ )
