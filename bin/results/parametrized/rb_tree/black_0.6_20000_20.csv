@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
+initial,parametrized/rbtree_2,black,0.600,0.533,"(500, 500, 500, 500, 500, 500, 500, 500)",,0.002,20000,20
+final,parametrized/rbtree_2,black,0.600,0.600,"(151, 188, 595, 443, 821, 344, 835, 388)",,33.511,20000,20

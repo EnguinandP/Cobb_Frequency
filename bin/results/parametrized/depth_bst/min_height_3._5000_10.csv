@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
+initial,parametrized/depthbst_2,min_height,3.000,1.485,"(500, 500, 500, 500)",,0.002,5000,10
+final,parametrized/depthbst_2,min_height,3.000,0.096,"(945, -3, 730, 639)",,4.479,5000,10

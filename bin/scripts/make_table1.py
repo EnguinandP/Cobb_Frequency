@@ -4,64 +4,98 @@ import re
 import csv
 from pathlib import Path
 
-out_str = "./bin/tables/table2.csv"
+out_dir_str = "./bin/tables/"
+
 in_dir_str = "./bin/results"
 
-# folder_names = ["depth_bst", "depth_tree", "Dragen", "even_list", "rb_tree", "sized_list"]
-folder_names = ["ur_depth_tree", "p_sized_list", "p2_sized_list"]
+subfolder_names = [
+    "depth_bst", 
+    "depth_tree", 
+    "Dragen", 
+    "even_list", 
+    "rb_tree", 
+    "sized_list", 
+    "sized_list_5", 
+    "sized_list_10",
+    "sized_list_1_const"
+    ]
+
+folder_names = ["unrolled", "parametrized", "parametrized_enumeration", "frequency", "Dragen", "LoadedDice"]
+
 n_weights = {
-    "depth_bst":2, 
-    "depth_tree":2, 
+    "frequency/depth_bst":2, 
+    "frequency/depth_tree":2, 
+    "frequency/even_list":2, 
+    "frequency/rb_tree":4, 
+    "frequency/sized_list":2, 
+    "parametrized_enumeration/sized_list_5":12,
+    "parametrized_enumeration/sized_list_10":22,
+    "parametrized/sized_list_1_const":2,
+    "parametrized/sized_list":4,
+    "parametrized/even_list":4,
+    "parametrized/depth_tree":4,
+    "parametrized/depth_bst":4,
+    "parametrized/rb_tree":8,
+    "unrolled/depth_bst":6, 
+    "unrolled/depth_tree":6, 
+    "unrolled/even_list":2, 
+    "unrolled/rb_tree":20, 
+    "unrolled/sized_list":2, 
+    "LoadedDice":40,
     "Dragen":6, 
-    "even_list":2, 
-    "rb_tree":4, 
-    "sized_list":2, 
-    "ur_depth_tree" : 4, 
-    "p_sized_list" : 22, 
-    "p2_sized_list_old" : 3,
-    "p2_sized_list" : 4
     }
 
 in_dir = Path(in_dir_str)
 assert in_dir.is_dir()
 
-with open(out_str, "w") as fout:
-    fout.write("data type & feature vector & \#bool\_gen & \#weights & target & start dist & end dist & chi & time & iterations \\\\ \n")
+for d in os.listdir(in_dir):
 
-    for d in os.listdir(in_dir):
-        print(d)
-        if d in folder_names:
+    if d in folder_names:
+
+        out_str = out_dir_str + d + ".tex"
+
+        with open(out_str, "w") as fout:
             fout.write("\\midrule \n")
+            fout.write("data type & feature vector & \#bool\_gen & \#weights & target & start dist & end dist & chi & time & iterations \\\\ \n")        
 
             dir = in_dir_str + "/" + d
-            for f in os.listdir(Path(dir)):
-                # print(f)
+            for sd in os.listdir(Path(dir)):
+                # print(sd)
+                if sd in subfolder_names:
+                    fout.write("\\midrule \n")
+                    subdir = dir + "/" + sd
 
-                in_file = f"{dir}/{f}"
+                    for f in os.listdir(Path(subdir)):
+                        print(f)
 
-                try:
-                    with open(in_file, "r") as fin:
-                        csv_file = csv.DictReader(fin)
+                        in_file = f"{subdir}/{f}"
 
-                        for line in csv_file:
-                            # print(line.keys())
-                            fv = line["fv"].replace("_", "\\_")
-                            goal = line["goal"]
-                            iterations = line["iterations"]
-                            time = line["time"]
+                        try:
+                            with open(in_file, "r") as fin:
+                                csv_file = csv.DictReader(fin)
 
-                            if line["version"] == "initial":
-                                start = line["dist"]
-                                chi_start = line["chi"]
-                            else:
-                                end = line["dist"]
-                                chi_end = line["chi"]
+                                for line in csv_file:
+                                    # print(line.keys())
+                                    fv = line["fv"].replace("_", "\\_")
+                                    goal = line["goal"]
+                                    iterations = line["iterations"]
+                                    time = line["time"]
 
-                        fout.write(f"{d.replace("_", "\\_")} & {fv} & {int (n_weights[d] / 2)} & {n_weights[d]} & {goal} & {start} & {end} & {time} & {chi_end} & {iterations} \\\\ \n")
-    
-                except FileNotFoundError:
-                    print(f"Error: The file '{file}' was not found.")
+                                    if line["version"] == "initial":
+                                        start = line["dist"]
+                                        chi_start = line["chi"]
+                                    else:
+                                        end = line["dist"]
+                                        chi_end = line["chi"]
 
-        # fout.write("\\midrule \n")
+                                id = d + "/" + sd
+                                fout.write(f"{sd.replace("_", "\\_")} & {fv} & {int (n_weights[id] / 2)} & {n_weights[id]} & {goal} & {start} & {end} & {time} & {chi_end} & {iterations} \\\\ \n")
+            
+                        except FileNotFoundError:
+                            print(f"Error: The file '{file}' was not found.")
+
+            fout.write("\\midrule \n")
+
+                    # fout.write("\\midrule \n")
         
 

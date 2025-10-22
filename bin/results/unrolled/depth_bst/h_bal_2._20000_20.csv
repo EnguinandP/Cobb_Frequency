@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
+initial,unrolled/depth_bst,h_bal,2.000,0.941,"(500, 500, 500, 500, 500, 500)",,0.001,20000,20
+final,unrolled/depth_bst,h_bal,2.000,2.000,"(212, 867, 254, 410, 669, 389)",,18.541,20000,20

@@ -1,5 +1,12 @@
 (library
  (name Parametrized)
  (libraries Cobb_PBT.combinators frequency_combinators)
- (modules sizedlist_freq_1_const sizedlist_freq_2_const)
+ (modules 
+ sizedlist_freq_1 
+ sizedlist_freq
+ depthbst_freq
+ depthtree_freq
+ rbtree_freq
+ evenlist_freq
+ )
  )

@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
+initial,parametrized/even_list_2,min_len,5.000,1.996,"(500, 500, 500, 500)",,0.000,20000,20
+final,parametrized/even_list_2,min_len,5.000,1.021,"(523, 4, 919, 129)",,7.366,20000,20

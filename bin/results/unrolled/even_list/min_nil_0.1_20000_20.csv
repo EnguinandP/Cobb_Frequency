@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
+initial,unrolled/even_list,min_nil,0.100,0.000,"(500, 500, 500, 500)",,0.001,20000,20
+final,unrolled/even_list,min_nil,0.100,0.000,"(323, 521, 205, 39)",,6.802,20000,20

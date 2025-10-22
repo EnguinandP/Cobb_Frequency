@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
+initial,unrolled/rb_tree,min_black,0.200,0.534,"(500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500)",,0.002,20000,20
+final,unrolled/rb_tree,min_black,0.200,0.420,"(649, 690, 740, 582, 1004, 33, 17, 187, 1062, 372, 269, 251, 449, 887, 835, 503, 892, 214, 215, 619)",,29.585,20000,20

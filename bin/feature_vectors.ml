@@ -34,8 +34,7 @@ let sortedlist () =
   let size = 10 in
   let x = 5 in
   try Some (Generators.Sortedlist_freq.sorted_list_gen size x)
-  with Combinators.BailOut ->
-    None
+  with Combinators.BailOut -> None
 
 (** rb tree generator inv - tree height is 4 or 5 color - red h - black height
     is 2 (patrick uses max height 6) *)
@@ -76,15 +75,55 @@ let sizedlist_para_enum () =
 
 let sizedlist_para_1 () =
   let size = 10 in
-  Parametrized.Sizedlist_freq_1_const.sized_list_gen size
+  Parametrized.Sizedlist_freq_1.sized_list_gen size
 
 let sizedlist_para_2 () =
   let size = 10 in
-  Parametrized.Sizedlist_freq_2_const.sized_list_gen size
+  Parametrized.Sizedlist_freq.sized_list_gen size
+
+let evenlist_para_2 () =
+  let size = 10 in
+  Parametrized.Evenlist_freq.even_list_gen size
+
+let depthtree_para_2 () =
+  let depth = 5 in
+  Parametrized.Depthtree_freq.depth_tree_gen depth
+
+let depthbst_para_2 () =
+  let depth = 5 in
+  let low = 0 in
+  let high = 100 in
+  Parametrized.Depthbst_freq.size_bst_gen depth low high
+
+let rbtree_para_2 () =
+  let height = 2 in
+  let color = true in
+  let inv = if color then 2 * height else (2 * height) + 1 in
+  Parametrized.Rbtree_freq.rbtree_gen inv color height
 
 let depthtree_ur () =
   let depth = 5 in
   Unrolled.Depthtree_freq.depth_tree_gen depth
+
+let depthbst_ur () =
+  let depth = 5 in
+  let low = 0 in
+  let high = 100 in
+  Unrolled.Depthbst_freq.size_bst_gen depth low high
+
+let rbtree_ur () =
+  let height = 2 in
+  let color = true in
+  let inv = if color then 2 * height else (2 * height) + 1 in
+  Unrolled.Rbtree_freq.rbtree_gen inv color height
+
+let sizedlist_ur () =
+  let size = 10 in
+  Unrolled.Sizedlist_freq.sized_list_gen size
+
+let evenlist_ur () =
+  let size = 10 in
+  Unrolled.Evenlist_freq.even_list_gen size
 
 (* minimizes dist *)
 let get_score fv goal results : (float * float list) * float =
@@ -97,7 +136,6 @@ let get_score fv goal results : (float * float list) * float =
   let score = dist -. goal in
 
   ((dist, []), score)
-
 
 (* minimizes distance to dist *)
 let get_exact_score fv goal results : (float * float list) * float =
@@ -156,7 +194,7 @@ let get_chi_score fv goal results : (float * float list) * float =
 
 (* score where target is uniform dist *)
 
-let get_uniform_score accumulator (size : float list) results  =
+let get_uniform_score accumulator (size : float list) results =
   let size =
     match size with
     | s :: [] -> s
@@ -384,12 +422,12 @@ let uniform_height_rbt_fv (size : float list) results =
   (* Printf.printf "chi = %.3f %.3f %.3f \n" chi crit (chi -. crit);  *)
   ((chi, obs), chi -. crit)
 
-let rec count_rb (tree) =
+let rec count_rb tree =
   match tree with
   | Rbtleaf -> (0, 0)
   | Rbtnode (c, lt, _, rt) ->
-      let ltr, ltb = count_rb lt  in
-      let rtr, rtb = count_rb rt  in
+      let ltr, ltb = count_rb lt in
+      let rtr, rtb = count_rb rt in
       if c then (ltr + rtr + 1, ltb + rtb) else (ltr + rtr, ltb + rtb + 1)
 
 (** feature vector is the percentage of black nodes *)

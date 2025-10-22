@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
+initial,parametrized/depthtree_2,stick,0.100,0.328,"(500, 500, 500, 500)",,0.001,20000,20
+final,parametrized/depthtree_2,stick,0.100,0.100,"(74, -7, 802, 152)",,21.456,20000,20

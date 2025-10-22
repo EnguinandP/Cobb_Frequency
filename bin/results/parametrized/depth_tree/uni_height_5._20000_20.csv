@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
+initial,parametrized/depthtree_2,uni_height,5.000,"(509.000, 137.000, 74.000, 44.000, 30.000, 206.000)","(500, 500, 500, 500)", 842.990,0.001,20000,20
+final,parametrized/depthtree_2,uni_height,5.000,"(373.000, 115.000, 76.000, 70.000, 95.000, 271.000)","(304, 620, 740, 9)", 427.480,16.855,20000,20

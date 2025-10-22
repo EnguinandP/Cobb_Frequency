@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
+initial,unrolled/sized_list,min_nil,0.100,0.519,"(500, 500, 500, 500)",,0.000,20000,20
+final,unrolled/sized_list,min_nil,0.100,0.000,"(1, 419, 587, 541)",,5.278,20000,20
