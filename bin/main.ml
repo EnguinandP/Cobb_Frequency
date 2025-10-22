@@ -27,7 +27,7 @@ let speclist =
   [
     ("-i", Arg.Int (fun s -> iterations := s), "Set iterations");
     ("-r", Arg.Int (fun s -> n_reset := s), "Set random restarts");
-    ("-f", Arg.Int (fun s -> n_reset := s), "Set random restarts");
+    ("-f", Arg.String (fun s -> feature_vector := s), "run with specified feature vector");
   ]
 
 
@@ -668,7 +668,7 @@ let print_table oc
 
   Printf.fprintf oc "%f,%d" fin_time iterations
 
-let evaluate test_oc gen
+let evaluate gen
     (fv : string * (float list -> 'a list -> (float * float list) * float))
     (goal_list : float list) =
   let gen_name, g, n_weights, n_bool, n_nat = gen in
@@ -876,14 +876,14 @@ let para_enum_10_sizedlist_tests = [ (uni_len_list_fv, [ 10. ]) ]
 let para_enum_5_sizedlist_tests = [ (uni_len_list_fv, [ 5. ]) ]
 let p_sizedlist_tests = [ (uni_len_list_fv, [ 10. ]) ]
 
-let ur_depthtree_tests =
+let rq3_sizedlist_tests =
   [
-    (* (uni_height_tree_fv, [ 5. ]) ; *)
-    (* (stick_tree_fv, [ 0.5 ]) ; *)
-    (* (stick_tree_fv, [ 0.1 ]) ; *)
-    (* (stick_tree_fv, [ 0.1 ]) ; *)
-    (* (stick_tree_fv, [ 0.5 ]) ; *)
-    (stick_tree_fv, [ 0.8 ]);
+    (uni_len_list_fv, [ 10. ]);
+  ]
+
+let rq3_depthtree_tests =
+  [
+    (uni_height_tree_fv, [ 5. ]);
   ]
 
 type test =
@@ -949,45 +949,45 @@ let tests =
     ("ur_rb_tree", Rb_type (ur_rbtree_gen, rbtree_tests));
     ("ur_sized_list", List_type (ur_sizedlist_gen, sizedlist_tests));
     ("ur_even_list", List_type (ur_evenlist_gen, evenlist_tests));
+    ("rq3_p2_sized_list", List_type (sizedlist_para_2_gen, rq3_sizedlist_tests));
+    ("rq3_ur_depth_tree", Tree_type (ur_depthtree_gen, rq3_depthtree_tests));
   ]
 
-let evaluate_test test_list oc =
+let evaluate_test test_list =
   match test_list with
   | List_type (g, fvl) ->
       List.iter
         (fun x ->
           let fv, goal = x in
-          evaluate oc g fv goal)
+          evaluate g fv goal)
         fvl
   | List_opt_type (g, fvl) ->
       List.iter
         (fun x ->
           let fv, goal = x in
-          evaluate oc g fv goal)
+          evaluate g fv goal)
         fvl
   | Rb_type (g, fvl) ->
       List.iter
         (fun x ->
           let fv, goal = x in
-          evaluate oc g fv goal)
+          evaluate g fv goal)
         fvl
   | Tree_type (g, fvl) ->
       List.iter
         (fun x ->
           let fv, goal = x in
-          evaluate oc g fv goal)
+          evaluate g fv goal)
         fvl
   | Dragen_type (g, fvl) ->
       List.iter
         (fun x ->
           let fv, goal = x in
-          evaluate oc g fv goal)
+          evaluate g fv goal)
         fvl
 
 let () =
   Arg.parse speclist set_data_type usage_msg;
-
-  let table_oc = open_out "bin/tables/table1.csv" in
 
   let test =
     match List.assoc_opt !data_type tests with
@@ -998,25 +998,12 @@ let () =
   Printf.printf "%d\n %d\n" !iterations !n_reset;
   (* Printf.printf "%d\n %d\n" !iter_set !re; *)
 
-  let res = evaluate_test test table_oc in
+  let res = if !feature_vector == "" then
+    evaluate_test test
+  else
+    evaluate_test test
+  in
+  ()
 
-  let fv_ = [ (h_balanced_tree_fv, 1.5); (stick_tree_fv, 0.5) ] in
 
   (* Kolmogorov–Smirnov test / make buckets *)
-
-  (* in dragen, weights were distr * size *)
-  let uniform1 = [ 10.; 10.; 10.; 10. ] in
-  let weighted_A = [ 30.; 10.; 10.; -1. ] in
-  let weighted_B = [ 10.; -1.; -1.; 30. ] in
-  let only_leafA = [ 10.; 0.01; 0.01; 0.01 ] in
-  let without_leafC = [ -1.; -1.; 0.01; -1. ] in
-
-  let uniform_exp = [ 5.26; 5.26; 5.21; 14.73 ] in
-  let weight_A_exp = [ 30.07; 9.76; 10.15; 48.96 ] in
-  let weight_B_exp = [ 10.07; 3.15; 17.57; 29.80 ] in
-  let only_leafA_exp = [ 10.41; 0.01; 0.01; 9.41 ] in
-  let without_leafC_exp = [ 6.95; 6.95; 0.01; 12.91 ] in
-
-  (* weights := Array.init (5 * 8) (fun _ -> 500);
-  evaluate ld_rbtree_gen uniform_height_rbtree [ 5.0 ] ~test_oc:result_oc; *)
-  close_out table_oc

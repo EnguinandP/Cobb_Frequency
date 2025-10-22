@@ -1,6 +1,7 @@
 import subprocess
 import os
 import re
+import csv
 from pathlib import Path
 
 # tests = [
@@ -11,7 +12,9 @@ from pathlib import Path
 # ]
 
 tests = {
-    "p2_sized_list" : "./bin/results/parametrized/sized_list",
+    "rq3_p2_sized_list" : ["./bin/results/parametrized/sized_list", "uni_len_10._"],
+    # "rq3_ur_depth_tree" : ["./bin/results/unrolled/depth_tree", "uni_height_5._"]
+    # "rq3_ur_depth_tree" : "./bin/results/unrolled/depth_tree",
 }
 
 iterations = [
@@ -21,6 +24,8 @@ iterations = [
     20000,
     # 25000,
     30000,
+    # 35000,
+    40000,
     # 45000,
     50000,
 ]
@@ -46,7 +51,7 @@ for test in tests:
         for r in restarts:
             print(f"running {test} with {i} and {r}")
             cmd = f"dune exec -- Cobb_Frequency {test} -i {i} -r {r}".split(" ")
-            subprocess.run(cmd)
+            # subprocess.run(cmd)
 
 
 # compile into csv
@@ -54,16 +59,19 @@ for test in tests:
 out_dir_str = "./bin/tables/"
 
 for test in tests:
-    out_str = out_dir_str + test + "RQ1.csv"
+    out_str = out_dir_str + test + ".csv"
 
     with open(out_str, "w") as fout:
         fout.write(f"iterations,restarts,score\n")
 
-        for f in os.listdir(tests[test]):
+        for f in os.listdir(tests[test][0]):
             for i in iterations:
                     for r in restarts:
-                        if f"{i}_{r}" in f:
-                            in_file = f"{tests[test]}/{f}"
+                        # print(f"{i}_{r}     {f}")
+                        if f"{tests[test][1]}{i}_{r}." in f:
+                            print(f"{i}_{r}     {f}")
+
+                            in_file = f"{tests[test][0]}/{f}"
                             try:
                                 with open(in_file, "r") as fin:
                                     csv_file = csv.DictReader(fin)
@@ -74,9 +82,10 @@ for test in tests:
                                             score = line["score"]
 
                                     fout.write(f"{i},{r},{score}\n")
-                
+                                    # print(f"{i},{r},{score}")
                             except FileNotFoundError:
                                 print(f"Error: The file '{file}' was not found.")
+                            break
 
 
 

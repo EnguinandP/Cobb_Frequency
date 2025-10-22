@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,unrolled/depth_tree,uni_height,5.000,"(519.000, 120.000, 86.000, 56.000, 25.000, 194.000)","(500, 500, 500, 500, 500, 500)", 862.770,850.178,0.001,10000,40
+final,unrolled/depth_tree,uni_height,5.000,"(266.000, 290.000, 38.000, 113.000, 13.000, 280.000)","(220, 654, 891, 17, 384, 505)", 438.190,425.598,7.476,10000,40

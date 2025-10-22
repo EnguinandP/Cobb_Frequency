@@ -56,7 +56,7 @@ for d in os.listdir(in_dir):
 
         with open(out_str, "w") as fout:
             fout.write("\\midrule \n")
-            fout.write("data type & feature vector & \#bool\_gen & \#weights & target & start dist & end dist & score & time & iterations \\\\ \n")        
+            fout.write("data type & feature vector & \#bool\_gen & \#weights & target & start dist & end dist & score & time \\\\ \n")        
             fout.write("\\midrule \n")
 
 
@@ -93,7 +93,7 @@ for d in os.listdir(in_dir):
                                             # chi_end = line["chi"]
 
                                     id = d + "/" + sd
-                                    fout.write(f"{sd.replace("_", "\\_")} & {fv} & {int (n_weights[id] / 2)} & {n_weights[id]} & {goal} & {start} & {end} & {score_end} & {time} & {iterations} \\\\ \n")
+                                    fout.write(f"{sd.replace("_", "\\_")} & {fv} & {int (n_weights[id] / 2)} & {n_weights[id]} & {goal} & {start} & {end} & {score_end} & {time} \\\\ \n")
                 
                             except FileNotFoundError:
                                 print(f"Error: The file '{file}' was not found.")
