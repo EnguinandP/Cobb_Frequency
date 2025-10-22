@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,unrolled/depth_tree,stick,0.100,0.332,"(500, 500, 500, 500, 500, 500)",,0.232,0.001,20000,20
+final,unrolled/depth_tree,stick,0.100,0.099,"(85, 10, 391, 42, 150, 394)",,0.001,18.445,20000,20

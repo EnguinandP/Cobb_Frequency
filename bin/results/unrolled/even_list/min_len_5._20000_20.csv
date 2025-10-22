@@ -1,3 +1,3 @@
-version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
-initial,unrolled/even_list,min_len,5.000,1.989,"(500, 500, 500, 500)",,0.000,20000,20
-final,unrolled/even_list,min_len,5.000,1.000,"(682, 1, 1043, 222)",,5.486,20000,20
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,unrolled/even_list,min_len,5.000,1.968,"(500, 500, 500, 500)",,-3.032,0.000,20000,20
+final,unrolled/even_list,min_len,5.000,1.004,"(816, 4, 373, 1224)",,-3.996,5.424,20000,20

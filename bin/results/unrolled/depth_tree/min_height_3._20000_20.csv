@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,unrolled/depth_tree,min_height,3.000,1.605,"(500, 500, 500, 500, 500, 500)",,-1.395,0.000,20000,20
+final,unrolled/depth_tree,min_height,3.000,0.002,"(675, 2, 16, 898, 25, 800)",,-2.998,13.872,20000,20

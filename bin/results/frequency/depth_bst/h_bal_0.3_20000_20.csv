@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,frequency/depth_bst,h_bal,0.300,0.809,"(500, 500)",,0.509,0.001,20000,20
+final,frequency/depth_bst,h_bal,0.300,0.300,"(13, 1379)",,0.000,17.805,20000,20

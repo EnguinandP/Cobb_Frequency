@@ -1,3 +1,3 @@
-version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
-initial,parametrized/depthtree_2,h_bal,0.300,0.880,"(500, 500, 500, 500)",,0.001,20000,20
-final,parametrized/depthtree_2,h_bal,0.300,0.300,"(1193, 515, 351, 361)",,28.213,20000,20
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,parametrized/depth_tree,h_bal,0.300,0.845,"(500, 500, 500, 500)",,0.545,0.001,20000,20
+final,parametrized/depth_tree,h_bal,0.300,0.300,"(425, 116, 340, 409)",,0.000,22.585,20000,20

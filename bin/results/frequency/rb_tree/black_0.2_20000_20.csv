@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,frequency/rb_tree,black,0.200,0.523,"(500, 500, 500, 500)",,0.323,0.001,20000,20
+final,frequency/rb_tree,black,0.200,0.336,"(11, 705, 937, 4)",,0.136,28.686,20000,20

@@ -1,3 +1,3 @@
-version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
-initial,parametrized/depthbst_2,stick,0.100,0.360,"(500, 500, 500, 500)",,0.001,20000,20
-final,parametrized/depthbst_2,stick,0.100,0.101,"(-81, 335, 479, 847)",,20.130,20000,20
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,parametrized/depth_bst,stick,0.100,0.345,"(500, 500, 500, 500)",,0.245,0.001,20000,20
+final,parametrized/depth_bst,stick,0.100,0.100,"(60, 979, 137, 946)",,0.000,24.291,20000,20

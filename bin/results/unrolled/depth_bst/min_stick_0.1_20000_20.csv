@@ -1,3 +1,3 @@
-version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
-initial,unrolled/depth_bst,min_stick,0.100,0.346,"(500, 500, 500, 500, 500, 500)",,0.001,20000,20
-final,unrolled/depth_bst,min_stick,0.100,0.009,"(493, 11, 494, 340, 284, 362)",,23.319,20000,20
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,unrolled/depth_bst,min_stick,0.100,0.344,"(500, 500, 500, 500, 500, 500)",,0.244,0.001,20000,20
+final,unrolled/depth_bst,min_stick,0.100,0.000,"(955, 1, 689, 19, 436, 649)",,-0.100,16.418,20000,20

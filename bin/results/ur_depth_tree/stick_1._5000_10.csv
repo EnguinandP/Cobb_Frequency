@@ -1,3 +1,0 @@
-version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
-initial,ur_depth_tree,stick,1.000,0.319,"(500, 500, 500, 500, 500, 500)",,0.001,5000,10
-final,ur_depth_tree,stick,1.000,0.632,"(150, 789, 90, 78, 1039, 154)",,3.351,5000,10

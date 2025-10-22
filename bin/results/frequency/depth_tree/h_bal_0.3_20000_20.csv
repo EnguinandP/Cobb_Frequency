@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,frequency/depth_tree,h_bal,0.300,0.935,"(500, 500)",,0.635,0.000,20000,20
+final,frequency/depth_tree,h_bal,0.300,0.300,"(859, 382)",,0.000,23.107,20000,20

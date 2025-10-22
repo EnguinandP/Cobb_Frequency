@@ -1,3 +1,3 @@
-version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
-initial,parametrized/rbtree_2,black,0.600,0.533,"(500, 500, 500, 500, 500, 500, 500, 500)",,0.002,20000,20
-final,parametrized/rbtree_2,black,0.600,0.600,"(151, 188, 595, 443, 821, 344, 835, 388)",,33.511,20000,20
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,parametrized/rb_tree,black,0.600,0.528,"(500, 500, 500, 500, 500, 500, 500, 500)",,0.072,0.001,20000,20
+final,parametrized/rb_tree,black,0.600,0.600,"(88, 129, 658, 485, 869, 382, 611, 332)",,0.000,32.183,20000,20

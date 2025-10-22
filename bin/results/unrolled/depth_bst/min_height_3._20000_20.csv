@@ -1,3 +1,3 @@
-version,generator,fv,goal,dist,weights,chi,time,iterations,restarts
-initial,unrolled/depth_bst,min_height,3.000,1.672,"(500, 500, 500, 500, 500, 500)",,0.001,20000,20
-final,unrolled/depth_bst,min_height,3.000,0.000,"(361, 1, 589, 572, 572, 1157)",,15.398,20000,20
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,unrolled/depth_bst,min_height,3.000,1.599,"(500, 500, 500, 500, 500, 500)",,-1.401,0.001,20000,20
+final,unrolled/depth_bst,min_height,3.000,0.002,"(640, 4, 928, 38, 739, 561)",,-2.998,17.930,20000,20

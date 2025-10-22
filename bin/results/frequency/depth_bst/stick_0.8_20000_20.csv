@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,frequency/depth_bst,stick,0.800,0.348,"(500, 500)",,0.452,0.001,20000,20
+final,frequency/depth_bst,stick,0.800,0.388,"(907, 994)",,0.412,14.763,20000,20

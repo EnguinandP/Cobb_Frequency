@@ -4,7 +4,7 @@ open Feature_vectors
 open Stdlib
 
 (* meta parameters *)
-let iterations = 20000
+let iterations = ref 20000
 let init_temp = 1000.
 let temp = ref init_temp
 
@@ -14,14 +14,22 @@ let temp = ref init_temp
 let sample_size = !sample (* Dragen sample size is 100000 *)
 let step_size = 1
 let step_range = ref (1, 40) (* step max starts at 40 and decreases to 20 *)
-let n_reset = 20
+let n_reset = ref 20
+
+let iter_set = ref 20000
+let restart_set = ref 20
 let data_type = ref ""
-let feature = ref ""
+let feature_vector = ref ""
 let usage_msg = "Usage: dune exec Cobb_Frequency <data_type> [-f] <program_file"
 let set_data_type d = data_type := d
 
 let speclist =
-  [ ("-f", Arg.String (fun s -> data_type := s), "Set specific feature") ]
+  [
+    ("-i", Arg.Int (fun s -> iterations := s), "Set iterations");
+    ("-r", Arg.Int (fun s -> n_reset := s), "Set random restarts");
+    ("-f", Arg.Int (fun s -> n_reset := s), "Set random restarts");
+  ]
+
 
 (* observation: simulated annealing will get stuck in a local min when 
 - temp is low 
@@ -377,14 +385,14 @@ let random_restart (result_oc : out_channel) (gen : unit -> 'b)
     =
   let start_time = Unix.gettimeofday () in
 
-  let restart_interval = niter / n_reset in
+  let restart_interval = niter / !n_reset in
 
   (* let result_oc = open_out output in *)
   print_header (Some result_oc);
 
   let rec restart n best_res (* : (int array * float * float * 'a list) list *)
       =
-    if n >= n_reset then best_res
+    if n >= !n_reset then best_res
     else
       (* new location between 0 and 1000 *)
       let new_start = Array.map (fun _ -> Random.int 1000) !weights in
@@ -563,8 +571,7 @@ let print_csv oc
       fin_dist,
       fin_time,
       fin_weights,
-      fin_score
-       ) =
+      fin_score ) =
   let aux version dist time weights score =
     Printf.fprintf oc "%s,%s,%s," version gen_name fv_name;
     let _ =
@@ -670,7 +677,7 @@ let evaluate test_oc gen
   let file_path =
     Printf.sprintf "bin/results/%s/%s_%s%d_%d.csv" gen_name fv_name
       (List.fold_left (fun acc x -> acc ^ string_of_float x ^ "_") "" goal_list)
-      iterations n_reset
+      !iterations !n_reset
   in
 
   let results_oc = open_out file_path in
@@ -698,17 +705,17 @@ let evaluate test_oc gen
   in
   let oc = open_out "bin/iterations.csv" in
   let fin_weights, fin_score, fin_dist, fin_time =
-    random_restart oc g f goal_list iterations use_neg_w simulated_annealing 
+    random_restart oc g f goal_list !iterations use_neg_w simulated_annealing
   in
   close_out oc;
-  (* let fin_weights = !weights in *)
 
+  (* let fin_weights = !weights in *)
   pp_res Format.std_formatter
     ( gen_name,
       fv_name,
       goal_list,
-      iterations,
-      n_reset,
+      !iterations,
+      !n_reset,
       init_dist,
       end_time -. start_time,
       init_weights,
@@ -720,8 +727,8 @@ let evaluate test_oc gen
     ( gen_name,
       fv_name,
       goal_list,
-      iterations,
-      n_reset,
+      !iterations,
+      !n_reset,
       init_dist,
       end_time -. start_time,
       init_weights,
@@ -729,8 +736,7 @@ let evaluate test_oc gen
       fin_dist,
       fin_time,
       fin_weights,
-      fin_score
-       );
+      fin_score );
 
   (* print_table test_oc
     ( gen_name,
@@ -755,18 +761,19 @@ let depthtree_gen = ("frequency/depth_tree", depthtree, 2, 1, 0)
 let depthbst_gen = ("frequency/depth_bst", depthbst, 2, 1, 0)
 let dragen_gen = ("Dragen", dragen_tree, 6, 2, 0)
 let ld_rbtree_gen = ("LoadedDice", ld_rbtree, 5 * 8, 0, 0)
+
 let sizedlist_para_enum_gen_5 =
   ("parametrized_enumeration/sized_list_5", sizedlist_para_enum, 12, 1, 0)
+
 let sizedlist_para_enum_gen_10 =
   ("parametrized_enumeration/sized_list_10", sizedlist_para_enum, 22, 1, 0)
+
 let sizedlist_para_1_gen =
   ("parametrized/sized_list_1_const", sizedlist_para_1, 3, 1, 0)
-let sizedlist_para_2_gen =
-  ("parametrized/sized_list", sizedlist_para_2, 4, 1, 0)
-let evenlist_para_2_gen =
-  ("parametrized/even_list", evenlist_para_2, 4, 1, 0)
-let depthtree_para_2_gen =
-  ("parametrized/depthtree", depthtree_para_2, 4, 1, 0)
+
+let sizedlist_para_2_gen = ("parametrized/sized_list", sizedlist_para_2, 4, 1, 0)
+let evenlist_para_2_gen = ("parametrized/even_list", evenlist_para_2, 4, 1, 0)
+let depthtree_para_2_gen = ("parametrized/depth_tree", depthtree_para_2, 4, 1, 0)
 let depthbst_para_2_gen = ("parametrized/depth_bst", depthbst_para_2, 4, 1, 0)
 let rbtree_para_2_gen = ("parametrized/rb_tree", rbtree_para_2, 8, 2, 0)
 let ur_depthtree_gen = ("unrolled/depth_tree", depthtree_ur, 6, 1, 0)
@@ -925,18 +932,19 @@ let tests =
     ("depth_tree", Tree_type (depthtree_gen, depthtree_tests));
     ("depth_bst", Tree_type (depthbst_gen, depthbst_tests));
     ("dragen", Dragen_type (dragen_gen, dragen_tests));
+    ("loaded_dice", Rb_type (ld_rbtree_gen, rbtree_tests));
     ("sorted_list", List_opt_type (sortedlist_gen, sortedlist_tests));
-    ( "p_sized_list_5",
+    ( "pe_sized_list_5",
       List_type (sizedlist_para_enum_gen_5, para_enum_5_sizedlist_tests) );
-    ( "p_sized_list_10",
+    ( "pe_sized_list_10",
       List_type (sizedlist_para_enum_gen_10, para_enum_10_sizedlist_tests) );
-    ("p1_sized_list", List_type (sizedlist_para_1_gen, p_sizedlist_tests));
-    ("p2_sized_list", List_type (sizedlist_para_2_gen, p_sizedlist_tests));
+    ("p1_sized_list", List_type (sizedlist_para_1_gen, sizedlist_tests));
+    ("p2_sized_list", List_type (sizedlist_para_2_gen, sizedlist_tests));
     ("p2_even_list", List_type (evenlist_para_2_gen, evenlist_tests));
     ("p2_depth_tree", Tree_type (depthtree_para_2_gen, depthtree_tests));
     ("p2_depth_bst", Tree_type (depthbst_para_2_gen, depthbst_tests));
     ("p2_rb_tree", Rb_type (rbtree_para_2_gen, rbtree_tests));
-    ("ur_depth_tree", Tree_type (ur_depthtree_gen, ur_depthtree_tests));
+    ("ur_depth_tree", Tree_type (ur_depthtree_gen, depthtree_tests));
     ("ur_depth_bst", Tree_type (ur_depthbst_gen, depthbst_tests));
     ("ur_rb_tree", Rb_type (ur_rbtree_gen, rbtree_tests));
     ("ur_sized_list", List_type (ur_sizedlist_gen, sizedlist_tests));
@@ -980,15 +988,15 @@ let () =
   Arg.parse speclist set_data_type usage_msg;
 
   let table_oc = open_out "bin/tables/table1.csv" in
-  Printf.fprintf table_oc
-    "data type,feature vector,#bool_gen,#nat_gen,#features,target,start \
-     dist,end dist,time,iterations\n";
 
   let test =
     match List.assoc_opt !data_type tests with
     | Some s -> s
     | None -> failwith "unknown test"
   in
+
+  Printf.printf "%d\n %d\n" !iterations !n_reset;
+  (* Printf.printf "%d\n %d\n" !iter_set !re; *)
 
   let res = evaluate_test test table_oc in
 
