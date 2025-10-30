@@ -53,84 +53,91 @@ for d in os.listdir(in_dir):
     if d in folder_names:
 
         out_str = out_dir_str + d + ".tex"
+        csv_out_str = out_dir_str + d + ".csv"
 
         with open(out_str, "w") as fout:
-            fout.write("\\midrule \n")
-            fout.write("data type & feature vector & \#bool\_gen & \#weights & target & start dist & end dist & score & time \\\\ \n")        
-            fout.write("\\midrule \n")
+            with open(csv_out_str, "w") as csv_fout:
 
-
-            dir = in_dir_str + "/" + d
-            for sd in os.listdir(Path(dir)):
-                # print(sd)
-                if sd in subfolder_names:
-                    fout.write("\\midrule \n")
-                    subdir = dir + "/" + sd
-
-                    for f in os.listdir(Path(subdir)):
-                        if "20000_20" in f:
-
-                            in_file = f"{subdir}/{f}"
-
-                            try:
-                                with open(in_file, "r") as fin:
-                                    csv_file = csv.DictReader(fin)
-
-                                    for line in csv_file:
-                                        # print(line.keys())
-                                        fv = line["fv"].replace("_", "\\_")
-                                        goal = line["goal"]
-                                        iterations = line["iterations"]
-                                        time = line["time"]
-
-                                        if line["version"] == "initial":
-                                            start = line["dist"]
-                                        else:
-                                            end = line["dist"]
-                                            print(subdir + "/" + f)
-
-                                            score_end = line["score"]
-                                            # chi_end = line["chi"]
-
-                                    id = d + "/" + sd
-                                    fout.write(f"{sd.replace("_", "\\_")} & {fv} & {int (n_weights[id] / 2)} & {n_weights[id]} & {goal} & {start} & {end} & {score_end} & {time} \\\\ \n")
-                
-                            except FileNotFoundError:
-                                print(f"Error: The file '{file}' was not found.")
-
-                elif (d == "Dragen" or d == "LoadedDice") and "20000_20" in sd:
-                    print(sd)
-
-                    in_file = dir + "/" + sd
-                    print(in_file)
-
-                    try:
-                        with open(in_file, "r") as fin:
-                            csv_file = csv.DictReader(fin)
-
-                            for line in csv_file:
-                                # print(line.keys())
-                                fv = line["fv"].replace("_", "\\_")
-                                goal = line["goal"]
-                                iterations = line["iterations"]
-                                time = line["time"]
-
-                                if line["version"] == "initial":
-                                    start = line["dist"]
-                                else:
-                                    end = line["dist"]
-                                    score_end = line["score"]
-                                    # chi_end = line["chi"]
-
-
-                            id = d
-                            fout.write(f"{d.replace("_", "\\_")} & {fv} & {int (n_weights[id] / 2)} & {n_weights[id]} & {goal} & {start} & {end} & {score_end} & {time} & {iterations} \\\\ \n")
-        
-                    except FileNotFoundError:
-                        print(f"Error: The file '{file}' was not found.")
+                csv_fout.write("data type,feature vector,#bool_gen,#weights,target,start dist,end dist,start score,end score,time\n")
                     
-            fout.write("\\midrule \n")
+                fout.write("\\midrule \n")
+                fout.write("data type & feature vector & \#bool\_gen & \#weights & target & start dist & end dist & score & time \\\\ \n")        
+                fout.write("\\midrule \n")
 
-                    # fout.write("\\midrule \n")
+                dir = in_dir_str + "/" + d
+                for sd in os.listdir(Path(dir)):
+                    # print(sd)
+                    if sd in subfolder_names:
+                        fout.write("\\midrule \n")
+                        subdir = dir + "/" + sd
+
+                        for f in os.listdir(Path(subdir)):
+                            
+
+                            if ("20000_20" in f) or ("80000_80" in f):
+
+                                in_file = f"{subdir}/{f}"
+
+                                try:
+                                    with open(in_file, "r") as fin:
+                                        csv_file = csv.DictReader(fin)
+
+                                        for line in csv_file:
+                                            # print(line.keys())
+                                            fv = line["fv"]
+                                            goal = line["goal"]
+                                            iterations = line["iterations"]
+                                            time = line["time"]
+
+                                            if line["version"] == "initial":
+                                                start = line["dist"]
+                                                score_start = line["score"]
+                                            else:
+                                                end = line["dist"]
+                                                # print(subdir + "/" + f)
+
+                                                score_end = line["score"]
+                                                # chi_end = line["chi"]
+
+                                        id = d + "/" + sd
+                                        fout.write(f"{sd.replace("_", "\\_")} & {fv.replace("_", "\\_")} & {int (n_weights[id] / 2)} & {n_weights[id]} & {goal} & {start} & {end} & {score_end} & {time} \\\\ \n")
+                                        csv_fout.write(f"{sd},{fv},{int (n_weights[id] / 2)},{n_weights[id]},\"{goal}\",\"{start}\",\"{end}\",{score_start},{score_end},{time}\n")
+                    
+                                except FileNotFoundError:
+                                    print(f"Error: The file '{file}' was not found.")
+
+                    elif (d == "Dragen" or d == "LoadedDice") and "20000_20" in sd:
+                        # print(sd)
+
+                        in_file = dir + "/" + sd
+                        # print(in_file)
+
+                        try:
+                            with open(in_file, "r") as fin:
+                                csv_file = csv.DictReader(fin)
+
+                                for line in csv_file:
+                                    # print(line.keys())
+                                    fv = line["fv"]
+                                    goal = line["goal"]
+                                    iterations = line["iterations"]
+                                    time = line["time"]
+
+                                    if line["version"] == "initial":
+                                        start = line["dist"]
+                                        score_start = line["score"]
+                                    else:
+                                        end = line["dist"]
+                                        score_end = line["score"]
+                                        # chi_end = line["chi"]
+
+                                id = d
+                                fout.write(f"{d.replace("_", "\\_")} & {fv.replace("_", "\\_")} & {int (n_weights[id] / 2)} & {n_weights[id]} & {goal} & {start} & {end} & {score_end} & {time} \\\\ \n")
+                                csv_fout.write(f"{sd},{fv},{int (n_weights[id] / 2)},{n_weights[id]},\"{goal}\",\"{start}\",\"{end}\",{score_start},{score_end},{time}\n")
+
+                        except FileNotFoundError:
+                            print(f"Error: The file '{file}' was not found.")
+                        
+                fout.write("\\midrule \n")
         
 

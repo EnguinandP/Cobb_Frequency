@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,frequency/depth_bst,uni_height,9.000,"(504.000, 144.000, 75.000, 55.000, 51.000, 171.000, 0.000, 0.000, 0.000, 0.000)","(500, 500)", 1948.307,1930.000,0.001,80000,80
+final,frequency/depth_bst,uni_height,9.000,"(383.000, 120.000, 104.000, 71.000, 63.000, 259.000, 0.000, 0.000, 0.000, 0.000)","(426, 554)", 1343.075,1324.768,59.117,80000,80

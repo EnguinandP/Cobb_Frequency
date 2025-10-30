@@ -787,6 +787,12 @@ let nil_list_fv = ("nil", get_exact_score nil_fv)
 let min_nil_list_fv = ("min_nil", get_score nil_fv)
 let len_list_fv = ("len", get_exact_score len_fv)
 let min_len_list_fv = ("min_len", get_score len_fv)
+
+let nil_list_fv_2 = ("nil2", get_exact_score2 nil_fv)
+let min_nil_list_fv_2 = ("min_nil2", get_score2 nil_fv)
+let len_list_fv_2 = ("len2", get_exact_score2 len_fv)
+let min_len_list_fv_2 = ("min_len2", get_score2 len_fv)
+
 let bail_list_fv = ("bailouts", get_score bailout_fv)
 let b_rbtree_fv = ("black", get_exact_score b_fv)
 let min_b_rbtree_fv = ("min_black", get_score b_fv)
@@ -806,57 +812,66 @@ let (sizedlist_tests :
       * float list)
       list) =
   [
-    (nil_list_fv, [ 0.1 ]);
+    (* (nil_list_fv, [ 0.1 ]);
     (min_nil_list_fv, [ 0.1 ]);
     (len_list_fv, [ 5. ]);
-    (min_len_list_fv, [ 5. ]);
+    (min_len_list_fv, [ 5. ]); *)
     (uni_len_list_fv, [ 10. ]);
+  ]
+
+let sizedlist_tests_2 =
+  [
+    (nil_list_fv_2, [ 0.1 ]);
+    (min_nil_list_fv_2, [ 0.1 ]);
+    (len_list_fv_2, [ 5. ]);
+    (min_len_list_fv_2, [ 5. ]);
   ]
 
 let sortedlist_tests = [ (bail_list_fv, [ 0.01 ]) ]
 
 let evenlist_tests =
   [
-    (nil_list_fv, [ 0.1 ]);
+    (* (nil_list_fv, [ 0.1 ]);
     (min_nil_list_fv, [ 0.1 ]);
     (len_list_fv, [ 5. ]);
-    (min_len_list_fv, [ 5. ]);
+    (min_len_list_fv, [ 5. ]); *)
     (uni_len_list_fv, [ 11. ]);
   ]
 
 let rbtree_tests =
   [
     (uni_height_rbtree_fv, [ 5. ]);
-    (b_rbtree_fv, [ 0.2 ]);
+    (* (b_rbtree_fv, [ 0.2 ]);
     (b_rbtree_fv, [ 0.4 ]);
     (b_rbtree_fv, [ 0.333 ]);
     (b_rbtree_fv, [ 0.6 ]);
-    (min_b_rbtree_fv, [ 0.2 ]);
+    (min_b_rbtree_fv, [ 0.2 ]); *)
   ]
 
 let depthtree_tests =
   [
-    (height_tree_fv, [ 3. ]);
+    (* (height_tree_fv, [ 3. ]);
     (h_balanced_tree_fv, [ 1.5 ]);
     (h_balanced_tree_fv, [ 0.3 ]);
     (stick_tree_fv, [ 0.8 ]);
     (stick_tree_fv, [ 0.5 ]);
     (stick_tree_fv, [ 0.1 ]);
     (min_height_tree_fv, [ 3. ]);
-    (min_stick_tree_fv, [ 0.1 ]);
+    (min_stick_tree_fv, [ 0.1 ]); *)
     (uni_height_tree_fv, [ 5. ]);
   ]
 
 let depthbst_tests =
   [
-    (height_tree_fv, [ 5. ]);
+    (* (height_tree_fv, [ 5. ]);
     (h_balanced_tree_fv, [ 0.3 ]);
     (h_balanced_tree_fv, [ 2. ]);
     (stick_tree_fv, [ 0.8 ]);
     (stick_tree_fv, [ 0.5 ]);
     (stick_tree_fv, [ 0.1 ]);
     (min_height_tree_fv, [ 3. ]);
-    (min_stick_tree_fv, [ 0.1 ]);
+    (min_stick_tree_fv, [ 0.1 ]); *)
+    (uni_height_tree_fv, [ 9. ]);
   ]
 
 let dragen_tests =
@@ -926,6 +941,7 @@ type test =
 
 let tests =
   [
+    ("sized_list_2", List_type (sizedlist_gen, sizedlist_tests_2));
     ("sized_list", List_type (sizedlist_gen, sizedlist_tests));
     ("even_list", List_type (evenlist_gen, evenlist_tests));
     ("rb_tree", Rb_type (rbtree_gen, rbtree_tests));

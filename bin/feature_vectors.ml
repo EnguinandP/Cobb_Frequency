@@ -137,6 +137,57 @@ let get_score fv goal results : (float * float list) * float =
 
   ((dist, []), score)
 
+(* minimizes dist *)
+let get_score2 (fv : float -> 'a -> float) goal (results : 'a list) : (float * float list) * float =
+  let x = List.map (fun x -> fv 0. x) results in
+  let pass = List.fold_left fv 0. results in
+
+  let n = float_of_int (List.length results) in
+
+  let dist = pass /. n in
+  let goal =
+    match goal with g :: [] -> g | _ -> failwith "goal format error"
+  in
+
+  (* alpha = .05, one-sided *)
+  let crit_val = -1.645 in
+  let sum_dif_sqr = List.fold_left (fun x acc -> acc +. ((x -. dist) ** 2.) ) 0. x in
+  let std_dev = Float.sqrt (sum_dif_sqr /. (n -. 1.)) in
+  let t = (dist -. goal) /. (std_dev /. Float.sqrt n) in
+
+  let score = t -. crit_val in
+
+  ((dist, []), score)
+
+let get_exact_score2 fv goal results : (float * float list) * float =
+  let x = List.map (fun x -> 
+    let a = fv 0. x in
+    (* Printf.printf "%f\n" a; *)
+    fv 0. x
+  ) results in
+  let pass = List.fold_left fv 0. results in
+
+  let n = float_of_int (List.length results) in
+
+  let dist = pass /. n in
+  let goal =
+    match goal with g :: [] -> g | _ -> failwith "goal format error"
+  in
+
+  (* alpha = .05, two sided *)
+  let crit_val = 1.962 in
+  let sum_dif_sqr = List.fold_left (fun acc x -> 
+  (* Printf.printf "x= %f c=%f\n" x ((x -. dist) ** 2.); *)
+    acc +. (x -. dist) ** 2. ) 0. x in
+  let std_dev = Float.sqrt (sum_dif_sqr /. (n -. 1.)) in
+  let t = (dist -. goal) /. (std_dev /. Float.sqrt n) in
+  (* Printf.printf "dist= %f s = %f %f\n" dist std_dev t; *)
+  (* Printf.printf "sum= %f n= %f c=%f %f\n" sum_dif_sqr n ((x -. dist) ** 2.) std_dev; *)
+
+  let score = Float.abs t -. crit_val in
+
+  ((dist, []), score)
+
 (* minimizes distance to dist *)
 let get_exact_score fv goal results : (float * float list) * float =
   let pass = List.fold_left fv 0. results in

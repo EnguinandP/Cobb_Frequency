@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,frequency/rb_tree,uni_height,5.000,"(0.000, 0.000, 26.000, 248.000, 726.000, 0.000)","(500, 500, 500, 500)", 2146.280,2133.688,0.002,80000,80
+final,frequency/rb_tree,uni_height,5.000,"(0.000, 0.000, 265.000, 423.000, 312.000, 0.000)","(365, 67, 309, 654)", 932.490,919.898,109.968,80000,80
