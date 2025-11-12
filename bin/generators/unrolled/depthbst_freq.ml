@@ -79,12 +79,12 @@ let rec size_bst_gen = fun d ->
                                   base_case
                                     (w_recursive,
                                       (fun _ ->
-                                          let (x_5) = subs d in
+                                          let (x_5) = subs sd in
                                           let (x_6) = size_bst_gen x_5 in
                                           let (x_7) = x_6 x in
                                           let (slt) = x_7 sx in
 
-                                          let (x_8) = subs d in
+                                          let (x_8) = subs sd in
                                           let (x_9) = size_bst_gen x_8 in
                                           let (x_10) = x_9 sx in
                                           let (srt) = x_10 hi in Node (sx, slt, srt))) in

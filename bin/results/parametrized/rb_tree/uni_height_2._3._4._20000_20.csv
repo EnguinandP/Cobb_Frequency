@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,parametrized/rb_tree,uni_height,"(2.000, 3.000, 4.000)","(21.000, 287.000, 692.000)","(500, 500, 500, 500, 500, 500, 500, 500)", 685.022,675.534,0.002,20000,20
+final,parametrized/rb_tree,uni_height,"(2.000, 3.000, 4.000)","(297.000, 423.000, 280.000)","(494, 208, 656, 537, 702, 108, 83, 1004)", 36.614,27.126,30.227,20000,20

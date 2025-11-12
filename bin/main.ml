@@ -15,21 +15,23 @@ let sample_size = !sample (* Dragen sample size is 100000 *)
 let step_size = 1
 let step_range = ref (1, 40) (* step max starts at 40 and decreases to 20 *)
 let n_reset = ref 20
-
-let iter_set = ref 20000
-let restart_set = ref 20
 let data_type = ref ""
 let feature_vector = ref ""
-let usage_msg = "Usage: dune exec Cobb_Frequency <data_type> [-f] <program_file"
+let path = ref "./bin/results/parametrized_enumeration/sized_list_10/output.csv"
+let top_oc = open_out !path
+let print_one = ref false
+let usage_msg = "Usage: dune exec Cobb_Frequency <data_type> [-i] [-r] "
 let set_data_type d = data_type := d
 
 let speclist =
   [
     ("-i", Arg.Int (fun s -> iterations := s), "Set iterations");
     ("-r", Arg.Int (fun s -> n_reset := s), "Set random restarts");
-    ("-f", Arg.String (fun s -> feature_vector := s), "run with specified feature vector");
+    ( "-f",
+      Arg.String (fun s -> feature_vector := s),
+      "run with specified feature vector" );
+    ("-s", Arg.Set print_one, "print one in one file");
   ]
-
 
 (* observation: simulated annealing will get stuck in a local min when 
 - temp is low 
@@ -477,8 +479,6 @@ let random_restart (result_oc : out_channel) (gen : unit -> 'b)
 
 let () = QCheck_runner.set_seed 42
 
-(* maybe functorize evaluate? *)
-
 (* let evaluate_list ?(test_oc = stdout) gen fv goals =
   let gen_name, g = gen in
   (* let fv_name, f = fv in *)
@@ -680,7 +680,15 @@ let evaluate gen
       !iterations !n_reset
   in
 
-  let results_oc = open_out file_path in
+  let result_oc =
+    if !print_one then (
+      print_endline "true\n";
+      top_oc)
+    else (
+      print_endline "false\n";
+      (* results_oc *)
+      open_out file_path)
+  in
 
   weights := Array.init n_weights (fun _ -> 500);
 
@@ -723,7 +731,7 @@ let evaluate gen
       fin_time,
       fin_weights );
 
-  print_csv results_oc
+  print_csv result_oc
     ( gen_name,
       fv_name,
       goal_list,
@@ -737,18 +745,6 @@ let evaluate gen
       fin_time,
       fin_weights,
       fin_score );
-
-  (* print_table test_oc
-    ( gen_name,
-      n_weights,
-      n_bool,
-      n_nat,
-      fv_name,
-      goal_list,
-      iterations,
-      init_dist,
-      fin_dist,
-      fin_time ); *)
   ()
 
 (* generators *)
@@ -787,12 +783,10 @@ let nil_list_fv = ("nil", get_exact_score nil_fv)
 let min_nil_list_fv = ("min_nil", get_score nil_fv)
 let len_list_fv = ("len", get_exact_score len_fv)
 let min_len_list_fv = ("min_len", get_score len_fv)
-
 let nil_list_fv_2 = ("nil2", get_exact_score2 nil_fv)
 let min_nil_list_fv_2 = ("min_nil2", get_score2 nil_fv)
 let len_list_fv_2 = ("len2", get_exact_score2 len_fv)
 let min_len_list_fv_2 = ("min_len2", get_score2 len_fv)
-
 let bail_list_fv = ("bailouts", get_score bailout_fv)
 let b_rbtree_fv = ("black", get_exact_score b_fv)
 let min_b_rbtree_fv = ("min_black", get_score b_fv)
@@ -835,30 +829,32 @@ let evenlist_tests =
     (min_nil_list_fv, [ 0.1 ]);
     (len_list_fv, [ 5. ]);
     (min_len_list_fv, [ 5. ]); *)
-    (uni_len_list_fv, [ 11. ]);
+    (* (uni_len_list_fv, [ 11. ]); *)
+    (uni_len_list_fv, [ 1.; 2.; 3.; 4.; 5.; 6.; 7.; 8.; 9.; 10.; 11. ]);
   ]
 
 let rbtree_tests =
-  [
-    (uni_height_rbtree_fv, [ 5. ]);
+  [ 
+    (* (uni_height_rbtree_fv, [ 5. ]); *)
+    (uni_height_rbtree_fv, [ 2.; 3.; 4. ]);
     (* (b_rbtree_fv, [ 0.2 ]);
     (b_rbtree_fv, [ 0.4 ]);
     (b_rbtree_fv, [ 0.333 ]);
     (b_rbtree_fv, [ 0.6 ]);
-    (min_b_rbtree_fv, [ 0.2 ]); *)
-  ]
+    (min_b_rbtree_fv, [ 0.2 ]); *) ]
 
 let depthtree_tests =
   [
     (* (height_tree_fv, [ 3. ]);
     (h_balanced_tree_fv, [ 1.5 ]);
-    (h_balanced_tree_fv, [ 0.3 ]);
-    (stick_tree_fv, [ 0.8 ]);
-    (stick_tree_fv, [ 0.5 ]);
+    (h_balanced_tree_fv, [ 0.3 ]); *)
+    (* (stick_tree_fv, [ 0.8 ]); *)
+    (* (stick_tree_fv, [ 0.5 ]);
     (stick_tree_fv, [ 0.1 ]);
     (min_height_tree_fv, [ 3. ]);
     (min_stick_tree_fv, [ 0.1 ]); *)
-    (uni_height_tree_fv, [ 5. ]);
+    (uni_height_tree_fv, [ 0.; 1.; 2.; 3.; 4.; 5. ]);
+    (* (h_balanced_tree_fv, [ 2. ]); *)
   ]
 
 let depthbst_tests =
@@ -871,7 +867,7 @@ let depthbst_tests =
     (stick_tree_fv, [ 0.1 ]);
     (min_height_tree_fv, [ 3. ]);
     (min_stick_tree_fv, [ 0.1 ]); *)
-    (uni_height_tree_fv, [ 9. ]);
+    (uni_height_tree_fv, [ 0.; 1.; 2.; 3.; 4.; 5.]);
   ]
 
 let dragen_tests =
@@ -890,16 +886,8 @@ let dragen_tests =
 let para_enum_10_sizedlist_tests = [ (uni_len_list_fv, [ 10. ]) ]
 let para_enum_5_sizedlist_tests = [ (uni_len_list_fv, [ 5. ]) ]
 let p_sizedlist_tests = [ (uni_len_list_fv, [ 10. ]) ]
-
-let rq3_sizedlist_tests =
-  [
-    (uni_len_list_fv, [ 10. ]);
-  ]
-
-let rq3_depthtree_tests =
-  [
-    (uni_height_tree_fv, [ 5. ]);
-  ]
+let rq3_sizedlist_tests = [ (uni_len_list_fv, [ 10. ]) ]
+let rq3_depthtree_tests = [ (uni_height_tree_fv, [ 0.; 1.; 2.; 3.; 4.; 5. ]) ]
 
 type test =
   | List_type of
@@ -966,7 +954,7 @@ let tests =
     ("ur_sized_list", List_type (ur_sizedlist_gen, sizedlist_tests));
     ("ur_even_list", List_type (ur_evenlist_gen, evenlist_tests));
     ("rq3_p2_sized_list", List_type (sizedlist_para_2_gen, rq3_sizedlist_tests));
-    ("rq3_ur_depth_tree", Tree_type (ur_depthtree_gen, rq3_depthtree_tests));
+    (* ("rq3_ur_depth_tree", Tree_type (ur_depthtree_gen, rq3_depthtree_tests)); *)
   ]
 
 let evaluate_test test_list =
@@ -1012,14 +1000,29 @@ let () =
   in
 
   Printf.printf "%d\n %d\n" !iterations !n_reset;
-  (* Printf.printf "%d\n %d\n" !iter_set !re; *)
 
-  let res = if !feature_vector == "" then
-    evaluate_test test
-  else
-    evaluate_test test
+  let iterations_list = Array.init 40 (fun x -> (x + 1) * 5000) in
+  let restarts_list = Array.init 80 (fun x -> x * 5) in
+  restarts_list.(0) <- 1;
+  (* Printf.printf "%b\n" !print_one; *)
+
+  (* let iterations_list = [| 100; 200 |] in
+  let restarts_list = [| 1; 2 |] in *)
+  let _ =
+    if !print_one then
+      Array.iter
+        (fun i ->
+          Array.iter
+            (fun r ->
+              iterations := i;
+              n_reset := r;
+              evaluate_test test)
+            restarts_list)
+        iterations_list
+    else if !feature_vector == "" then evaluate_test test
+    else evaluate_test test
   in
+  close_out top_oc;
   ()
 
-
-  (* Kolmogorov–Smirnov test / make buckets *)
+(* Kolmogorov–Smirnov test / make buckets *)

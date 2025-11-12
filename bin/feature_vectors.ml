@@ -138,7 +138,8 @@ let get_score fv goal results : (float * float list) * float =
   ((dist, []), score)
 
 (* minimizes dist *)
-let get_score2 (fv : float -> 'a -> float) goal (results : 'a list) : (float * float list) * float =
+let get_score2 (fv : float -> 'a -> float) goal (results : 'a list) :
+    (float * float list) * float =
   let x = List.map (fun x -> fv 0. x) results in
   let pass = List.fold_left fv 0. results in
 
@@ -151,7 +152,9 @@ let get_score2 (fv : float -> 'a -> float) goal (results : 'a list) : (float * f
 
   (* alpha = .05, one-sided *)
   let crit_val = -1.645 in
-  let sum_dif_sqr = List.fold_left (fun x acc -> acc +. ((x -. dist) ** 2.) ) 0. x in
+  let sum_dif_sqr =
+    List.fold_left (fun x acc -> acc +. ((x -. dist) ** 2.)) 0. x
+  in
   let std_dev = Float.sqrt (sum_dif_sqr /. (n -. 1.)) in
   let t = (dist -. goal) /. (std_dev /. Float.sqrt n) in
 
@@ -160,11 +163,14 @@ let get_score2 (fv : float -> 'a -> float) goal (results : 'a list) : (float * f
   ((dist, []), score)
 
 let get_exact_score2 fv goal results : (float * float list) * float =
-  let x = List.map (fun x -> 
-    let a = fv 0. x in
-    (* Printf.printf "%f\n" a; *)
-    fv 0. x
-  ) results in
+  let x =
+    List.map
+      (fun x ->
+        let a = fv 0. x in
+        (* Printf.printf "%f\n" a; *)
+        fv 0. x)
+      results
+  in
   let pass = List.fold_left fv 0. results in
 
   let n = float_of_int (List.length results) in
@@ -176,9 +182,13 @@ let get_exact_score2 fv goal results : (float * float list) * float =
 
   (* alpha = .05, two sided *)
   let crit_val = 1.962 in
-  let sum_dif_sqr = List.fold_left (fun acc x -> 
-  (* Printf.printf "x= %f c=%f\n" x ((x -. dist) ** 2.); *)
-    acc +. (x -. dist) ** 2. ) 0. x in
+  let sum_dif_sqr =
+    List.fold_left
+      (fun acc x ->
+        (* Printf.printf "x= %f c=%f\n" x ((x -. dist) ** 2.); *)
+        acc +. ((x -. dist) ** 2.))
+      0. x
+  in
   let std_dev = Float.sqrt (sum_dif_sqr /. (n -. 1.)) in
   let t = (dist -. goal) /. (std_dev /. Float.sqrt n) in
   (* Printf.printf "dist= %f s = %f %f\n" dist std_dev t; *)
@@ -245,24 +255,23 @@ let get_chi_score fv goal results : (float * float list) * float =
 
 (* score where target is uniform dist *)
 
-let get_uniform_score accumulator (size : float list) results =
-  let size =
+let get_uniform_score accumulator (buckets : float list) results =
+  (* let size =
     match size with
     | s :: [] -> s
     | _ -> failwith "expected single element for size"
-  in
+  in *)
+  let size = float_of_int (List.length buckets) in
 
   (* buckets are each size *)
   let goal =
-    List.init
-      (int_of_float (size +. 1.))
-      (fun _ -> float_of_int !sample /. size)
+    List.init (int_of_float size) (fun _ -> float_of_int !sample /. size)
   in
-  (* print_float (float_of_int 1000 /. size); *)
 
+  (* print_float (float_of_int 1000 /. size); *)
   let obs_arr =
-    List.fold_left accumulator
-      (Array.init (int_of_float (size +. 1.)) (fun _ -> 0.))
+    List.fold_left (accumulator buckets)
+      (Array.init (int_of_float size) (fun _ -> 0.))
       results
   in
   let obs = Array.to_list obs_arr in
@@ -284,50 +293,24 @@ let get_uniform_score accumulator (size : float list) results =
   ((chi, obs), chi -. crit)
 
 (* uniform length *)
+
+let length_acc buckets acc x =
+  let length = List.length x in
+  
+  let i = List.find_index (fun x -> x = (float_of_int length)) buckets in
+  let i = match i with 
+  | Some i' -> i' 
+  | None -> failwith "wrong buckets" in
+
+  acc.(i) <- acc.(i) +. 1.;
+  acc
+
+(* 
 let length_acc acc x =
   let length = List.length x in
   let l = Array.length acc in
   acc.(length) <- acc.(length) +. 1.;
-  acc
-
-let uniform_len_fv (size : float list) results =
-  let size =
-    match size with
-    | s :: [] -> s
-    | _ -> failwith "expected single element for size"
-  in
-
-  (* buckets are each size *)
-  let goal =
-    List.init
-      (int_of_float (size +. 1.))
-      (fun _ -> float_of_int !sample /. size)
-  in
-  (* print_float (float_of_int 1000 /. size); *)
-
-  let obs_arr =
-    List.fold_left length_acc
-      (Array.init (int_of_float (size +. 1.)) (fun _ -> 0.))
-      results
-  in
-  let obs = Array.to_list obs_arr in
-
-  (* List.iter (fun x -> Printf.printf "%.3f, " x) obs;
-  print_newline ();
-  print_newline (); *)
-  (* List.iter (fun x -> Printf.printf "%.3f, " x) goal;
-  print_newline (); *)
-  let chi =
-    List.fold_left2
-      (fun acc o e ->
-        if e = -1. then acc else ((o -. e) *. (o -. e) /. e) +. acc)
-      0. obs goal
-  in
-  Printf.printf "%f\n" size;
-  let crit = crit_vals.(int_of_float size) in
-
-  (* Printf.printf "%.3f %.3f %.3f \n" chi crit (chi -. crit); *)
-  ((chi, obs), chi -. crit)
+  acc *)
 
 let rec count_constr_list (tree : Frequency_combinators.dragen_tree) =
   match tree with
@@ -360,9 +343,17 @@ let rec get_height x =
 
 let height_fv acc x = acc +. get_height x
 
-let height_tree_acc acc x =
+let height_tree_acc buckets acc x =
   let height = int_of_float (get_height x) in
-  acc.(height) <- acc.(height) +. 1.;
+
+  (* Printf.printf "%d\n" height; *)
+
+  let i = List.find_index (fun x -> x = (float_of_int height)) buckets in
+  let i = match i with 
+  | Some i' -> i' 
+  | None -> failwith "wrong buckets" in
+
+  acc.(i) <- acc.(i) +. 1.;
   acc
 
 (** avg difference between right subtree and left subtree
@@ -428,50 +419,17 @@ let rec get_height_rbt x =
   | Rbtleaf -> 0.
   | Rbtnode (_, lt, _, rt) -> 1. +. max (get_height_rbt lt) (get_height_rbt rt)
 
-let height_rbt_acc acc x =
+let height_rbt_acc buckets acc x =
   let height = int_of_float (get_height_rbt x) in
-  (* Printf.printf "%d\n" height; *)
 
-  acc.(height) <- acc.(height) +. 1.;
+  let i = List.find_index (fun x -> x = (float_of_int height)) buckets in
+  let i = match i with 
+  | Some i' -> i' 
+  | None -> failwith "wrong buckets" in
+
+  acc.(i) <- acc.(i) +. 1.;
   acc
 
-let uniform_height_rbt_fv (size : float list) results =
-  let size =
-    match size with
-    | s :: [] -> s
-    | _ -> failwith "expected single element for size"
-  in
-
-  (* buckets are each size *)
-  let goal =
-    List.init
-      (int_of_float (size +. 1.))
-      (fun _ -> float_of_int !sample /. size)
-  in
-  (* print_float (float_of_int 1000 /. size); *)
-
-  let obs_arr =
-    List.fold_left height_rbt_acc
-      (Array.init (int_of_float (size +. 1.)) (fun _ -> 0.))
-      results
-  in
-  let obs = Array.to_list obs_arr in
-
-  (* List.iter (fun x -> Printf.printf "%.3f, " x) obs;
-  print_newline ();
-  print_newline (); *)
-  (* List.iter (fun x -> Printf.printf "%.3f, " x) goal;
-  print_newline (); *)
-  let chi =
-    List.fold_left2
-      (fun acc o e ->
-        if e = -1. then acc else ((o -. e) *. (o -. e) /. e) +. acc)
-      0. obs goal
-  in
-  let crit = crit_vals.(int_of_float size) in
-
-  (* Printf.printf "chi = %.3f %.3f %.3f \n" chi crit (chi -. crit);  *)
-  ((chi, obs), chi -. crit)
 
 let rec count_rb tree =
   match tree with

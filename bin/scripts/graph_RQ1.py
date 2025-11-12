@@ -7,6 +7,7 @@ path = f"bin/tables/rq1/frequency.csv"
 
 start = []
 end = []
+# dif = []
 names = []
 explicit_names = []
 
@@ -51,7 +52,6 @@ with open(path, "r") as csv_file:
 
         names.append(f"{name_dict[line['data type']]} {i - ti}")
         explicit_names.append(f"{name_dict[line['data type']]} x {line['feature vector']}")
-        print(i, ti)
         start_score = float(line['start score']) 
         end_score = float(line['end score']) 
 
@@ -66,48 +66,39 @@ with open(path, "r") as csv_file:
         else:
             start.append(start_score)
 
+dif = np.array(start) - np.array(end)
 
 gen_group.append(len(start) - 1)
-print(names)
-print(len(names))
 
 for i in range(len(gen_group) - 1):
     gen_alpha.append((gen_group[i], gen_group[i + 1], (i + 3) * (1.0 / 8)))
-
-print(gen_alpha)
 
 barWidth = .4
 
 bar1 = np.arange(len(start)) * (barWidth * 2.5)
 bar2 = [x + (barWidth) for x in bar1]
 
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(figsize =(5, 3.5))
 
 tick_pos = bar1 +  (barWidth / 2)
-plt.xticks(tick_pos, explicit_names, rotation = 45, fontsize=7)
+plt.xticks(tick_pos, explicit_names, rotation = 45, fontsize=9, ha='right')
 
-ax.bar(bar1, start, color='lightcoral', width = (barWidth), label ='start') 
-ax.bar(bar2, end, color='midnightblue', width = (barWidth), label ='end') 
+ax.bar(bar1, start, color='lightcoral', width = (barWidth), label ='initial') 
+ax.bar(bar2, end, color='midnightblue', width = (barWidth), label ='weighted') 
 
-
-
-# for x in end:
-#     if x <= 0.005:
-#         plt.text(x, 0, 'x')
+for x in range(len(end)):
+    if end[x] <= 0.005:
+        plt.text((((x - 1) * 2.5 + 2)/ (len(end) * 2.71)) + .095, 0.01, '✓', transform=ax.transAxes, color='g')
 
 plt.xlabel('Benchmarks')
-plt.ylabel('Distance from Target')
+plt.ylabel('Dist from Target')
 
 ax.set_yscale('log', base=10)
 plt.ylim(bottom=1e-1)
 
-
-plt.text(100, 0, 'x', fontsize=20)
-
-
 plt.tight_layout()
-# plt.legend()
-fig_path = "bin/graphs/rq1.pdf"
+plt.legend(bbox_to_anchor=(0.45, 0.99))
+fig_path = "bin/graphs/rq1_alt.pdf"
 plt.savefig(fig_path, format="pdf") 
 
 plt.show() 

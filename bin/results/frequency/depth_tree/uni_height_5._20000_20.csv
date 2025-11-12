@@ -1,3 +1,0 @@
-version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
-initial,frequency/depth_tree,uni_height,5.000,"(510.000, 112.000, 72.000, 43.000, 38.000, 225.000)","(500, 500)", 858.730,846.138,0.000,20000,20
-final,frequency/depth_tree,uni_height,5.000,"(393.000, 130.000, 67.000, 47.000, 38.000, 325.000)","(845, 1013)", 625.580,612.988,16.487,20000,20

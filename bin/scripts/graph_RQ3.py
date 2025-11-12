@@ -106,6 +106,6 @@ for f in files:
 
     fig_path = "bin/graphs/" + f + ".pdf"
     plt.savefig(fig_path, format="pdf") 
-    # plt.show()
+    plt.show()
     data = []
 

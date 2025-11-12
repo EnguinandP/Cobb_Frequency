@@ -12,6 +12,7 @@ subfolder_names = [
     "depth_bst", 
     "depth_tree", 
     "Dragen", 
+    "LoadedDice", 
     "even_list", 
     "rb_tree", 
     "sized_list", 
@@ -61,7 +62,7 @@ for d in os.listdir(in_dir):
                 csv_fout.write("data type,feature vector,#bool_gen,#weights,target,start dist,end dist,start score,end score,time\n")
                     
                 fout.write("\\midrule \n")
-                fout.write("data type & feature vector & \#bool\_gen & \#weights & target & start dist & end dist & score & time \\\\ \n")        
+                fout.write("data type & feature vector & \\#bool\\_gen & \\#weights & target & start dist & end dist & score & time \\\\ \n")        
                 fout.write("\\midrule \n")
 
                 dir = in_dir_str + "/" + d
@@ -73,10 +74,12 @@ for d in os.listdir(in_dir):
 
                         for f in os.listdir(Path(subdir)):
                             
-
-                            if ("20000_20" in f) or ("80000_80" in f):
+                            if ("20000_20" in f):
+                            # or ("80000_80" in f):
 
                                 in_file = f"{subdir}/{f}"
+                                # if subdir =='./bin/results/parametrized/depth_bst':
+                                #     print(f)
 
                                 try:
                                     with open(in_file, "r") as fin:
@@ -94,12 +97,11 @@ for d in os.listdir(in_dir):
                                                 score_start = line["score"]
                                             else:
                                                 end = line["dist"]
-                                                # print(subdir + "/" + f)
-
                                                 score_end = line["score"]
-                                                # chi_end = line["chi"]
 
                                         id = d + "/" + sd
+                                        # if sd == 'depth_bst' :
+                                        #     print(f"{sd.replace("_", "\\_")} & {fv.replace("_", "\\_")} & {int (n_weights[id] / 2)} & {n_weights[id]} & {goal} & {start} & {end} & {score_end} & {time} \\\\ \n")
                                         fout.write(f"{sd.replace("_", "\\_")} & {fv.replace("_", "\\_")} & {int (n_weights[id] / 2)} & {n_weights[id]} & {goal} & {start} & {end} & {score_end} & {time} \\\\ \n")
                                         csv_fout.write(f"{sd},{fv},{int (n_weights[id] / 2)},{n_weights[id]},\"{goal}\",\"{start}\",\"{end}\",{score_start},{score_end},{time}\n")
                     
@@ -107,8 +109,6 @@ for d in os.listdir(in_dir):
                                     print(f"Error: The file '{file}' was not found.")
 
                     elif (d == "Dragen" or d == "LoadedDice") and "20000_20" in sd:
-                        # print(sd)
-
                         in_file = dir + "/" + sd
                         # print(in_file)
 
@@ -139,5 +139,12 @@ for d in os.listdir(in_dir):
                             print(f"Error: The file '{file}' was not found.")
                         
                 fout.write("\\midrule \n")
-        
+
+folder_copy = ["unrolled", "parametrized", "parametrized_enumeration", "frequency"]
+
+cmd = f"cp ./bin/tables/frequency.csv ./bin/tables/rq2/frequency_full.csv".split(" ")
+folder_copy
+for f in folder_copy:
+    cmd = f"cp ./bin/tables/{f}.csv ./bin/tables/rq2/{f}.csv".split(" ")
+    subprocess.run(cmd)
 

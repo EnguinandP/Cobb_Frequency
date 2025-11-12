@@ -3,6 +3,7 @@ import os
 import re
 import csv
 from pathlib import Path
+import numpy as np
 
 # tests = [
 #     # "sized_list",
@@ -12,23 +13,37 @@ from pathlib import Path
 # ]
 
 tests = {
-    "rq3_p2_sized_list" : ["./bin/results/parametrized/sized_list", "uni_len_10._"],
+    # "rq3_p2_sized_list" : ["./bin/results/parametrized/sized_list", "uni_len_10._"],
+    "pe_sized_list_10" : ["bin/results/parametrized_enumeration/sized_list_10", "uni_len_10._"],
     # "rq3_ur_depth_tree" : ["./bin/results/unrolled/depth_tree", "uni_height_5._"]
     # "rq3_ur_depth_tree" : "./bin/results/unrolled/depth_tree",
 }
 
 iterations = [
-    # 5000,
+    5000,
     10000,
-    # 15000,
+    15000,
     20000,
-    # 25000,
-    30000,
+    25000,
+    # 30000,
     # 35000,
-    40000,
+    # 40000,
     # 45000,
-    50000,
+    # 50000,
+    # 55000,
+    # 60000,
+    # 65000,
 ]
+
+iterations_arr = np.arange(5000, 200001, 5000)
+iterations = iterations_arr.tolist()
+
+restarts_arr = np.arange(5, 401, 5)
+restarts = restarts_arr.tolist()
+restarts.insert(0, 1)
+
+print(iterations)
+print(restarts)
 
 restarts = [
     1,
@@ -37,12 +52,13 @@ restarts = [
     15,
     20,
     25,
-    30,
-    35,
-    40,
-    45,
-    50,   
+    # 30,
+    # 35,
+    # 40,
+    # 45,
+    # 50,   
 ]
+
 
 # run Cobb_Frequency
 
@@ -50,8 +66,8 @@ for test in tests:
     for i in iterations:
         for r in restarts:
             print(f"running {test} with {i} and {r}")
-            cmd = f"dune exec -- Cobb_Frequency {test} -i {i} -r {r}".split(" ")
-            # subprocess.run(cmd)
+            cmd = f"dune exec -- Cobb_Frequency {test} -i {i} -r {r} -s".split(" ")
+            subprocess.run(cmd)
 
 
 # compile into csv
