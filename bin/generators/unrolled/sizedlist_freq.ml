@@ -12,9 +12,6 @@ let rec sized_list_gen = fun s ->
         base_case
           (w_recursive,
             (fun _ ->
-              (* let (x_2) = subs s in *)
-              (* let (x_3) = sized_list_gen x_2 in *)
-              
               let ss = subs s in
                let sl =
                let (x_0) = sizecheck ss in

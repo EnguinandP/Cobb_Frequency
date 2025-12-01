@@ -87,8 +87,8 @@ ax.bar(bar1, start, color='lightcoral', width = (barWidth), label ='initial')
 ax.bar(bar2, end, color='midnightblue', width = (barWidth), label ='weighted') 
 
 for x in range(len(end)):
-    if end[x] <= 0.005:
-        plt.text((((x - 1) * 2.5 + 2)/ (len(end) * 2.71)) + .095, 0.01, '✓', transform=ax.transAxes, color='g')
+    if end[x] <= 0.105:
+        plt.text((((x - 1) * 2.5 + 2.3)/ (len(end) * 2.65)) + .095, 0.01, '✓', transform=ax.transAxes, color='g')
 
 plt.xlabel('Benchmarks')
 plt.ylabel('Dist from Target')

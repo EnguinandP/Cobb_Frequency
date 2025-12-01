@@ -125,6 +125,16 @@ let evenlist_ur () =
   let size = 10 in
   Unrolled.Evenlist_freq.even_list_gen size
 
+let depthtree_ur_lin () =
+  let depth = 5 in
+  Unrolled_linear.Depthtree_freq.depth_tree_gen depth
+
+let depthbst_ur_lin () =
+  let depth = 5 in
+  let low = 0 in
+  let high = 100 in
+  Unrolled_linear.Depthbst_freq.size_bst_gen depth low high
+
 (* minimizes dist *)
 let get_score fv goal results : (float * float list) * float =
   let pass = List.fold_left fv 0. results in

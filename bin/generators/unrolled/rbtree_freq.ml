@@ -27,11 +27,6 @@ let rec rbtree_gen =
     | false -> (
         match color with
         | true ->
-            (* let x_16 = subs inv in
-            let x_17 = rbtree_gen x_16 in
-            let x_18 = x_17 false in
-            let x_19 = subs h in
-            let lt2 = x_18 x_19 in *)
 
             let sinv = subs inv in
             let sh = subs h in
@@ -101,12 +96,6 @@ let rec rbtree_gen =
             in
 
             (* end lt2 *)
-
-            (* let x_20 = subs inv in
-            let x_21 = rbtree_gen x_20 in
-            let x_22 = x_21 false in
-            let x_23 = subs h in
-            let rt2 = x_22 x_23 in *)
 
             let sinv = subs inv in
             let sh = subs h in
@@ -184,10 +173,6 @@ let rec rbtree_gen =
               frequency_gen_list
                 ( w0,
                   fun _ ->
-                    (* let x_25 = subs inv in
-                    let x_26 = rbtree_gen x_25 in
-                    let x_27 = x_26 true in
-                    let lt3 = x_27 h in *)
 
                     let sinv = subs inv in
                     let sh = h in
@@ -218,11 +203,6 @@ let rec rbtree_gen =
                          )
                     in
                     (* end lt3 *)
-
-                    (* let x_28 = subs inv in
-                    let x_29 = rbtree_gen x_28 in
-                    let x_30 = x_29 true in
-                    let rt3 = x_30 h in *)
 
                     let sinv = subs inv in
                     let sh = h in
@@ -261,12 +241,6 @@ let rec rbtree_gen =
               base_case
                 ( w1,
                   fun _ ->
-                    (* let x_32 = subs inv in
-                    let x_33 = subs x_32 in
-                    let x_34 = rbtree_gen x_33 in
-                    let x_35 = x_34 false in
-                    let x_36 = subs h in
-                    let lt4 = x_35 x_36 in *)
 
                     let x_32 = subs inv in
                     let sinv = subs x_32 in
@@ -335,13 +309,6 @@ let rec rbtree_gen =
                     recursive_case)
                     in
                     (* end lt4 *)
-
-                    (* let x_37 = subs inv in
-                    let x_38 = subs x_37 in
-                    let x_39 = rbtree_gen x_38 in
-                    let x_40 = x_39 false in
-                    let x_41 = subs h in
-                    let rt4 = x_40 x_41 in *)
 
                     let x_32 = subs inv in
                     let sinv = subs x_32 in

@@ -21,7 +21,7 @@ subfolder_names = [
     "sized_list_1_const"
     ]
 
-folder_names = ["unrolled", "parametrized", "parametrized_enumeration", "frequency", "Dragen", "LoadedDice"]
+folder_names = ["unrolled", "unrolled_linear", "parametrized", "parametrized_enumeration", "frequency", "Dragen", "LoadedDice"]
 
 n_weights = {
     "frequency/depth_bst":2, 
@@ -42,6 +42,8 @@ n_weights = {
     "unrolled/even_list":2, 
     "unrolled/rb_tree":20, 
     "unrolled/sized_list":2, 
+    "unrolled_linear/depth_bst":12, 
+    "unrolled_linear/depth_tree":12, 
     "LoadedDice":40,
     "Dragen":6, 
     }
