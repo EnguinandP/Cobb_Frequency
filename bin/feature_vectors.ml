@@ -306,7 +306,6 @@ let get_uniform_score accumulator (buckets : float list) results =
 
 let length_acc buckets acc x =
   let length = List.length x in
-  
   let i = List.find_index (fun x -> x = (float_of_int length)) buckets in
   let i = match i with 
   | Some i' -> i' 

@@ -10,12 +10,12 @@ tests = [
     "depth_tree",
     "depth_bst",
 
-    # "dragen",
-    # "loaded_dice",
-    # "pe_sized_list_5",
-    # "pe_sized_list_10",
+    "dragen",
+    "loaded_dice",
+    "pe_sized_list_5",
+    "pe_sized_list_10",
 
-    # "p1_sized_list",
+    "p1_sized_list",
     "p2_sized_list",
     "p2_even_list",
     "p2_depth_bst",
@@ -30,6 +30,7 @@ tests = [
 ]
 
 for test in tests:
-    cmd = f"dune exec -- Cobb_Frequency {test} -i 80000 -r 80".split(" ")
+    cmd = f"dune exec -- Cobb_Frequency {test}".split(" ")
+    # cmd = f"dune exec -- Cobb_Frequency {test} -i 80000 -r 80".split(" ")
     # cmd = f"dune exec Cobb_Frequency {test}".split(" ")
     subprocess.run(cmd)
