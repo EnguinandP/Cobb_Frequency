@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,dumb_iterate/parametrized/depth_bst,h_bal,0.300,0.848,"(500, 500, 500, 500)",,0.548,0.001,20000,20
+final,dumb_iterate/parametrized/depth_bst,h_bal,0.300,0.300,"(1000, 400, 300, 400)",,0.000,9.483,20000,20

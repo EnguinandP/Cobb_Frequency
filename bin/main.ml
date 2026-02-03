@@ -306,12 +306,93 @@ let dumb_iterate (result_oc : out_channel) (gen : unit -> 'a) score_func goal
 
   let _ = print_solutions extra_oc best_weights best_score in
 
-  Printf.printf "best weights ";
+  (* Printf.printf "best weights ";
   Array.iter
     (fun x ->
       print_int x;
       print_string " ")
-    best_weights;
+    best_weights; *)
+
+  ( best_weights,
+    best_score,
+    (best_dist, best_chi_buckets),
+    end_time -. start_time )
+
+let dumb_iterate_ratios (result_oc : out_channel) (gen : unit -> 'a) score_func goal
+    print_all =
+  let extra_oc = if print_all then Some result_oc else None in
+  print_header extra_oc;
+
+  let ratios_list = [ 1.; 0.9; 0.8; 0.7; 0.6; 0.5; 0.4; 0.2; 0.1; 0. ] in
+
+  let n_bool = Array.length !weights in
+
+  let sample_weights (w : int array) =
+    weights := w;
+
+    let collect_start_time = Unix.gettimeofday () in
+    let results = collect sample_size [] gen in
+    let collect_end_time = Unix.gettimeofday () in
+
+    let (dist, chi_buckets), cand_score = score_func goal results in
+
+    print_iterations result_oc "0" [| 0; 0 |] cand_score dist
+      (collect_end_time -. collect_start_time);
+
+    (cand_score, dist, chi_buckets)
+  in
+
+  (* Printf.printf "n_weights = %d\n" (Array.length !weights); *)
+  let min_score (score_a, dist_a, chi_buckets_a, weights_a)
+      (score_b, dist_b, chi_buckets_b, weights_b) =
+    if score_a < score_b then (score_a, dist_a, chi_buckets_a, weights_a)
+    else (score_b, dist_b, chi_buckets_b, weights_b)
+  in
+
+  (* let iterate_list () =
+       List.fold_left
+         (fun acc e1 ->
+           List.fold_left
+             (fun acc e2 ->
+               let (score_b, dist_b, chi_buckets_b) = sample_weights [| e1; e2 |] in
+               min_score acc (score_b, dist_b, chi_buckets_b, [| e1; e2 |]))
+             acc weights_list)
+         (max_float, 0., [], [|0|]) weights_list
+     in *)
+  let buffer = Array.make n_bool 0 in
+
+  let rec iterate_list depth best =
+    if depth = n_bool then
+      let score_b, dist_b, chi_buckets_b = sample_weights buffer in
+      let w = Array.map (fun r -> r) buffer in
+      min_score best (score_b, dist_b, chi_buckets_b, w)
+    else
+      List.fold_left
+        (fun acc r ->
+          let w1 = Int.of_float (r *. 100.) in
+          let w2 = Int.of_float ((1. -. r)*. 100.) in
+
+          buffer.(depth) <- w1;
+          buffer.(depth + 1) <- w2;
+          let result = iterate_list (depth + 2) acc in
+          result)
+        best ratios_list
+  in
+
+  let start_time = Unix.gettimeofday () in
+  let best_score, best_dist, best_chi_buckets, best_weights =
+    iterate_list 0 (max_float, 0., [], [| 0 |])
+  in
+  let end_time = Unix.gettimeofday () in
+
+  let _ = print_solutions extra_oc best_weights best_score in
+
+  (* Printf.printf "best weights ";
+  Array.iter
+    (fun x ->
+      print_int x;
+      print_string " ")
+    best_weights; *)
 
   ( best_weights,
     best_score,
@@ -609,7 +690,7 @@ let pp_res fmt
           goal
   in
 
-  fprintf fmt "\nRan %d iterations & %d restarts\n\n" iterations n_reset;
+  fprintf fmt "\n\nRan %d iterations & %d restarts\n\n" iterations n_reset;
   fprintf fmt "%16s %-35s %-10s %-10s %-10s\n" "" "dist" "chi" "time" "weights";
   fprintf fmt "%s\n" (String.make 100 '-');
 
@@ -740,9 +821,9 @@ let evaluate gen
       !iterations !n_reset
   in
 
-  Printf.printf "bin/results/%s/%s_%s%d_%d.csv" gen_name fv_name
+  (* Printf.printf "bin/results/%s/%s_%s%d_%d.csv" gen_name fv_name
     (List.fold_left (fun acc x -> acc ^ string_of_float x ^ "_") "" goal_list)
-    !iterations !n_reset;
+    !iterations !n_reset; *)
 
   let result_oc =
     if !print_one then top_oc else (* results_oc *)
