@@ -2,11 +2,25 @@ import subprocess
 import os
 import re
 import csv
+import argparse
 from pathlib import Path
+
+parser = argparse.ArgumentParser(description='Generate tables from dumb iterate ratios data')
+parser.add_argument('-r', '--ratios', action='store_true', 
+                    help='process dumb_iterate_ratio')
+args = parser.parse_args()
+
+ratio_mode = args.ratios
 
 out_dir_str = "./bin/tables/dumb_iterate"
 
 in_dir_str = "./bin/results/dumb_iterate"
+
+label = ""
+if ratio_mode:
+    out_dir_str += "_ratios"
+    in_dir_str += "_ratios"
+    label = "\\_ratios"
 
 subfolder_names = [
     "depth_bst", 
@@ -31,7 +45,7 @@ n_weights = {
     "frequency/sized_list":2, 
     "parametrized_enumeration/sized_list_5":12,
     "parametrized_enumeration/sized_list_10":22,
-    "parametrized/sized_list_1_const":2,
+    "parametrized/sized_list_1_const":3,
     "parametrized/sized_list":4,
     "parametrized/even_list":4,
     "parametrized/depth_tree":4,
@@ -58,12 +72,19 @@ total_success = 0
 total_close = 0
 total = 0
 
+line_count = 0
+
 with open(out_str, "w") as fout:
     with open(csv_out_str, "w") as csv_fout:
         csv_fout.write("data type,feature vector,succcess,weights,ratios,#weights,target,end score,time\n")
-            
+        
+        fout.write("\\begin{table*}[t!]\n" +
+            "\\caption{\\small dumb\\_iterate" + label + "}\n" +
+            "\\renewcommand{\\arraystretch}{0.8}\n" +
+            "\\centering \\vspace*{-.05in} \\footnotesize\n" +
+            "\\begin{tabular}{r|r|r| p{2cm}|p{1cm}|r | p{1.5cm} r r}\n\n")
         fout.write("\\midrule \n")
-        fout.write("data type & feature vector & success & weights & ratios & \\#weights & target & end score & time \\\\ \n")        
+        fout.write("data type & feature & success & weights & ratios & \\#weights & target & end score & time \\\\ \n")        
         fout.write("\\midrule \n")
         for d in os.listdir(in_dir):
 
@@ -73,7 +94,25 @@ with open(out_str, "w") as fout:
                 for sd in os.listdir(Path(dir)):
                     # print(sd)
                     if sd in subfolder_names:
+                        if line_count >= 25:
+                            line_count = 0
+                            fout.write("\n\\end{tabular}\n" +
+                                "% \\vspace{-.5in}\n" +
+                                "\\end{table*}\n")
+                            
+                            fout.write("\n\\begin{table*}[t!]\n" +
+                                "\\caption{\\small dumb\\_iterate" + label + "}\n" +
+                                "\\renewcommand{\\arraystretch}{0.8}\n" +
+                                "\\centering \\vspace*{-.05in} \\footnotesize\n" +
+                                "\\begin{tabular}{r|r|r| p{2cm}|p{1cm}|r | p{1.5cm} r r}\n\n")
+                            fout.write("\\midrule \n")
+                            fout.write("data type & feature & success & weights & ratios & \\#weights & target & end score & time \\\\ \n")        
+                            # fout.write("\\midrule \n")
+
+
                         fout.write("\\midrule \n")
+                        line_count += 1
+
                         subdir = dir + "/" + sd
 
                         for f in os.listdir(Path(subdir)):
@@ -104,7 +143,7 @@ with open(out_str, "w") as fout:
                                                 score_end = line["score"]
                                                 weights = line["weights"]
 
-                                        data_type = d + " " + sd
+                                        data_type = d[0] + " " + sd
                                         success = (float(score_end) <= 0)
                                         close = (float(score_end) <= 0.1)
                                         if success:
@@ -120,18 +159,20 @@ with open(out_str, "w") as fout:
                                         if len(nums) % 2 != 0:
                                             ratios_str = ""
                                         else:
-                                            ratios = [p1 / (p1 + p2) for p1, p2 in zip(nums[0::2], nums[1::2])]
+                                            ratios = [round(p1 / (p1 + p2), 3) for p1, p2 in zip(nums[0::2], nums[1::2])]
                                             ratios_str =  "\"(" + ", ".join(str(x) for x in ratios) + ")\""           
 
                                         id = d + "/" + sd
                                         # if sd == 'depth_bst' :
                                         #     print(f"{sd.replace("_", "\\_")} & {fv.replace("_", "\\_")} & {int (n_weights[id] / 2)} & {n_weights[id]} & {goal} & {start} & {end} & {score_end} & {time} \\\\ \n")
-                                        fout.write(f"{data_type.replace("_", "\\_")} & {fv.replace("_", "\\_")} & & {success} & {weights} & {ratios} & {n_weights[id]} & {goal} & {score_end} & {time} \\\\ \n")
+                                        fout.write(f"{data_type.replace("_", "\\_")} & {fv.replace("_", "\\_")} & {success} & {weights} & {ratios} & {n_weights[id]} & {goal} & {score_end} & {time} \\\\ \n")
                                         csv_fout.write(f"{data_type},{fv},{success},\"{weights}\",\"{ratios}\",{n_weights[id]},\"{goal}\",{score_end},{time}\n")
-                    
+                                        line_count += 1
+
                                 except FileNotFoundError:
                                     print(f"Error: The file '{file}' was not found.")
 
+                        # fout.write("\\midrule \n")
                     # elif (d == "Dragen" or d == "LoadedDice") and "20000_20" in sd:
                     #     in_file = dir + "/" + sd
                     #     # print(in_file)
@@ -162,7 +203,10 @@ with open(out_str, "w") as fout:
                     #     except FileNotFoundError:
                     #         print(f"Error: The file '{file}' was not found.")
                         
-                fout.write("\\midrule \n")
+                    # fout.write("\\midrule \n")
+        fout.write("\n\\end{tabular}\n" +
+            "% \\vspace{-.5in}\n" +
+            "\\end{table*}\n")
 
 print(f"\nTotal success: {total_success} / {total}")
 print(f"Total close-to-success: {total_close} / {total}")

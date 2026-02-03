@@ -4,11 +4,11 @@ import re
 from pathlib import Path
 
 tests = [
-    # "sized_list",
-    # "even_list",
-    # "rb_tree",
-    # "depth_tree",
-    # "depth_bst",
+    "sized_list",
+    "even_list",
+    "rb_tree",
+    "depth_tree",
+    "depth_bst",
 
     # "dragen",
     # "loaded_dice",

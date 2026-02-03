@@ -324,6 +324,7 @@ let dumb_iterate_ratios (result_oc : out_channel) (gen : unit -> 'a) score_func 
   print_header extra_oc;
 
   let ratios_list = [ 1.; 0.9; 0.8; 0.7; 0.6; 0.5; 0.4; 0.2; 0.1; 0. ] in
+  let weights_list = [| 1; 100; 200; 300; 400; 500; 600; 700; 800; 900; 1000 |] in
 
   let n_bool = Array.length !weights in
 
@@ -362,20 +363,34 @@ let dumb_iterate_ratios (result_oc : out_channel) (gen : unit -> 'a) score_func 
   let buffer = Array.make n_bool 0 in
 
   let rec iterate_list depth best =
-    if depth = n_bool then
+    if depth >= n_bool then
       let score_b, dist_b, chi_buckets_b = sample_weights buffer in
       let w = Array.map (fun r -> r) buffer in
       min_score best (score_b, dist_b, chi_buckets_b, w)
     else
       List.fold_left
         (fun acc r ->
-          let w1 = Int.of_float (r *. 100.) in
-          let w2 = Int.of_float ((1. -. r)*. 100.) in
+          if not (depth + 1 = n_bool) then
+            let w1 = Int.of_float (r *. 100.) in
+            let w2 = Int.of_float ((1. -. r)*. 100.) in
 
-          buffer.(depth) <- w1;
-          buffer.(depth + 1) <- w2;
-          let result = iterate_list (depth + 2) acc in
-          result)
+            (* Printf.printf " not %d %d %d\n" depth n_bool (Array.length !weights); *)
+            buffer.(depth) <- w1;
+            buffer.(depth + 1) <- w2;
+            let result = iterate_list (depth + 2) acc in
+            result
+          else 
+            let w1 = Int.of_float (r *. 100.) in
+            (* Printf.printf "%d %d %d\n" depth n_bool (Array.length !weights); *)
+
+            let i = List.find_index (fun x -> x = r) ratios_list in
+            let i = match i with
+            | Some i' -> i'
+            | None -> failwith "index error" in
+            buffer.(depth) <- weights_list.(i);
+            let result = iterate_list (depth + 1) acc in
+            result
+            )
         best ratios_list
   in
 
@@ -813,7 +828,7 @@ let evaluate gen
   let gen_name, g, n_weights, n_bool, n_nat = gen in
   let fv_name, f = fv in
 
-  let gen_name = "dumb_iterate/" ^ gen_name in
+  let gen_name = "dumb_iterate_ratios/" ^ gen_name in
 
   let file_path =
     Printf.sprintf "bin/results/%s/%s_%s%d_%d.csv" gen_name fv_name
@@ -853,7 +868,7 @@ let evaluate gen
   in
   let oc = open_out "bin/iterations.csv" in
   let fin_weights, fin_score, fin_dist, fin_time =
-    dumb_iterate oc g f goal_list true
+    dumb_iterate_ratios oc g f goal_list true
     (* random_restart oc g f goal_list !iterations use_neg_w simulated_annealing *)
   in
   close_out oc;
@@ -976,13 +991,11 @@ let evenlist_tests =
     (min_nil_list_fv, [ 0.1 ]);
     (len_list_fv, [ 5. ]);
     (min_len_list_fv, [ 5. ]);
-    (* (uni_len_list_fv, [ 11. ]); *)
     (uni_len_list_fv, [ 1.; 2.; 3.; 4.; 5.; 6.; 7.; 8.; 9.; 10.; 11. ]);
   ]
 
 let rbtree_tests =
   [
-    (* (uni_height_rbtree_fv, [ 5. ]); *)
     (uni_height_rbtree_fv, [ 2.; 3.; 4. ]);
     (b_rbtree_fv, [ 0.2 ]);
     (b_rbtree_fv, [ 0.4 ]);

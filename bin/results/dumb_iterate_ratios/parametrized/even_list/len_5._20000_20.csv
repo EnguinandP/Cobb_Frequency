@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,dumb_iterate_ratios/parametrized/even_list,len,5.000,2.074,"(500, 500, 500, 500)",,2.926,0.000,20000,20
+final,dumb_iterate_ratios/parametrized/even_list,len,5.000,4.992,"(10, 90, 70, 30)",,0.008,0.030,20000,20
