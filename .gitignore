@@ -3,3 +3,5 @@ _build/
 .vscode
 
 _opam/
+
+bin/iterations.csv

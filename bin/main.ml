@@ -183,14 +183,11 @@ let step (cand_weight : int array) =
 let step_neg (cand_weight : int array) =
   let step = Random.int (snd !step_range) + fst !step_range in
 
-  (* Printf.printf "%.2f " !temp; *)
-  (* Printf.printf "%d " (snd !step_range); *)
   let n = Array.length cand_weight in
   let direction = Random.int n in
 
   let s = if Random.bool () then step else step * -1 in
   !weights.(direction) <- cand_weight.(direction) + s;
-  (* Printf.printf "%d\n" !weights.(direction); *)
   weights
 
 (* updates the temperature *)
@@ -259,29 +256,18 @@ let dumb_iterate (result_oc : out_channel) (gen : unit -> 'a) score_func goal
 
     let (dist, chi_buckets), cand_score = score_func goal results in
 
-    print_iterations result_oc "0" [| 0; 0 |] cand_score dist
-      (collect_end_time -. collect_start_time);
+    (* print_iterations result_oc "0" [| 0; 0 |] cand_score dist
+      (collect_end_time -. collect_start_time); *)
 
     (cand_score, dist, chi_buckets)
   in
 
-  (* Printf.printf "n_weights = %d\n" (Array.length !weights); *)
   let min_score (score_a, dist_a, chi_buckets_a, weights_a)
       (score_b, dist_b, chi_buckets_b, weights_b) =
     if score_a < score_b then (score_a, dist_a, chi_buckets_a, weights_a)
     else (score_b, dist_b, chi_buckets_b, weights_b)
   in
 
-  (* let iterate_list () =
-       List.fold_left
-         (fun acc e1 ->
-           List.fold_left
-             (fun acc e2 ->
-               let (score_b, dist_b, chi_buckets_b) = sample_weights [| e1; e2 |] in
-               min_score acc (score_b, dist_b, chi_buckets_b, [| e1; e2 |]))
-             acc weights_list)
-         (max_float, 0., [], [|0|]) weights_list
-     in *)
   let buffer = Array.make n_weights 0 in
 
   let rec iterate_list depth best =
@@ -305,13 +291,6 @@ let dumb_iterate (result_oc : out_channel) (gen : unit -> 'a) score_func goal
   let end_time = Unix.gettimeofday () in
 
   let _ = print_solutions extra_oc best_weights best_score in
-
-  (* Printf.printf "best weights ";
-  Array.iter
-    (fun x ->
-      print_int x;
-      print_string " ")
-    best_weights; *)
 
   ( best_weights,
     best_score,
@@ -343,23 +322,12 @@ let dumb_iterate_ratios (result_oc : out_channel) (gen : unit -> 'a) score_func 
     (cand_score, dist, chi_buckets)
   in
 
-  (* Printf.printf "n_weights = %d\n" (Array.length !weights); *)
   let min_score (score_a, dist_a, chi_buckets_a, weights_a)
       (score_b, dist_b, chi_buckets_b, weights_b) =
     if score_a < score_b then (score_a, dist_a, chi_buckets_a, weights_a)
     else (score_b, dist_b, chi_buckets_b, weights_b)
   in
 
-  (* let iterate_list () =
-       List.fold_left
-         (fun acc e1 ->
-           List.fold_left
-             (fun acc e2 ->
-               let (score_b, dist_b, chi_buckets_b) = sample_weights [| e1; e2 |] in
-               min_score acc (score_b, dist_b, chi_buckets_b, [| e1; e2 |]))
-             acc weights_list)
-         (max_float, 0., [], [|0|]) weights_list
-     in *)
   let buffer = Array.make n_bool 0 in
 
   let rec iterate_list depth best =
@@ -374,14 +342,12 @@ let dumb_iterate_ratios (result_oc : out_channel) (gen : unit -> 'a) score_func 
             let w1 = Int.of_float (r *. 100.) in
             let w2 = Int.of_float ((1. -. r)*. 100.) in
 
-            (* Printf.printf " not %d %d %d\n" depth n_bool (Array.length !weights); *)
             buffer.(depth) <- w1;
             buffer.(depth + 1) <- w2;
             let result = iterate_list (depth + 2) acc in
             result
           else 
             let w1 = Int.of_float (r *. 100.) in
-            (* Printf.printf "%d %d %d\n" depth n_bool (Array.length !weights); *)
 
             let i = List.find_index (fun x -> x = r) ratios_list in
             let i = match i with
@@ -401,13 +367,6 @@ let dumb_iterate_ratios (result_oc : out_channel) (gen : unit -> 'a) score_func 
   let end_time = Unix.gettimeofday () in
 
   let _ = print_solutions extra_oc best_weights best_score in
-
-  (* Printf.printf "best weights ";
-  Array.iter
-    (fun x ->
-      print_int x;
-      print_string " ")
-    best_weights; *)
 
   ( best_weights,
     best_score,

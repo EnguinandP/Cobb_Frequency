@@ -153,7 +153,7 @@ with open(out_str, "w") as fout:
                                         total += 1
 
                                         if (not close):
-                                            print(f"{data_type}, {fv}, {score_end}")
+                                            print(f"{data_type}, {fv}, {score_end}\n")
 
                                         nums = [int(x) for x in weights.strip("() ").split(",") if x.strip()]
                                         if len(nums) % 2 != 0:
