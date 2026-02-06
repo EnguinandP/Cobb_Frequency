@@ -3,6 +3,8 @@ import os
 import re
 import csv
 from pathlib import Path
+import numpy as np
+import matplotlib.pyplot as plt
 
 out_dir_str = "./bin/results/weights.csv"
 
@@ -47,6 +49,8 @@ n_weights = {
     "LoadedDice":40,
     "Dragen":6, 
     }
+
+weights_count = {}
 
 in_dir = Path(in_dir_str)
 assert in_dir.is_dir()
@@ -98,9 +102,14 @@ with open(out_dir_str, "w") as csv_fout:
                                     if len(nums) % 2 != 0:
                                         ratios_str = ""
                                     else:
-                                        ratios = [p1 / (p1 + p2) for p1, p2 in zip(nums[0::2], nums[1::2])]
-                                        ratios_str =  "\"(" + ", ".join(str(x) for x in ratios) + ")\""   
-                                        
+                                        ratios = [round(p1 / (p1 + p2), 2) for p1, p2 in zip(nums[0::2], nums[1::2])]
+                                        ratios_str =  "\"(" + ", ".join(str(x) for x in ratios) + ")\""  
+
+                                        for r in ratios:
+                                            if r in weights_count:
+                                                weights_count[r] += 1
+                                            else:
+                                                weights_count[r] = 0
 
                                     id = d + "/" + sd
                                     # csv_fout.write(f"{sd},{fv},{n_weights[id]},\"{goal}\",{success},\"{weights}\",{ratios_str}\n")
@@ -136,7 +145,7 @@ with open(out_dir_str, "w") as csv_fout:
                             if len(nums) % 2 != 0:
                                 ratios_str = ""
                             else:
-                                ratios = [p1 / (p1 + p2) for p1, p2 in zip(nums[0::2], nums[1::2])]
+                                ratios = [round(p1 / (p1 + p2), 2) for p1, p2 in zip(nums[0::2], nums[1::2])]
                                 ratios_str =  "\"(" + ", ".join(str(x) for x in ratios) + ")\"" 
                                 
 
@@ -148,6 +157,23 @@ with open(out_dir_str, "w") as csv_fout:
                     except FileNotFoundError:
                         print(f"Error: The file '{file}' was not found.")
                     
+weights_count = {k: v for k, v in sorted(weights_count.items(), key=lambda item: item[0])}
+
+print(weights_count)
+
+weights = weights_count.keys()
+counts = weights_count.values()
+
+ticks = np.arange(0, 1.5, 0.05)
+ticks = ticks.tolist()
+
+plt.figure(figsize=(15,5))
+plt.bar(range(len(weights)), list(counts))
+plt.xticks(range(len(weights_count)), list(weights_count.keys()), rotation = 90)
+# plt.show()
+
+plt.savefig("bin/results/weights.pdf", format="pdf") 
+
 
 # folder_copy = ["unrolled", "parametrized", "parametrized_enumeration", "frequency"]
 
