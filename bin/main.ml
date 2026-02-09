@@ -19,8 +19,12 @@ let data_type = ref ""
 let feature_vector = ref ""
 let path = ref "./bin/results/parametrized_enumeration/sized_list_10/output.csv"
 let top_oc = open_out !path
+let search_strat_str = ref "sa"
 let print_one = ref false
-let usage_msg = "Usage: dune exec Cobb_Frequency <data_type> [-i] [-r] "
+
+let usage_msg =
+  "Usage: dune exec Cobb_Frequency <data_type> [-i] [-r] [-one] [-s]"
+
 let set_data_type d = data_type := d
 
 let speclist =
@@ -30,7 +34,10 @@ let speclist =
     ( "-f",
       Arg.String (fun s -> feature_vector := s),
       "run with specified feature vector" );
-    ("-s", Arg.Set print_one, "print one in one file");
+    ("-one", Arg.Set print_one, "print one in one file");
+    ( "-s",
+      Arg.String (fun s -> search_strat_str := s),
+      "Set search strategy: di, dir, sa" );
   ]
 
 (* observation: simulated annealing will get stuck in a local min when
@@ -241,8 +248,6 @@ let dumb_iterate (result_oc : out_channel) (gen : unit -> 'a) score_func goal
   let extra_oc = if print_all then Some result_oc else None in
   print_header extra_oc;
 
-  let ratios_list = [ 1.; 0.9; 0.8; 0.7; 0.6; 0.5; 0.4; 0.2; 0.1; 0. ] in
-
   let weights_list = [ 1; 100; 200; 300; 400; 500; 600; 700; 800; 900; 1000 ] in
 
   let n_weights = Array.length !weights in
@@ -257,8 +262,7 @@ let dumb_iterate (result_oc : out_channel) (gen : unit -> 'a) score_func goal
     let (dist, chi_buckets), cand_score = score_func goal results in
 
     (* print_iterations result_oc "0" [| 0; 0 |] cand_score dist
-      (collect_end_time -. collect_start_time); *)
-
+       (collect_end_time -. collect_start_time); *)
     (cand_score, dist, chi_buckets)
   in
 
@@ -297,13 +301,16 @@ let dumb_iterate (result_oc : out_channel) (gen : unit -> 'a) score_func goal
     (best_dist, best_chi_buckets),
     end_time -. start_time )
 
-let dumb_iterate_ratios (result_oc : out_channel) (gen : unit -> 'a) score_func goal
-    print_all =
+let dumb_iterate_ratios (result_oc : out_channel) (gen : unit -> 'a) score_func
+    goal print_all =
   let extra_oc = if print_all then Some result_oc else None in
   print_header extra_oc;
 
-  let ratios_list = [ 1.; 0.9; 0.8; 0.7; 0.6; 0.5; 0.4; 0.2; 0.1; 0. ] in
-  let weights_list = [| 1; 100; 200; 300; 400; 500; 600; 700; 800; 900; 1000 |] in
+  (* let ratios_list = [ 1.; 0.9; 0.8; 0.7; 0.6; 0.5; 0.4; 0.2; 0.1; 0. ] in *)
+  let ratios_list = [ 1.; 0.75; 0.5; 0.25; 0. ] in
+  let weights_list =
+    [| 1; 100; 200; 300; 400; 500; 600; 700; 800; 900; 1000 |]
+  in
 
   let n_bool = Array.length !weights in
 
@@ -338,25 +345,24 @@ let dumb_iterate_ratios (result_oc : out_channel) (gen : unit -> 'a) score_func 
     else
       List.fold_left
         (fun acc r ->
-          if not (depth + 1 = n_bool) then
+          if not (depth + 1 = n_bool) then (
             let w1 = Int.of_float (r *. 100.) in
-            let w2 = Int.of_float ((1. -. r)*. 100.) in
+            let w2 = Int.of_float ((1. -. r) *. 100.) in
 
             buffer.(depth) <- w1;
             buffer.(depth + 1) <- w2;
             let result = iterate_list (depth + 2) acc in
-            result
-          else 
+            result)
+          else
             let w1 = Int.of_float (r *. 100.) in
 
             let i = List.find_index (fun x -> x = r) ratios_list in
-            let i = match i with
-            | Some i' -> i'
-            | None -> failwith "index error" in
+            let i =
+              match i with Some i' -> i' | None -> failwith "index error"
+            in
             buffer.(depth) <- weights_list.(i);
             let result = iterate_list (depth + 1) acc in
-            result
-            )
+            result)
         best ratios_list
   in
 
@@ -787,7 +793,16 @@ let evaluate gen
   let gen_name, g, n_weights, n_bool, n_nat = gen in
   let fv_name, f = fv in
 
-  let gen_name = "dumb_iterate_ratios/" ^ gen_name in
+  (* let gen_name = "dumb_iterate_ratios/" ^ gen_name in *)
+
+  let gen_name =
+    (match !search_strat_str with
+    | "sa" -> ""
+    | "di" -> "dumb_iterate/"
+    | "dir" -> "dumb_iterate_ratios/"
+    | "dirs" -> "dumb_iterate_ratios_smaller/"
+    | _ -> failwith "invalid search stragtegy/") ^ gen_name
+  in
 
   let file_path =
     Printf.sprintf "bin/results/%s/%s_%s%d_%d.csv" gen_name fv_name
@@ -796,9 +811,8 @@ let evaluate gen
   in
 
   (* Printf.printf "bin/results/%s/%s_%s%d_%d.csv" gen_name fv_name
-    (List.fold_left (fun acc x -> acc ^ string_of_float x ^ "_") "" goal_list)
-    !iterations !n_reset; *)
-
+     (List.fold_left (fun acc x -> acc ^ string_of_float x ^ "_") "" goal_list)
+     !iterations !n_reset; *)
   let result_oc =
     if !print_one then top_oc else (* results_oc *)
                                 open_out file_path
@@ -826,6 +840,18 @@ let evaluate gen
       ]
   in
   let oc = open_out "bin/iterations.csv" in
+
+  let fin_weights, fin_score, fin_dist, fin_time =
+    match !search_strat_str with
+    | "sa" ->
+        random_restart oc g f goal_list !iterations use_neg_w
+          simulated_annealing
+    | "di" -> dumb_iterate oc g f goal_list true
+    | "dir" -> dumb_iterate_ratios oc g f goal_list true
+    | "dirs" -> dumb_iterate_ratios oc g f goal_list true
+    | _ -> failwith "invalid search stragtegy"
+  in
+
   let fin_weights, fin_score, fin_dist, fin_time =
     dumb_iterate_ratios oc g f goal_list true
     (* random_restart oc g f goal_list !iterations use_neg_w simulated_annealing *)

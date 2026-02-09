@@ -66,7 +66,7 @@ for test in tests:
     for i in iterations:
         for r in restarts:
             print(f"running {test} with {i} and {r}")
-            cmd = f"dune exec -- Cobb_Frequency {test} -i {i} -r {r} -s".split(" ")
+            cmd = f"dune exec -- Cobb_Frequency {test} -i {i} -r {r} -one".split(" ")
             subprocess.run(cmd)
 
 

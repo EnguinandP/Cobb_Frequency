@@ -1,0 +1,185 @@
+\begin{table*}[t!]
+\caption{\small dumb\_iterate\_ratios_smaller}
+\renewcommand{\arraystretch}{0.8}
+\centering \vspace*{-.05in} \footnotesize
+\begin{tabular}{r|r|r| p{2cm}|p{1cm}|r | p{1.5cm} r r}
+
+\midrule 
+data type & feature & success & weights & ratios & \#weights & target & end score & time \\ 
+\midrule 
+\midrule 
+\midrule 
+\midrule 
+\midrule 
+\midrule 
+\midrule 
+f sized\_list & min\_len & True & (100, 0) & [1.0] & 2 & 5.000 & -5.000 & 0.001 \\ 
+f sized\_list & nil & False & (0, 100) & [0.0] & 2 & 0.100 & 0.100 & 0.001 \\ 
+f sized\_list & uni\_len & False & (25, 75) & [0.25] & 2 & (0.000, 1.000, 2.000, 3.000, 4.000, 5.000, 6.000, 7.000, 8.000, 9.000, 10.000) & 537.300 & 0.001 \\ 
+f sized\_list & min\_nil & True & (0, 100) & [0.0] & 2 & 0.100 & -0.100 & 0.001 \\ 
+f sized\_list & len & False & (25, 75) & [0.25] & 2 & 5.000 & 2.321 & 0.002 \\ 
+\midrule 
+f depth\_bst & min\_height & True & (100, 0) & [1.0] & 2 & 3.000 & -3.000 & 0.005 \\ 
+f depth\_bst & h\_bal & False & (0, 100) & [0.0] & 2 & 0.300 & 0.107 & 0.005 \\ 
+f depth\_bst & stick & False & (50, 50) & [0.5] & 2 & 0.500 & 0.138 & 0.004 \\ 
+f depth\_bst & stick & False & (50, 50) & [0.5] & 2 & 0.800 & 0.450 & 0.004 \\ 
+f depth\_bst & h\_bal & False & (25, 75) & [0.25] & 2 & 2.000 & 0.622 & 0.004 \\ 
+f depth\_bst & height & True & (0, 100) & [0.0] & 2 & 5.000 & 0.000 & 0.005 \\ 
+f depth\_bst & min\_stick & True & (100, 0) & [1.0] & 2 & 0.100 & -0.100 & 0.004 \\ 
+f depth\_bst & stick & False & (0, 100) & [0.0] & 2 & 0.100 & 0.074 & 0.004 \\ 
+f depth\_bst & uni\_height & False & (50, 50) & [0.5] & 2 & (0.000, 1.000, 2.000, 3.000, 4.000, 5.000) & 810.221 & 0.004 \\ 
+\midrule 
+f depth\_tree & h\_bal & False & (25, 75) & [0.25] & 2 & 1.500 & 0.266 & 0.006 \\ 
+f depth\_tree & min\_height & True & (100, 0) & [1.0] & 2 & 3.000 & -3.000 & 0.005 \\ 
+f depth\_tree & h\_bal & False & (75, 25) & [0.75] & 2 & 0.300 & 0.152 & 0.005 \\ 
+f depth\_tree & height & False & (25, 75) & [0.25] & 2 & 3.000 & 0.559 & 0.007 \\ 
+f depth\_tree & stick & False & (50, 50) & [0.5] & 2 & 0.500 & 0.193 & 0.004 \\ 
+f depth\_tree & stick & False & (50, 50) & [0.5] & 2 & 0.800 & 0.478 & 0.005 \\ 
+f depth\_tree & h\_bal & False & (25, 75) & [0.25] & 2 & 2.000 & 0.772 & 0.005 \\ 
+f depth\_tree & min\_stick & True & (0, 100) & [0.0] & 2 & 0.100 & -0.100 & 0.005 \\ 
+f depth\_tree & stick & False & (0, 100) & [0.0] & 2 & 0.100 & 0.100 & 0.005 \\ 
+f depth\_tree & uni\_height & False & (50, 50) & [0.5] & 2 & (0.000, 1.000, 2.000, 3.000, 4.000, 5.000) & 835.445 & 0.005 \\ 
+
+\end{tabular}
+% \vspace{-.5in}
+\end{table*}
+
+\begin{table*}[t!]
+\caption{\small dumb\_iterate\_ratios_smaller}
+\renewcommand{\arraystretch}{0.8}
+\centering \vspace*{-.05in} \footnotesize
+\begin{tabular}{r|r|r| p{2cm}|p{1cm}|r | p{1.5cm} r r}
+
+\midrule 
+data type & feature & success & weights & ratios & \#weights & target & end score & time \\ 
+\midrule 
+f even\_list & min\_len & True & (100, 0) & [1.0] & 2 & 5.000 & -4.000 & 0.002 \\ 
+f even\_list & nil & False & (0, 100) & [0.0] & 2 & 0.100 & 0.100 & 0.002 \\ 
+f even\_list & min\_nil & True & (0, 100) & [0.0] & 2 & 0.100 & -0.100 & 0.002 \\ 
+f even\_list & uni\_len & False & (25, 75) & [0.25] & 2 & (1.000, 2.000, 3.000, 4.000, 5.000, 6.000, 7.000, 8.000, 9.000, 10.000, 11.000) & 579.276 & 0.001 \\ 
+f even\_list & len & False & (25, 75) & [0.25] & 2 & 5.000 & 1.244 & 0.001 \\ 
+\midrule 
+f rb\_tree & black & False & (0, 100, 100, 0) & [0.0, 1.0] & 4 & 0.200 & 0.133 & 0.022 \\ 
+f rb\_tree & min\_black & False & (0, 100, 100, 0) & [0.0, 1.0] & 4 & 0.200 & 0.133 & 0.022 \\ 
+f rb\_tree & black & False & (0, 100, 25, 75) & [0.0, 0.25] & 4 & 0.400 & 0.001 & 0.021 \\ 
+f rb\_tree & uni\_height & False & (75, 25, 25, 75) & [0.75, 0.25] & 4 & (2.000, 3.000, 4.000) & 129.366 & 0.023 \\ 
+f rb\_tree & black & True & (75, 25, 75, 25) & [0.75, 0.75] & 4 & 0.600 & 0.000 & 0.022 \\ 
+f rb\_tree & black & True & (0, 100, 100, 0) & [0.0, 1.0] & 4 & 0.333 & 0.000 & 0.021 \\ 
+\midrule 
+p sized\_list & min\_len & True & (100, 0, 100, 0) & [1.0, 1.0] & 4 & 5.000 & -5.000 & 0.008 \\ 
+p sized\_list & nil & False & (0, 100, 100, 0) & [0.0, 1.0] & 4 & 0.100 & 0.018 & 0.008 \\ 
+p sized\_list & uni\_len & True & (0, 100, 100, 0) & [0.0, 1.0] & 4 & (0.000, 1.000, 2.000, 3.000, 4.000, 5.000, 6.000, 7.000, 8.000, 9.000, 10.000) & -5.880 & 0.008 \\ 
+p sized\_list & min\_nil & True & (0, 100, 0, 100) & [0.0, 0.0] & 4 & 0.100 & -0.100 & 0.007 \\ 
+p sized\_list & len & False & (0, 100, 100, 0) & [0.0, 1.0] & 4 & 5.000 & 0.003 & 0.007 \\ 
+\midrule 
+p depth\_bst & min\_height & True & (100, 0, 100, 0) & [1.0, 1.0] & 4 & 3.000 & -3.000 & 0.020 \\ 
+p depth\_bst & h\_bal & False & (75, 25, 50, 50) & [0.75, 0.5] & 4 & 0.300 & 0.004 & 0.020 \\ 
+p depth\_bst & stick & False & (25, 75, 100, 0) & [0.25, 1.0] & 4 & 0.500 & 0.142 & 0.018 \\ 
+p depth\_bst & stick & False & (50, 50, 75, 25) & [0.5, 0.75] & 4 & 0.800 & 0.446 & 0.017 \\ 
+p depth\_bst & h\_bal & False & (0, 100, 100, 0) & [0.0, 1.0] & 4 & 2.000 & 0.571 & 0.020 \\ 
+p depth\_bst & height & True & (0, 100, 0, 100) & [0.0, 0.0] & 4 & 5.000 & 0.000 & 0.020 \\ 
+p depth\_bst & min\_stick & True & (100, 0, 100, 0) & [1.0, 1.0] & 4 & 0.100 & -0.100 & 0.018 \\ 
+p depth\_bst & stick & False & (100, 0, 25, 75) & [1.0, 0.25] & 4 & 0.100 & 0.015 & 0.018 \\ 
+p depth\_bst & uni\_height & False & (25, 75, 100, 0) & [0.25, 1.0] & 4 & (0.000, 1.000, 2.000, 3.000, 4.000, 5.000) & 399.137 & 0.019 \\ 
+
+\end{tabular}
+% \vspace{-.5in}
+\end{table*}
+
+\begin{table*}[t!]
+\caption{\small dumb\_iterate\_ratios_smaller}
+\renewcommand{\arraystretch}{0.8}
+\centering \vspace*{-.05in} \footnotesize
+\begin{tabular}{r|r|r| p{2cm}|p{1cm}|r | p{1.5cm} r r}
+
+\midrule 
+data type & feature & success & weights & ratios & \#weights & target & end score & time \\ 
+\midrule 
+p depth\_tree & h\_bal & False & (25, 75, 50, 50) & [0.25, 0.5] & 4 & 1.500 & 0.091 & 0.023 \\ 
+p depth\_tree & min\_height & True & (100, 0, 100, 0) & [1.0, 1.0] & 4 & 3.000 & -3.000 & 0.022 \\ 
+p depth\_tree & h\_bal & False & (75, 25, 50, 50) & [0.75, 0.5] & 4 & 0.300 & 0.002 & 0.023 \\ 
+p depth\_tree & height & False & (25, 75, 50, 50) & [0.25, 0.5] & 4 & 3.000 & 0.215 & 0.023 \\ 
+p depth\_tree & stick & False & (25, 75, 100, 0) & [0.25, 1.0] & 4 & 0.500 & 0.143 & 0.020 \\ 
+p depth\_tree & stick & False & (50, 50, 75, 25) & [0.5, 0.75] & 4 & 0.800 & 0.439 & 0.021 \\ 
+p depth\_tree & h\_bal & False & (0, 100, 100, 0) & [0.0, 1.0] & 4 & 2.000 & 0.739 & 0.023 \\ 
+p depth\_tree & min\_stick & True & (0, 100, 0, 100) & [0.0, 0.0] & 4 & 0.100 & -0.100 & 0.020 \\ 
+p depth\_tree & stick & False & (0, 100, 50, 50) & [0.0, 0.5] & 4 & 0.100 & 0.008 & 0.020 \\ 
+p depth\_tree & uni\_height & False & (25, 75, 100, 0) & [0.25, 1.0] & 4 & (0.000, 1.000, 2.000, 3.000, 4.000, 5.000) & 615.137 & 0.022 \\ 
+\midrule 
+p even\_list & min\_len & True & (100, 0, 100, 0) & [1.0, 1.0] & 4 & 5.000 & -4.000 & 0.008 \\ 
+p even\_list & nil & False & (0, 100, 0, 100) & [0.0, 0.0] & 4 & 0.100 & 0.100 & 0.008 \\ 
+p even\_list & min\_nil & True & (0, 100, 0, 100) & [0.0, 0.0] & 4 & 0.100 & -0.100 & 0.008 \\ 
+p even\_list & uni\_len & True & (0, 100, 100, 0) & [0.0, 1.0] & 4 & (1.000, 2.000, 3.000, 4.000, 5.000, 6.000, 7.000, 8.000, 9.000, 10.000, 11.000) & -13.426 & 0.008 \\ 
+p even\_list & len & False & (25, 75, 0, 100) & [0.25, 0.0] & 4 & 5.000 & 0.731 & 0.008 \\ 
+\midrule 
+\midrule 
+p sized\_list\_1\_const & min\_len & True & (100, 0, 1) & [0.25, 0.0] & 3 & 5.000 & -5.000 & 0.006 \\ 
+p sized\_list\_1\_const & nil & False & (0, 100, 100) & [0.25, 0.0] & 3 & 0.100 & 0.020 & 0.006 \\ 
+p sized\_list\_1\_const & uni\_len & False & (0, 100, 100) & [0.25, 0.0] & 3 & (0.000, 1.000, 2.000, 3.000, 4.000, 5.000, 6.000, 7.000, 8.000, 9.000, 10.000) & 52.904 & 0.006 \\ 
+p sized\_list\_1\_const & min\_nil & True & (0, 100, 1) & [0.25, 0.0] & 3 & 0.100 & -0.098 & 0.006 \\ 
+p sized\_list\_1\_const & len & False & (0, 100, 100) & [0.25, 0.0] & 3 & 5.000 & 0.531 & 0.005 \\ 
+\midrule 
+u sized\_list & min\_len & True & (100, 0, 0, 100) & [1.0, 0.0] & 2 & 5.000 & -5.000 & 0.004 \\ 
+u sized\_list & nil & False & (0, 100, 0, 100) & [0.0, 0.0] & 2 & 0.100 & 0.100 & 0.004 \\ 
+u sized\_list & uni\_len & False & (25, 75, 25, 75) & [0.25, 0.25] & 2 & (0.000, 1.000, 2.000, 3.000, 4.000, 5.000, 6.000, 7.000, 8.000, 9.000, 10.000) & 511.516 & 0.005 \\ 
+u sized\_list & min\_nil & True & (0, 100, 0, 100) & [0.0, 0.0] & 2 & 0.100 & -0.100 & 0.004 \\ 
+u sized\_list & len & False & (0, 100, 25, 75) & [0.0, 0.25] & 2 & 5.000 & 0.221 & 0.004 \\ 
+
+\end{tabular}
+% \vspace{-.5in}
+\end{table*}
+
+\begin{table*}[t!]
+\caption{\small dumb\_iterate\_ratios_smaller}
+\renewcommand{\arraystretch}{0.8}
+\centering \vspace*{-.05in} \footnotesize
+\begin{tabular}{r|r|r| p{2cm}|p{1cm}|r | p{1.5cm} r r}
+
+\midrule 
+data type & feature & success & weights & ratios & \#weights & target & end score & time \\ 
+\midrule 
+u depth\_bst & min\_height & True & (100, 0, 0, 100, 0, 100) & [1.0, 0.0, 0.0] & 6 & 3.000 & -3.000 & 0.062 \\ 
+u depth\_bst & h\_bal & False & (75, 25, 25, 75, 100, 0) & [0.75, 0.25, 1.0] & 6 & 0.300 & 0.008 & 0.063 \\ 
+u depth\_bst & stick & False & (25, 75, 25, 75, 75, 25) & [0.25, 0.25, 0.75] & 6 & 0.500 & 0.008 & 0.055 \\ 
+u depth\_bst & stick & False & (0, 100, 100, 0, 50, 50) & [0.0, 1.0, 0.5] & 6 & 0.800 & 0.007 & 0.056 \\ 
+u depth\_bst & h\_bal & False & (0, 100, 0, 100, 50, 50) & [0.0, 0.0, 0.5] & 6 & 2.000 & 0.001 & 0.063 \\ 
+u depth\_bst & height & True & (0, 100, 0, 100, 0, 100) & [0.0, 0.0, 0.0] & 6 & 5.000 & 0.000 & 0.062 \\ 
+u depth\_bst & min\_stick & True & (100, 0, 0, 100, 0, 100) & [1.0, 0.0, 0.0] & 6 & 0.100 & -0.100 & 0.056 \\ 
+u depth\_bst & stick & False & (50, 50, 25, 75, 0, 100) & [0.5, 0.25, 0.0] & 6 & 0.100 & 0.006 & 0.055 \\ 
+u depth\_bst & uni\_height & False & (25, 75, 100, 0, 25, 75) & [0.25, 1.0, 0.25] & 6 & (0.000, 1.000, 2.000, 3.000, 4.000, 5.000) & 319.577 & 0.062 \\ 
+\midrule 
+u depth\_tree & h\_bal & False & (25, 75, 25, 75, 50, 50) & [0.25, 0.25, 0.5] & 6 & 1.500 & 0.002 & 0.070 \\ 
+u depth\_tree & min\_height & True & (100, 0, 0, 100, 0, 100) & [1.0, 0.0, 0.0] & 6 & 3.000 & -3.000 & 0.066 \\ 
+u depth\_tree & h\_bal & False & (25, 75, 0, 100, 0, 100) & [0.25, 0.0, 0.0] & 6 & 0.300 & 0.001 & 0.069 \\ 
+u depth\_tree & height & False & (25, 75, 75, 25, 25, 75) & [0.25, 0.75, 0.25] & 6 & 3.000 & 0.020 & 0.068 \\ 
+u depth\_tree & stick & True & (0, 100, 0, 100, 100, 0) & [0.0, 0.0, 1.0] & 6 & 0.500 & 0.000 & 0.060 \\ 
+u depth\_tree & stick & False & (0, 100, 75, 25, 75, 25) & [0.0, 0.75, 0.75] & 6 & 0.800 & 0.037 & 0.060 \\ 
+u depth\_tree & h\_bal & False & (0, 100, 50, 50, 25, 75) & [0.0, 0.5, 0.25] & 6 & 2.000 & 0.006 & 0.070 \\ 
+u depth\_tree & min\_stick & True & (0, 100, 0, 100, 0, 100) & [0.0, 0.0, 0.0] & 6 & 0.100 & -0.100 & 0.059 \\ 
+u depth\_tree & stick & False & (25, 75, 0, 100, 25, 75) & [0.25, 0.0, 0.25] & 6 & 0.100 & 0.003 & 0.060 \\ 
+u depth\_tree & uni\_height & False & (25, 75, 50, 50, 75, 25) & [0.25, 0.5, 0.75] & 6 & (0.000, 1.000, 2.000, 3.000, 4.000, 5.000) & 596.957 & 0.068 \\ 
+\midrule 
+u even\_list & min\_len & True & (100, 0, 0, 100) & [1.0, 0.0] & 2 & 5.000 & -4.000 & 0.005 \\ 
+u even\_list & nil & False & (0, 100, 0, 100) & [0.0, 0.0] & 2 & 0.100 & 0.100 & 0.005 \\ 
+u even\_list & min\_nil & True & (0, 100, 0, 100) & [0.0, 0.0] & 2 & 0.100 & -0.100 & 0.006 \\ 
+u even\_list & uni\_len & False & (25, 75, 25, 75) & [0.25, 0.25] & 2 & (1.000, 2.000, 3.000, 4.000, 5.000, 6.000, 7.000, 8.000, 9.000, 10.000, 11.000) & 476.250 & 0.005 \\ 
+u even\_list & len & False & (25, 75, 0, 100) & [0.25, 0.0] & 2 & 5.000 & 0.572 & 0.006 \\ 
+
+\end{tabular}
+% \vspace{-.5in}
+\end{table*}
+
+\begin{table*}[t!]
+\caption{\small dumb\_iterate\_ratios_smaller}
+\renewcommand{\arraystretch}{0.8}
+\centering \vspace*{-.05in} \footnotesize
+\begin{tabular}{r|r|r| p{2cm}|p{1cm}|r | p{1.5cm} r r}
+
+\midrule 
+data type & feature & success & weights & ratios & \#weights & target & end score & time \\ 
+\midrule 
+u rb\_tree & len & False & (25, 75, 0, 100) & [0.25, 0.0] & 20 & 5.000 & 0.572 & 0.006 \\ 
+
+\end{tabular}
+% \vspace{-.5in}
+\end{table*}

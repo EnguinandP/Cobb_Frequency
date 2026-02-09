@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,dumb_iterate_ratios_smaller/parametrized/depth_bst,min_height,3.000,1.547,"(500, 500, 500, 500)",,-1.453,0.000,20000,20
+final,dumb_iterate_ratios_smaller/parametrized/depth_bst,min_height,3.000,0.000,"(100, 0, 100, 0)",,-3.000,0.020,20000,20
