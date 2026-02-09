@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 out_dir_str = "./bin/results/weights.csv"
 
-in_dir_str = "./bin/results"
+in_dir_str = "./bin/results/dumb_iterate"
 
 subfolder_names = [
     "depth_bst", 
@@ -23,7 +23,8 @@ subfolder_names = [
     "sized_list_1_const"
     ]
 
-folder_names = ["unrolled", "unrolled_linear", "parametrized", "parametrized_enumeration", "frequency", "Dragen", "LoadedDice"]
+# folder_names = ["unrolled", "unrolled_linear", "parametrized", "parametrized_enumeration", "frequency", "Dragen", "LoadedDice"]
+folder_names = ["unrolled", "parametrized_enumeration", "frequency"]
 
 n_weights = {
     "frequency/depth_bst":2, 
@@ -109,7 +110,7 @@ with open(out_dir_str, "w") as csv_fout:
                                             if r in weights_count:
                                                 weights_count[r] += 1
                                             else:
-                                                weights_count[r] = 0
+                                                weights_count[r] = 1
 
                                     id = d + "/" + sd
                                     # csv_fout.write(f"{sd},{fv},{n_weights[id]},\"{goal}\",{success},\"{weights}\",{ratios_str}\n")
@@ -173,6 +174,8 @@ plt.xticks(range(len(weights_count)), list(weights_count.keys()), rotation = 90)
 # plt.show()
 
 plt.savefig("bin/results/weights.pdf", format="pdf") 
+
+print(len(weights_count.keys()))
 
 
 # folder_copy = ["unrolled", "parametrized", "parametrized_enumeration", "frequency"]
