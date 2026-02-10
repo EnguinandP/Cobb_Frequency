@@ -799,9 +799,10 @@ let evaluate gen
   let gen_name =
     (match !search_strat_str with
     | "sa" -> ""
-    | "di" -> "dumb_iterate/"
+    | "di" -> "dumb_iterate_weights/"
     | "dir" -> "dumb_iterate_ratios/"
     | "dirs" -> "dumb_iterate_ratios_smaller/"
+    | "dirw" -> "dumb_iterate_ratios_w/"
     | _ -> failwith "invalid search stragtegy/") ^ gen_name
   in
 
@@ -848,8 +849,7 @@ let evaluate gen
         random_restart oc g f goal_list !iterations use_neg_w
           simulated_annealing
     | "di" -> dumb_iterate oc g f goal_list true
-    | "dir" -> dumb_iterate_ratios oc g f goal_list true
-    | "dirs" -> dumb_iterate_ratios oc g f goal_list true
+    | "dir" | "dirs" | "dirw" -> dumb_iterate_ratios oc g f goal_list true
     | _ -> failwith "invalid search stragtegy"
   in
 

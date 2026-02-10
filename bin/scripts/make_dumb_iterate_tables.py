@@ -6,14 +6,14 @@ import argparse
 from pathlib import Path
 
 parser = argparse.ArgumentParser(description='Generate tables from dumb iterate ratios data')
-parser.add_argument('-r', '--ratios', action='store_true', 
-                    help='process dumb_iterate_ratio')
-parser.add_argument('-rs', '--ratios_smaller', action='store_true', 
-                    help='process dumb_iterate_ratio_smaller')
+parser.add_argument("version", default="", help="Specify which version to count results [weights | ratios | ratios_w | ratios_smaller ].")
+# parser.add_argument('-r', '--ratios', action='store_true', 
+#                     help='process dumb_iterate_ratio')
+# parser.add_argument('-rs', '--ratios_smaller', action='store_true', 
+#                     help='process dumb_iterate_ratio_smaller')
 args = parser.parse_args()
 
-ratio_mode = args.ratios
-ratio_smaller_mode = args.ratios_smaller
+folder = args.version
 
 dumb_out_dir_str = "./bin/tables/dumb_iterate"
 dumb_in_dir_str = "./bin/results/dumb_iterate"
@@ -21,18 +21,22 @@ dumb_in_dir_str = "./bin/results/dumb_iterate"
 orig_out_dir_str = "./bin/tables"
 orig_in_dir_str = "./bin/results"
 
-failed_table_out_str = "./bin/results/failed_table.csv"
+failed_table_out_str = "./bin/results/failed_table_" + folder + ".csv"
 
-label = ""
-if ratio_mode:
-    dumb_out_dir_str += "_ratios"
-    dumb_in_dir_str += "_ratios"
-    label = "\\_ratios"
+label = "_" + folder
+label = label.replace("_", "\\_")
+dumb_out_dir_str += "_" + folder
+dumb_in_dir_str += "_" + folder
 
-if ratio_smaller_mode:
-    dumb_out_dir_str += "_ratios_smaller"
-    dumb_in_dir_str += "_ratios_smaller"
-    label = "\\_ratios_smaller"
+# if ratio_mode:
+#     dumb_out_dir_str += "_ratios"
+#     dumb_in_dir_str += "_ratios"
+#     label = "\\_ratios"
+
+# if ratio_smaller_mode:
+#     dumb_out_dir_str += "_ratios_smaller"
+#     dumb_in_dir_str += "_ratios_smaller"
+#     label = "\\_ratios_smaller"
 
 subfolder_names = [
     "depth_bst", 
