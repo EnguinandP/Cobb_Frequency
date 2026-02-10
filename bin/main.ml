@@ -308,7 +308,11 @@ let dumb_iterate_ratios (result_oc : out_channel) (gen : unit -> 'a) score_func
 
   (* let ratios_list = [ 1.; 0.9; 0.8; 0.7; 0.6; 0.5; 0.4; 0.2; 0.1; 0. ] in *)
   (* let ratios_list = [ 1.; 0.75; 0.5; 0.25; 0. ] in *)
-  let ratios_list = [ 0.; 0.12; 0.14; 0.17; 0.29; 0.3; 0.5; 0.53; 1.0; ] in (* these are strictly the ratios that appear 1 or more times*)
+  (* these are strictly the ratios that appear 1 or more times from weights *)
+  (* let ratios_list = [ 0.; 0.12; 0.14; 0.17; 0.29; 0.3; 0.5; 0.53; 1.0; ] in  *)
+  (* above plus a bonus *)
+  let ratios_list = [ 0.; 0.12; 0.14; 0.17; 0.29; 0.3; 0.5; 0.53; 0.86; 1.0; ] in 
+
   let weights_list =
     [| 1; 100; 200; 300; 400; 500; 600; 700; 800; 900; 1000 |]
   in

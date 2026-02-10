@@ -6,7 +6,7 @@ import argparse
 from pathlib import Path
 
 parser = argparse.ArgumentParser(description='Generate tables from dumb iterate ratios data')
-parser.add_argument("version", default="", help="Specify which version to count results [weights | ratios | ratios_w | ratios_smaller ].")
+parser.add_argument("version", default="", help="Specify which version to count results [weights | ratios | ratios_w | ratios_w2 | ratios_smaller ].")
 # parser.add_argument('-r', '--ratios', action='store_true', 
 #                     help='process dumb_iterate_ratio')
 # parser.add_argument('-rs', '--ratios_smaller', action='store_true', 
@@ -186,7 +186,7 @@ with open(failed_table_out_str, "w") as failed_fout:
                                                     total_sa_success += 1
 
                                                 if (not success) and orig_success:
-                                                    # print(" - " + data_type + " " + fv + " " + score_end) 
+                                                    print(" - " + data_type + " " + fv + " " + goal + " " + score_end) 
                                                     total_success += 1
 
                                                 nums = [int(x) for x in weights.strip("() ").split(",") if x.strip()]
@@ -205,7 +205,7 @@ with open(failed_table_out_str, "w") as failed_fout:
                                                 if (not success or not orig_success):
                                                     failed_fout.write(f"{data_type},{fv},\"{goal}\",{success},{orig_success},\"{weights}\",\"{orig_weights}\",{ratios_str},{orig_ratios_str},{score_end},{orig_score_end},{time},{orig_time}\n")
 
-                                                    print(f"{data_type}, {fv}, {score_end}\n")
+                                                    # print(f"{data_type}, {fv}, {score_end}\n")
 
                                                 fout.write(f"{data_type.replace("_", "\\_")} & {fv.replace("_", "\\_")} & {success} & {weights} & {ratios} & {n_weights[id]} & {goal} & {score_end} & {time} \\\\ \n")
                                                 csv_fout.write(f"{data_type},{fv},{success},\"{weights}\",\"{ratios}\",{n_weights[id]},\"{goal}\",{score_end},{time}\n")
