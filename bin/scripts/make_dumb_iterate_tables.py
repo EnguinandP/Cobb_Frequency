@@ -84,9 +84,8 @@ assert in_dir.is_dir()
 out_str = dumb_out_dir_str + ".tex"
 csv_out_str = dumb_out_dir_str + ".csv"
 
+total_sa_success = 0
 total_success = 0
-total_close = 0
-total = 0
 
 line_count = 0
 
@@ -175,16 +174,20 @@ with open(failed_table_out_str, "w") as failed_fout:
                                                         orig_weights = line["weights"]
 
                                                 data_type = d[0] + " " + sd
+                                                id = d + "/" + sd
+
                                                 success = (float(score_end) <= 0)
                                                 close = (float(score_end) <= 0.1)
-                                                if success:
-                                                    total_success += 1
-                                                if close:
-                                                    total_close += 1
-                                                total += 1
 
-                                                orig_success = (float(orig_score_end) <= 0.1)
+                                                orig_success = (float(orig_score_end) <= 0.0)
                                                 orig_close = (float(orig_score_end) <= 0.1)
+
+                                                if orig_success:
+                                                    total_sa_success += 1
+
+                                                if (not success) and orig_success:
+                                                    # print(" - " + data_type + " " + fv + " " + score_end) 
+                                                    total_success += 1
 
                                                 nums = [int(x) for x in weights.strip("() ").split(",") if x.strip()]
                                                 if len(nums) % 2 != 0:
@@ -199,12 +202,11 @@ with open(failed_table_out_str, "w") as failed_fout:
                                                     orig_ratios = [round(p1 / (p1 + p2), 3) for p1, p2 in zip(nums[0::2], nums[1::2])]
                                                     orig_ratios_str =  "\"(" + ", ".join(str(x) for x in ratios) + ")\""           
 
-                                                if (not close or not orig_close):
+                                                if (not success or not orig_success):
                                                     failed_fout.write(f"{data_type},{fv},\"{goal}\",{success},{orig_success},\"{weights}\",\"{orig_weights}\",{ratios_str},{orig_ratios_str},{score_end},{orig_score_end},{time},{orig_time}\n")
 
                                                     print(f"{data_type}, {fv}, {score_end}\n")
 
-                                                id = d + "/" + sd
                                                 fout.write(f"{data_type.replace("_", "\\_")} & {fv.replace("_", "\\_")} & {success} & {weights} & {ratios} & {n_weights[id]} & {goal} & {score_end} & {time} \\\\ \n")
                                                 csv_fout.write(f"{data_type},{fv},{success},\"{weights}\",\"{ratios}\",{n_weights[id]},\"{goal}\",{score_end},{time}\n")
                                                 line_count += 1
@@ -248,7 +250,7 @@ with open(failed_table_out_str, "w") as failed_fout:
                 "% \\vspace{-.5in}\n" +
                 "\\end{table*}\n")
 
-print(f"\nTotal success: {total_success} / {total}")
-print(f"Total close-to-success: {total_close} / {total}")
+print(f"\nTotal fails (failed where SA succeeded): {total_success} / {total_sa_success}")
+# print(f"Total close-to-success: {total_success} / {total}")
 
 
