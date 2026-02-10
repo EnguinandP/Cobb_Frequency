@@ -19,22 +19,22 @@ tests_all = [
     "depth_tree",
     "depth_bst",
 
-    "dragen",
-    "loaded_dice",
-    "pe_sized_list_5",
-    "pe_sized_list_10",
+    # "dragen",
+    # "loaded_dice",
+    # "pe_sized_list_5",
+    # "pe_sized_list_10",
 
-    "p2_sized_list",
-    "p2_even_list",
-    "p2_depth_bst",
-    "p2_depth_tree",
-    "p2_rb_tree",
+    # "p2_sized_list",
+    # "p2_even_list",
+    # "p2_depth_bst",
+    # "p2_depth_tree",
+    # "p2_rb_tree",
 
-    "ur_depth_tree",
-    "ur_depth_bst",
-    "ur_rb_tree",
-    "ur_sized_list",
-    "ur_even_list"
+    # "ur_depth_tree",
+    # "ur_depth_bst",
+    # "ur_rb_tree",
+    # "ur_sized_list",
+    # "ur_even_list"
 ]
 
 tests_diw = [
