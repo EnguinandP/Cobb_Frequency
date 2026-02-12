@@ -1,6 +1,6 @@
 [submodule "Cobb"]
 	path = Cobb
-	url = https://github.com/Pat-Lafon/Cobb.git
+	url = https://github.com/EnguinandP/Cobb.git
 [submodule "Cobb_PBT"]
 	path = Cobb_PBT
-	url = https://github.com/Pat-Lafon/Cobb_PBT.git
+	url = https://github.com/EnguinandP/Cobb_PBT.git
