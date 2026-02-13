@@ -1,3 +1,0 @@
-version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
-initial,dumb_iterate_ratios_w2/unrolled/depth_bst,uni_height,"(0.000, 1.000, 2.000, 3.000, 4.000, 5.000)","(490.000, 130.000, 100.000, 64.000, 48.000, 168.000)","(500, 500, 500, 500, 500, 500)", 809.744,795.677,0.000,20000,20
-final,dumb_iterate_ratios_w2/unrolled/depth_bst,uni_height,"(0.000, 1.000, 2.000, 3.000, 4.000, 5.000)","(296.000, 204.000, 64.000, 161.000, 50.000, 225.000)","(30, 70, 100, 0, 30, 70)", 274.244,260.177,0.714,20000,20

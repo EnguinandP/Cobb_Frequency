@@ -1,3 +1,3 @@
 version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
-initial,dumb_iterate/frequency/depth_bst,h_bal,0.300,0.810,"(500, 500)",,0.510,0.000,20000,20
-final,dumb_iterate/frequency/depth_bst,h_bal,0.300,0.287,"(1, 100)",,0.013,0.044,20000,20
+initial,dumb_enumerate/frequency/depth_bst,h_bal,0.300,0.810,"(500, 500)",,0.510,0.000,20000,20
+final,dumb_enumerate/frequency/depth_bst,h_bal,0.300,0.287,"(1, 100)",,0.013,0.044,20000,20

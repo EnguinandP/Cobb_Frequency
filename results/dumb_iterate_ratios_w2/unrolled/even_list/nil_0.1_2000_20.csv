@@ -1,3 +1,0 @@
-version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
-initial,dumb_iterate_ratios_w2/unrolled/even_list,nil,0.100,0.000,"(500, 500, 500, 500)",,0.100,0.000,0,0
-final,dumb_iterate_ratios_w2/unrolled/even_list,nil,0.100,0.000,"(100, 0, 100, 0)",,0.100,0.009,0,0

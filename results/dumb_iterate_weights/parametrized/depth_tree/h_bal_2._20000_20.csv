@@ -1,3 +1,3 @@
 version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
-initial,dumb_iterate/parametrized/depth_tree,h_bal,2.000,0.807,"(500, 500, 500, 500)",,1.193,0.000,20000,20
-final,dumb_iterate/parametrized/depth_tree,h_bal,2.000,1.524,"(1, 400, 700, 1)",,0.476,10.553,20000,20
+initial,dumb_enumerate/parametrized/depth_tree,h_bal,2.000,0.807,"(500, 500, 500, 500)",,1.193,0.000,20000,20
+final,dumb_enumerate/parametrized/depth_tree,h_bal,2.000,1.524,"(1, 400, 700, 1)",,0.476,10.553,20000,20

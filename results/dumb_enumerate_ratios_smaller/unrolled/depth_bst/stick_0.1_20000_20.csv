@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,dumb_enumerate_ratios_smaller/unrolled/depth_bst,stick,0.100,0.337,"(500, 500, 500, 500, 500, 500)",,0.237,0.000,20000,20
+final,dumb_enumerate_ratios_smaller/unrolled/depth_bst,stick,0.100,0.106,"(50, 50, 25, 75, 0, 100)",,0.006,0.055,20000,20

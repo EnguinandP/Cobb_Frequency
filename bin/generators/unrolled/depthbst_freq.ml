@@ -57,9 +57,6 @@ let rec size_bst_gen = fun d ->
 
                         in
                         let (sd) = subs d in
-                        (* let (x_9) = size_bst_gen x_8 in
-                        let (x_10) = x_9 x in *)
-                        (* let (rt) = x_10 hi in  *)
 
                         let rt =
                         let (x_0) = sizecheck sd in

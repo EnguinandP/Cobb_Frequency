@@ -6,7 +6,7 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Run tests')
 parser.add_argument("test", help="Specify which set of test to run [a|r].")
-parser.add_argument("strategy", help="Specify which strategy [sa|dir|diw].")
+parser.add_argument("strategy", help="Specify which strategy [sa|er|ew].")
 args = parser.parse_args()
 
 test_choice = args.test
@@ -64,15 +64,15 @@ tests_diw = [
 
 tests_dir = [
     "sized_list",
-    "even_list",
-    "rb_tree",
-    "depth_tree",
-    "depth_bst",
+    # "even_list",
+    # "rb_tree",
+    # "depth_tree",
+    # "depth_bst",
 
-    "ur_depth_tree",
-    "ur_depth_bst",
-    "ur_sized_list",
-    "ur_even_list"
+    # "ur_depth_tree",
+    # "ur_depth_bst",
+    # "ur_sized_list",
+    # "ur_even_list"
 ]
 
 if test_choice == "a":

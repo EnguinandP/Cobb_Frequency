@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,dumb_enumerate_ratios_smaller/parametrized/depth_tree,uni_height,"(0.000, 1.000, 2.000, 3.000, 4.000, 5.000)","(506.000, 121.000, 55.000, 60.000, 30.000, 228.000)","(500, 500, 500, 500)", 981.116,967.049,0.001,20000,20
+final,dumb_enumerate_ratios_smaller/parametrized/depth_tree,uni_height,"(0.000, 1.000, 2.000, 3.000, 4.000, 5.000)","(372.000, 89.000, 62.000, 64.000, 80.000, 333.000)","(25, 75, 100, 0)", 629.204,615.137,0.022,20000,20

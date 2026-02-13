@@ -139,10 +139,10 @@ let evaluate gen
   let gen_name =
     (match !search_strat_str with
     | "sa" -> ""
-    | "di" -> "dumb_enumerate_weights/"
-    | "dir" -> "dumb_enumerate_ratios/"
-    | "dirs" -> "dumb_enumerate_ratios_smaller/"
-    | "dirw" -> "dumb_enumerate_ratios_w2/"
+    | "e" -> "dumb_enumerate_weights/"
+    | "er" -> "dumb_enumerate_ratios/"
+    | "ers" -> "dumb_enumerate_ratios_smaller/"
+    | "erw" -> "dumb_enumerate_ratios_w2/"
     | _ -> failwith "invalid search stragtegy/")
     ^ gen_name
   in
@@ -189,8 +189,8 @@ let evaluate gen
     | "sa" ->
         random_restart oc g f goal_list !iterations use_neg_w
           simulated_annealing
-    | "di" -> dumb_enumerate oc g f goal_list true
-    | "dir" | "dirs" | "dirw" -> dumb_enumerate_ratios oc g f goal_list true
+    | "e" -> dumb_enumerate oc g f goal_list true
+    | "er" | "ers" | "erw" -> dumb_enumerate_ratios oc g f goal_list true
     | _ -> failwith "invalid search stragtegy"
   in
 

@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,dumb_enumerate_ratios_smaller/frequency/rb_tree,uni_height,"(2.000, 3.000, 4.000)","(26.000, 248.000, 726.000)","(500, 500, 500, 500)", 767.768,758.280,0.001,20000,20
+final,dumb_enumerate_ratios_smaller/frequency/rb_tree,uni_height,"(2.000, 3.000, 4.000)","(193.000, 495.000, 312.000)","(75, 25, 25, 75)", 138.854,129.366,0.023,20000,20

@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,dumb_enumerate_ratios_smaller/parametrized/sized_list,nil,0.100,0.503,"(500, 500, 500, 500)",,0.403,0.001,20000,20
+final,dumb_enumerate_ratios_smaller/parametrized/sized_list,nil,0.100,0.082,"(0, 100, 100, 0)",,0.018,0.008,20000,20

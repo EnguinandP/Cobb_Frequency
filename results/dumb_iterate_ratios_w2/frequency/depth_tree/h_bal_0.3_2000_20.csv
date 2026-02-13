@@ -1,3 +1,0 @@
-version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
-initial,dumb_iterate_ratios_w2/frequency/depth_tree,h_bal,0.300,0.895,"(500, 500)",,0.595,0.000,0,0
-final,dumb_iterate_ratios_w2/frequency/depth_tree,h_bal,0.300,0.019,"(90, 9)",,0.281,0.007,0,0

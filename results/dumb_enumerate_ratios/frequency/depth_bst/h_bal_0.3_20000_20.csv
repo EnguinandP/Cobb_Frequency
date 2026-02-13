@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,dumb_enumerate_ratios/frequency/depth_bst,h_bal,0.300,0.820,"(500, 500)",,0.520,0.000,20000,20
+final,dumb_enumerate_ratios/frequency/depth_bst,h_bal,0.300,0.278,"(70, 30)",,0.022,0.008,20000,20

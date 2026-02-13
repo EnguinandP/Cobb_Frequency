@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 out_dir_str = "./results/weights.csv"
 
-in_dir_str = "./results/dumb_iterate_weights"
+in_dir_str = "./results/dumb_enumerate_weights"
 
 subfolder_names = [
     "depth_bst", 

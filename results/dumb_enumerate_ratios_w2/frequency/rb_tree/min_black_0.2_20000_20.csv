@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,dumb_enumerate_ratios_w2/frequency/rb_tree,min_black,0.200,0.525,"(500, 500, 500, 500)",,0.325,0.001,20000,20
+final,dumb_enumerate_ratios_w2/frequency/rb_tree,min_black,0.200,0.333,"(0, 100, 100, 0)",,0.133,0.081,20000,20

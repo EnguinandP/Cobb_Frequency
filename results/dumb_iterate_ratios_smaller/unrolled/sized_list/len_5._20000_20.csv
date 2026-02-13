@@ -1,3 +1,0 @@
-version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
-initial,dumb_iterate_ratios_smaller/unrolled/sized_list,len,5.000,1.036,"(500, 500, 500, 500)",,3.964,0.000,20000,20
-final,dumb_iterate_ratios_smaller/unrolled/sized_list,len,5.000,5.221,"(0, 100, 25, 75)",,0.221,0.004,20000,20

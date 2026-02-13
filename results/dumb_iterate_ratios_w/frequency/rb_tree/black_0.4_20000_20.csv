@@ -1,3 +1,0 @@
-version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
-initial,dumb_iterate_ratios_w/frequency/rb_tree,black,0.400,0.526,"(500, 500, 500, 500)",,0.126,0.001,20000,20
-final,dumb_iterate_ratios_w/frequency/rb_tree,black,0.400,0.399,"(12, 88, 50, 50)",,0.001,0.065,20000,20

@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,dumb_enumerate_ratios_w/unrolled/depth_tree,h_bal,0.300,0.873,"(500, 500, 500, 500, 500, 500)",,0.573,0.000,20000,20
+final,dumb_enumerate_ratios_w/unrolled/depth_tree,h_bal,0.300,0.326,"(28, 71, 0, 100, 0, 100)",,0.026,0.751,20000,20
