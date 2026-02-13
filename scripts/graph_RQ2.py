@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import csv
 
-freq_path = f"bin/tables/rq2/frequency.csv"
-para_path = f"bin/tables/rq2/parametrized.csv"
-unroll_path = f"bin/tables/rq2/unrolled.csv"
+freq_path = f"tables/rq2/frequency.csv"
+para_path = f"tables/rq2/parametrized.csv"
+unroll_path = f"tables/rq2/unrolled.csv"
 
 start = []
 freq = []
@@ -165,7 +165,7 @@ plt.ylim(bottom=1e-1)
 
 plt.tight_layout()
 plt.legend(loc='upper center', bbox_to_anchor=(0.37, 0.99))
-fig_path = "bin/graphs/rq2.pdf"
+fig_path = "graphs/rq2.pdf"
 plt.savefig(fig_path, format="pdf") 
 
 plt.show() 

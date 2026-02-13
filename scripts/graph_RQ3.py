@@ -48,7 +48,7 @@ files = [
 ]
 
 for f in files:
-    path = f"bin/tables/{f}.csv"
+    path = f"tables/{f}.csv"
 
     with open(path, "r") as csv_file:
         csv_reader = csv.DictReader(csv_file)
@@ -104,7 +104,7 @@ for f in files:
     plt.title('iterations and restarts on score')
     fig.tight_layout()
 
-    fig_path = "bin/graphs/" + f + ".pdf"
+    fig_path = "graphs/" + f + ".pdf"
     plt.savefig(fig_path, format="pdf") 
     plt.show()
     data = []

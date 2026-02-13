@@ -72,7 +72,7 @@ for test in tests:
 
 # compile into csv
 
-out_dir_str = "./bin/tables/"
+out_dir_str = "./tables/"
 
 for test in tests:
     out_str = out_dir_str + test + ".csv"

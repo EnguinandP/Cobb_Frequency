@@ -4,9 +4,9 @@ import matplotlib.colors as mcolors
 import csv
 import argparse
 
-freq_path = f"bin/tables/rq2/frequency.csv"
-para_path = f"bin/tables/rq2/parametrized.csv"
-unroll_path = f"bin/tables/rq2/unrolled.csv"
+freq_path = f"tables/rq2/frequency.csv"
+para_path = f"tables/rq2/parametrized.csv"
+unroll_path = f"tables/rq2/unrolled.csv"
 
 parser = argparse.ArgumentParser(description="args for scatterplot.")
 parser.add_argument("parameters", help="all or freq [a|f].")
@@ -230,7 +230,7 @@ plt.ylim(bottom=1e-1)
 # plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 # plt.legend(loc='upper center', bbox_to_anchor=(0.99, 0.99))
 plt.tight_layout()
-fig_path = "bin/graphs/rq2_freq_talk.pdf"
+fig_path = "graphs/rq2_freq_talk.pdf"
 plt.savefig(fig_path, format="pdf") 
 
 plt.show() 

@@ -15,10 +15,10 @@ args = parser.parse_args()
 
 folder = args.version
 
-dumb_out_dir_str = "./bin/tables/dumb_iterate"
+dumb_out_dir_str = "./tables/dumb_iterate"
 dumb_in_dir_str = "./results/dumb_iterate"
 
-orig_out_dir_str = "./bin/tables"
+orig_out_dir_str = "./tables"
 orig_in_dir_str = "./bin/results"
 
 failed_table_out_str = "./results/failed_table_" + folder + ".csv"

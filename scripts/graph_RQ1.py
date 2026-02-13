@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import csv
 
-path = f"bin/tables/rq1/frequency.csv"
+path = f"tables/rq1/frequency.csv"
 
 start = []
 end = []
@@ -98,7 +98,7 @@ plt.ylim(bottom=1e-1)
 
 plt.tight_layout()
 plt.legend(bbox_to_anchor=(0.45, 0.99))
-fig_path = "bin/graphs/rq1_alt.pdf"
+fig_path = "graphs/rq1_alt.pdf"
 plt.savefig(fig_path, format="pdf") 
 
 plt.show() 

@@ -4,7 +4,7 @@ import re
 import csv
 from pathlib import Path
 
-out_dir_str = "./bin/tables/"
+out_dir_str = "./tables/"
 
 in_dir_str = "./bin/results"
 
@@ -144,9 +144,9 @@ for d in os.listdir(in_dir):
 
 folder_copy = ["unrolled", "parametrized", "parametrized_enumeration", "frequency"]
 
-cmd = f"cp ./bin/tables/frequency.csv ./bin/tables/rq2/frequency_full.csv".split(" ")
+cmd = f"cp ./tables/frequency.csv ./tables/rq2/frequency_full.csv".split(" ")
 folder_copy
 for f in folder_copy:
-    cmd = f"cp ./bin/tables/{f}.csv ./bin/tables/rq2/{f}.csv".split(" ")
+    cmd = f"cp ./tables/{f}.csv ./tables/rq2/{f}.csv".split(" ")
     subprocess.run(cmd)
 

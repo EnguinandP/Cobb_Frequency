@@ -180,9 +180,9 @@ print(len(weights_count.keys()))
 
 # folder_copy = ["unrolled", "parametrized", "parametrized_enumeration", "frequency"]
 
-# cmd = f"cp ./bin/tables/frequency.csv ./bin/tables/rq2/frequency_full.csv".split(" ")
+# cmd = f"cp ./tables/frequency.csv ./tables/rq2/frequency_full.csv".split(" ")
 # folder_copy
 # for f in folder_copy:
-#     cmd = f"cp ./bin/tables/{f}.csv ./bin/tables/rq2/{f}.csv".split(" ")
+#     cmd = f"cp ./tables/{f}.csv ./tables/rq2/{f}.csv".split(" ")
 #     subprocess.run(cmd)
 
