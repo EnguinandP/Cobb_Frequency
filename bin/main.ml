@@ -31,15 +31,11 @@ let set_data_type d = data_type := d
 
 let speclist =
   [
-    ("-i", Arg.Int (fun s -> iterations := s), "Set iterations");
-    ("-r", Arg.Int (fun s -> n_reset := s), "Set random restarts");
-    ( "-f",
-      Arg.String (fun s -> feature_vector := s),
-      "run with specified feature vector" );
+    ("-i", Arg.Set_int iterations, "Set iterations");
+    ("-r", Arg.Set_int n_reset, "Set random restarts");
+    ("-f", Arg.Set_string feature_vector, "run with specified feature vector");
     ("-one", Arg.Set print_one, "print one in one file");
-    ( "-s",
-      Arg.String (fun s -> search_strat_str := s),
-      "Set search strategy: di, dir, sa" );
+    ("-s", Arg.Set_string search_strat_str, "Set search strategy: di, dir, sa");
   ]
 
 (* observation: simulated annealing will get stuck in a local min when
@@ -94,22 +90,7 @@ let speclist =
            (List.mapi (fun i x -> if i = 3 then x +. 1. else x) rtc) *)
 
 (** collects n values with gen *)
-let collect n gen =
-  List.init n (fun _ -> gen ())
-
-let rec collect_bailout n results gen =
-  (* if !time_out_ref then raise Timed_out; *)
-  if n = 0 then results
-  else
-    let gen_value =
-      try gen ()
-      with Combinators.BailOut ->
-        print_endline "bail";
-        []
-    in
-
-    let results = results + 1 in
-    collect_bailout (n - 1) results gen
+let collect n gen = List.init n (fun _ -> gen ())
 
 (** calculates the (dist, score, and time) given the goal dist, the generator,
     and the feature vector
@@ -307,7 +288,7 @@ let dumb_iterate_ratios (result_oc : out_channel) (gen : unit -> 'a) score_func
   (* these are strictly the ratios that appear 1 or more times from weights *)
   (* let ratios_list = [ 0.; 0.12; 0.14; 0.17; 0.29; 0.3; 0.5; 0.53; 1.0; ] in  *)
   (* above plus a bonus *)
-  let ratios_list = [ 0.; 0.15; 0.3; 0.5; 0.9; 1.0; ] in 
+  let ratios_list = [ 0.; 0.15; 0.3; 0.5; 0.9; 1.0 ] in
 
   let weights_list =
     [| 1; 100; 200; 300; 400; 500; 600; 700; 800; 900; 1000 |]
@@ -535,16 +516,17 @@ let random_restart (result_oc : out_channel) (gen : unit -> 'b)
   (* let result_oc = open_out output in *)
   print_header (Some result_oc);
 
-  let rec restart n niter best_res (* : (int array * float * float * 'a list) list *)
-      =
+  let rec restart n niter
+      best_res (* : (int array * float * float * 'a list) list *) =
     let length = List.length best_res in
-    let score = match best_res with
-    | (_, s, _, _, _) :: _ :: _ :: _ :: _ :: [] when s <= 0. -> s
-    | _ -> Float.max_float in
+    let score =
+      match best_res with
+      | [ (_, s, _, _, _); _; _; _; _ ] when s <= 0. -> s
+      | _ -> Float.max_float
+    in
 
     (* Printf.printf "s = %f\n" score; *)
-
-    if n >= !n_reset || (score <= 0.) then 
+    if n >= !n_reset || score <= 0. then
       (* let _ = Printf.printf "actual restarts = %d\n" n in *)
       best_res
     else
@@ -563,7 +545,9 @@ let random_restart (result_oc : out_channel) (gen : unit -> 'b)
       (* returns top 5 *)
       let best_res = a :: best_res in
       let best_res =
-        List.sort (fun (_, s1, _, _, _) (_, s2, _, _, _) -> compare s2 s1) best_res
+        List.sort
+          (fun (_, s1, _, _, _) (_, s2, _, _, _) -> compare s2 s1)
+          best_res
       in
 
       let best_res =
@@ -806,7 +790,6 @@ let evaluate gen
   let fv_name, f = fv in
 
   (* let gen_name = "dumb_iterate_ratios/" ^ gen_name in *)
-
   total_iterations := 0;
   total_restarts := 0;
 
@@ -817,7 +800,8 @@ let evaluate gen
     | "dir" -> "dumb_iterate_ratios/"
     | "dirs" -> "dumb_iterate_ratios_smaller/"
     | "dirw" -> "dumb_iterate_ratios_w2/"
-    | _ -> failwith "invalid search stragtegy/") ^ gen_name
+    | _ -> failwith "invalid search stragtegy/")
+    ^ gen_name
   in
 
   let file_path =
