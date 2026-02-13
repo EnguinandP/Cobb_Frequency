@@ -11,18 +11,26 @@
   Cobb.postprocess
   Cobb.tracking
   feature_vectors
+  frequency_combinators
   Dragen
-  qcheck_run))
+  search
+  dumb_enumerate
+  ))
 
 (library
- (name qcheck_run)
- (modules qcheck_run)
- (libraries
-  Cobb_PBT.combinators
-  Cobb_PBT.precondition
-  Cobb_PBT.arbitrary_builder
-  generators
-  qcheck))
+ (name dumb_enumerate)
+ (modules dumb_enumerate)
+ (libraries 
+  search))
+
+(library
+ (name search)
+ (modules search)
+ (libraries 
+  frequency_combinators
+  qcheck
+  feature_vectors
+  core))
 
 (library
  (name frequency_combinators)
