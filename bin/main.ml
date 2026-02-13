@@ -816,7 +816,7 @@ let evaluate gen
     | "di" -> "dumb_iterate_weights/"
     | "dir" -> "dumb_iterate_ratios/"
     | "dirs" -> "dumb_iterate_ratios_smaller/"
-    | "dirw" -> "dumb_iterate_ratios_w/"
+    | "dirw" -> "dumb_iterate_ratios_w2/"
     | _ -> failwith "invalid search stragtegy/") ^ gen_name
   in
 
