@@ -6,9 +6,9 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-out_dir_str = "./bin/results/weights.csv"
+out_dir_str = "./results/weights.csv"
 
-in_dir_str = "./bin/results/dumb_iterate"
+in_dir_str = "./results/dumb_iterate_weights"
 
 subfolder_names = [
     "depth_bst", 
@@ -77,7 +77,7 @@ with open(out_dir_str, "w") as csv_fout:
                         # or ("80000_80" in f):
 
                             in_file = f"{subdir}/{f}"
-                            # if subdir =='./bin/results/parametrized/depth_bst':
+                            # if subdir =='./results/parametrized/depth_bst':
                             #     print(f)
 
                             try:
@@ -173,7 +173,7 @@ plt.bar(range(len(weights)), list(counts))
 plt.xticks(range(len(weights_count)), list(weights_count.keys()), rotation = 90)
 # plt.show()
 
-plt.savefig("bin/results/weights.pdf", format="pdf") 
+plt.savefig("results/weights.pdf", format="pdf") 
 
 print(len(weights_count.keys()))
 

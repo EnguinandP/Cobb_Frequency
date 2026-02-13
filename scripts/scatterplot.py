@@ -27,7 +27,7 @@ def randrange(n, vmin, vmax):
 
 if parameters == '1':
 
-    with open("bin/results.result", "r") as csv_file:
+    with open("results.result", "r") as csv_file:
         csv_reader = csv.DictReader(csv_file)
 
         for line in csv_reader:
@@ -64,7 +64,7 @@ if parameters == '1':
     plt.show()
 
 else:
-    with open("bin/results.result", "r") as csv_file:
+    with open("results.result", "r") as csv_file:
         csv_reader = csv.DictReader(csv_file)
 
         for line in csv_reader:

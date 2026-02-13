@@ -13,10 +13,10 @@ import numpy as np
 # ]
 
 tests = {
-    # "rq3_p2_sized_list" : ["./bin/results/parametrized/sized_list", "uni_len_10._"],
-    "pe_sized_list_10" : ["bin/results/parametrized_enumeration/sized_list_10", "uni_len_10._"],
-    # "rq3_ur_depth_tree" : ["./bin/results/unrolled/depth_tree", "uni_height_5._"]
-    # "rq3_ur_depth_tree" : "./bin/results/unrolled/depth_tree",
+    # "rq3_p2_sized_list" : ["./results/parametrized/sized_list", "uni_len_10._"],
+    "pe_sized_list_10" : ["/results/parametrized_enumeration/sized_list_10", "uni_len_10._"],
+    # "rq3_ur_depth_tree" : ["./results/unrolled/depth_tree", "uni_height_5._"]
+    # "rq3_ur_depth_tree" : "./results/unrolled/depth_tree",
 }
 
 iterations = [

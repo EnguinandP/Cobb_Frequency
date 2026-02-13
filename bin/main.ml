@@ -148,12 +148,12 @@ let evaluate gen
   in
 
   let file_path =
-    Printf.sprintf "bin/results/%s/%s_%s%d_%d.csv" gen_name fv_name
+    Printf.sprintf "results/%s/%s_%s%d_%d.csv" gen_name fv_name
       (List.fold_left (fun acc x -> acc ^ string_of_float x ^ "_") "" goal_list)
       !iterations !n_reset
   in
 
-  (* Printf.printf "bin/results/%s/%s_%s%d_%d.csv" gen_name fv_name
+  (* Printf.printf "results/%s/%s_%s%d_%d.csv" gen_name fv_name
      (List.fold_left (fun acc x -> acc ^ string_of_float x ^ "_") "" goal_list)
      !iterations !n_reset; *)
   let result_oc =

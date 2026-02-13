@@ -18,7 +18,7 @@ let step_range = ref (1, 40) (* step max starts at 40 and decreases to 20 *)
 let n_reset = ref 20
 let data_type = ref ""
 let feature_vector = ref ""
-let path = ref "./bin/results/parametrized_enumeration/sized_list_10/output.csv"
+let path = ref "./results/parametrized_enumeration/sized_list_10/output.csv"
 let top_oc = open_out !path
 let search_strat_str = ref "sa"
 let print_one = ref false
@@ -42,8 +42,7 @@ let speclist =
   ]
 
 (** collects n values with gen *)
-let collect n gen =
-  List.init n (fun _ -> gen ())
+let collect n gen = List.init n (fun _ -> gen ())
 
 let rec collect_bailout n results gen =
   (* if !time_out_ref then raise Timed_out; *)
@@ -303,16 +302,17 @@ let random_restart (result_oc : out_channel) (gen : unit -> 'b)
   (* let result_oc = open_out output in *)
   print_header (Some result_oc);
 
-  let rec restart n niter best_res (* : (int array * float * float * 'a list) list *)
-      =
+  let rec restart n niter
+      best_res (* : (int array * float * float * 'a list) list *) =
     let length = List.length best_res in
-    let score = match best_res with
-    | (_, s, _, _, _) :: _ :: _ :: _ :: _ :: [] when s <= 0. -> s
-    | _ -> Float.max_float in
+    let score =
+      match best_res with
+      | [ (_, s, _, _, _); _; _; _; _ ] when s <= 0. -> s
+      | _ -> Float.max_float
+    in
 
     (* Printf.printf "s = %f\n" score; *)
-
-    if n >= !n_reset || (score <= 0.) then 
+    if n >= !n_reset || score <= 0. then
       (* let _ = Printf.printf "actual restarts = %d\n" n in *)
       best_res
     else
@@ -331,7 +331,9 @@ let random_restart (result_oc : out_channel) (gen : unit -> 'b)
       (* returns top 5 *)
       let best_res = a :: best_res in
       let best_res =
-        List.sort (fun (_, s1, _, _, _) (_, s2, _, _, _) -> compare s2 s1) best_res
+        List.sort
+          (fun (_, s1, _, _, _) (_, s2, _, _, _) -> compare s2 s1)
+          best_res
       in
 
       let best_res =
@@ -397,4 +399,3 @@ let random_restart (result_oc : out_channel) (gen : unit -> 'b)
   (best_weight, best_score, (best_dist, chi_buckets), end_time -. start_time)
 
 let () = QCheck_runner.set_seed 42
-

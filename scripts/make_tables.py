@@ -80,7 +80,7 @@ for d in os.listdir(in_dir):
                             # or ("80000_80" in f):
 
                                 in_file = f"{subdir}/{f}"
-                                # if subdir =='./bin/results/parametrized/depth_bst':
+                                # if subdir =='./results/parametrized/depth_bst':
                                 #     print(f)
 
                                 try:
