@@ -92,14 +92,8 @@ let speclist =
            (List.mapi (fun i x -> if i = 3 then x +. 1. else x) rtc) *)
 
 (** collects n values with gen *)
-let rec collect n results gen =
-  (* if !time_out_ref then raise Timed_out; *)
-  if n = 0 then results
-  else
-    let gen_value = gen () in
-
-    let results = gen_value :: results in
-    collect (n - 1) results gen
+let collect n gen =
+  List.init n (fun _ -> gen ())
 
 let rec collect_bailout n results gen =
   (* if !time_out_ref then raise Timed_out; *)
@@ -256,7 +250,7 @@ let dumb_iterate (result_oc : out_channel) (gen : unit -> 'a) score_func goal
     weights := w;
 
     let collect_start_time = Unix.gettimeofday () in
-    let results = collect sample_size [] gen in
+    let results = collect sample_size gen in
     let collect_end_time = Unix.gettimeofday () in
 
     let (dist, chi_buckets), cand_score = score_func goal results in
@@ -311,7 +305,7 @@ let dumb_iterate_ratios (result_oc : out_channel) (gen : unit -> 'a) score_func
   (* these are strictly the ratios that appear 1 or more times from weights *)
   (* let ratios_list = [ 0.; 0.12; 0.14; 0.17; 0.29; 0.3; 0.5; 0.53; 1.0; ] in  *)
   (* above plus a bonus *)
-  let ratios_list = [ 0.; 0.12; 0.14; 0.17; 0.29; 0.3; 0.5; 0.53; 0.86; 1.0; ] in 
+  let ratios_list = [ 0.; 0.12; 0.14; 0.17; 0.29; 0.3; 0.5; 0.53; 0.86; 1.0; ] in
 
   let weights_list =
     [| 1; 100; 200; 300; 400; 500; 600; 700; 800; 900; 1000 |]
@@ -323,7 +317,7 @@ let dumb_iterate_ratios (result_oc : out_channel) (gen : unit -> 'a) score_func
     weights := w;
 
     let collect_start_time = Unix.gettimeofday () in
-    let results = collect sample_size [] gen in
+    let results = collect sample_size gen in
     let collect_end_time = Unix.gettimeofday () in
 
     let (dist, chi_buckets), cand_score = score_func goal results in
@@ -401,7 +395,7 @@ let simulated_annealing (result_oc : out_channel) (gen : unit -> 'a) score_func
 
       try
         let start_time = Unix.gettimeofday () in
-        let results = collect sample_size [] gen in
+        let results = collect sample_size gen in
         let end_time : float = Unix.gettimeofday () in
 
         (* calculates score *)
@@ -451,7 +445,7 @@ let basin_hoppping (result_oc : out_channel) gen calc_score (niter : int) goal
   let rec minimize n best_weight best_score best_dist spare =
     (* next step *)
     let _ = step best_weight in
-    let results = collect sample_size [] gen in
+    let results = collect sample_size gen in
     let dist, next_score = calc_score results goal in
 
     (* let results = gen () in
@@ -574,7 +568,7 @@ let random_restart (result_oc : out_channel) (gen : unit -> 'b)
         (* let old_sample = !sample in *)
         (* sample := 100000; *)
         try
-          let results = collect 100000 [] gen in
+          let results = collect 100000 gen in
           let precise_dist, precise_score = score_func goal results in
 
           (* sample := old_sample; *)
@@ -828,7 +822,7 @@ let evaluate gen
 
   (* run initial *)
   let start_time = Unix.gettimeofday () in
-  let results = collect sample_size [] g in
+  let results = collect sample_size g in
   let end_time = Unix.gettimeofday () in
 
   let init_dist, init_score = f goal_list results in
