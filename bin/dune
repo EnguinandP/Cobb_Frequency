@@ -24,6 +24,12 @@
   search))
 
 (library
+ (name greedy_enumerate)
+ (modules greedy_enumerate)
+ (libraries 
+  search))
+
+(library
  (name search)
  (modules search)
  (libraries 
@@ -52,6 +58,18 @@
   underapproximation_type.syntax
   underapproximation_type.frontend_opt
   str))
+  
+(executable
+ (public_name unroll)
+ (name unroll)
+ (modules unroll)
+ (libraries
+  language_utils.metalang
+  underapproximation_type.commands
+  underapproximation_type.syntax
+  underapproximation_type.frontend_opt
+  str))
+
 
 (env
  (dev

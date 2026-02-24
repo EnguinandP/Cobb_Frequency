@@ -2,7 +2,7 @@ import subprocess
 import os
 import re
 from pathlib import Path
-# cmd : dune exec frequify -- -f [freq] -o [out] [dir]
+# cmd : dune exec transformation -- -f [freq] -o [out] [dir]
 
 # in_dir_str = "./Cobb/underapproximation_type/data/validation/"
 out_dir_str = "./bin/generators"
@@ -52,11 +52,11 @@ for f in os.listdir(in_dir):
             print(f"Error: The file '{file}' was not found.")
         
         # if d == "rbtree":
-        #     cmd = f"dune exec frequify -- -f unif_gen -o {out_file} {in_file}".split(" ")
+        #     cmd = f"dune exec transformation -- -f unif_gen -o {out_file} {in_file}".split(" ")
         # else:
-        #     cmd = f"dune exec frequify -- -f freq_gen -o {out_file} {in_file}".split(" ")
+        #     cmd = f"dune exec transformation -- -f freq_gen -o {out_file} {in_file}".split(" ")
 
-        cmd = f"dune exec frequify -- -f frequency_gen_list -o {out_file} {in_file}".split(" ")
+        cmd = f"dune exec transformation -- -f frequency_gen_list -o {out_file} {in_file}".split(" ")
         subprocess.run(cmd)
         # print(in_file, out_file)
 

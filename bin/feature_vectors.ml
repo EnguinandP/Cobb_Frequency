@@ -125,6 +125,24 @@ let evenlist_ur () =
   let size = 10 in
   Unrolled.Evenlist_freq.even_list_gen size
 
+let depthtree_5_ur () =
+  let depth = 5 in
+  Unrolled.Depthtree_5.depth_tree_gen depth
+
+let depthbst_5_ur () =
+  let depth = 5 in
+  let low = 0 in
+  let high = 100 in
+  Unrolled.Depthbst_5.size_bst_gen depth low high
+
+let sizedlist_5_ur () =
+  let size = 10 in
+  Unrolled.Sizedlist_5.sized_list_gen size
+
+let sizedlist_10_ur () =
+  let size = 10 in
+  Unrolled.Sizedlist_10.sized_list_gen size
+
 let depthtree_ur_lin () =
   let depth = 5 in
   Unrolled_linear.Depthtree_freq.depth_tree_gen depth

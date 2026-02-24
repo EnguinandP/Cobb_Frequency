@@ -23,24 +23,6 @@ let top_oc = open_out !path
 let search_strat_str = ref "sa"
 let print_one = ref false
 
-let usage_msg =
-  "Usage: dune exec Cobb_Frequency <data_type> [-i] [-r] [-one] [-s]"
-
-let set_data_type d = data_type := d
-
-let speclist =
-  [
-    ("-i", Arg.Int (fun s -> iterations := s), "Set iterations");
-    ("-r", Arg.Int (fun s -> n_reset := s), "Set random restarts");
-    ( "-f",
-      Arg.String (fun s -> feature_vector := s),
-      "run with specified feature vector" );
-    ("-one", Arg.Set print_one, "print one in one file");
-    ( "-s",
-      Arg.String (fun s -> search_strat_str := s),
-      "Set search strategy: di, dir, sa" );
-  ]
-
 (** collects n values with gen *)
 let collect n gen = List.init n (fun _ -> gen ())
 

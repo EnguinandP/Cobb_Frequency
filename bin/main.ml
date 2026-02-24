@@ -3,6 +3,24 @@ open Dumb_enumerate
 open Frequency_combinators
 open Feature_vectors
 
+let usage_msg =
+  "Usage: dune exec Cobb_Frequency <data_type> [-i] [-r] [-one] [-s]"
+
+let set_data_type d = data_type := d
+
+let speclist =
+  [
+    ("-i", Arg.Int (fun s -> iterations := s), "Set iterations");
+    ("-r", Arg.Int (fun s -> n_reset := s), "Set random restarts");
+    ( "-f",
+      Arg.String (fun s -> feature_vector := s),
+      "run with specified feature vector" );
+    ("-one", Arg.Set print_one, "print one in one file");
+    ( "-s",
+      Arg.String (fun s -> search_strat_str := s),
+      "Set search strategy: [e|er|ers|erw|sa]" );
+  ]
+
 let pp_res fmt
     ( gen_name,
       fv_name,
@@ -319,11 +337,11 @@ let evenlist_tests =
 
 let rbtree_tests =
   [
-    (uni_height_rbtree_fv, [ 2.; 3.; 4. ]);
-    (b_rbtree_fv, [ 0.2 ]);
-    (b_rbtree_fv, [ 0.4 ]);
+    (* (uni_height_rbtree_fv, [ 2.; 3.; 4. ]); *)
+    (* (b_rbtree_fv, [ 0.2 ]); *)
+    (* (b_rbtree_fv, [ 0.4 ]); *)
     (b_rbtree_fv, [ 0.333 ]);
-    (b_rbtree_fv, [ 0.6 ]);
+    (* (b_rbtree_fv, [ 0.6 ]); *)
     (* (min_b_rbtree_fv, [ 0.2 ]); *)
   ]
 
@@ -344,14 +362,14 @@ let depthtree_tests =
 let depthbst_tests =
   [
     (height_tree_fv, [ 5. ]);
-    (h_balanced_tree_fv, [ 0.3 ]);
-    (h_balanced_tree_fv, [ 2. ]);
-    (stick_tree_fv, [ 0.8 ]);
-    (stick_tree_fv, [ 0.5 ]);
-    (stick_tree_fv, [ 0.1 ]);
+    (* (h_balanced_tree_fv, [ 0.3 ]); *)
+    (* (h_balanced_tree_fv, [ 2. ]); *)
+    (* (stick_tree_fv, [ 0.8 ]); *)
+    (* (stick_tree_fv, [ 0.5 ]); *)
+    (* (stick_tree_fv, [ 0.1 ]); *)
     (* (min_height_tree_fv, [ 3. ]); *)
     (* (min_stick_tree_fv, [ 0.1 ]); *)
-    (uni_height_tree_fv, [ 0.; 1.; 2.; 3.; 4.; 5. ]);
+    (* (uni_height_tree_fv, [ 0.; 1.; 2.; 3.; 4.; 5. ]); *)
   ]
 
 let dragen_tests =

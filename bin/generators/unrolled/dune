@@ -1,4 +1,14 @@
 (library
  (name Unrolled)
  (libraries Cobb_PBT.combinators frequency_combinators)
- (modules depthtree_freq depthbst_freq evenlist_freq rbtree_freq rbtree_freq_NON_OPT sizedlist_freq))
+ (modules
+  depthtree_freq
+  depthtree_5
+  depthbst_freq
+  depthbst_5
+  evenlist_freq
+  rbtree_freq
+  sizedlist_freq
+  sizedlist_5
+  sizedlist_10
+  ))
