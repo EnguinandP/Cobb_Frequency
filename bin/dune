@@ -15,6 +15,7 @@
   Dragen
   search
   dumb_enumerate
+  greedy_enumerate
   ))
 
 (library

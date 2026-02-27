@@ -7,16 +7,12 @@ from pathlib import Path
 
 parser = argparse.ArgumentParser(description='Generate tables from dumb iterate ratios data')
 parser.add_argument("version", default="", help="Specify which version to count results [weights | ratios | ratios_w | ratios_w2 | ratios_smaller ].")
-# parser.add_argument('-r', '--ratios', action='store_true', 
-#                     help='process dumb_enumerate_ratio')
-# parser.add_argument('-rs', '--ratios_smaller', action='store_true', 
-#                     help='process dumb_enumerate_ratio_smaller')
 args = parser.parse_args()
 
 folder = args.version
 
-dumb_out_dir_str = "./tables/dumb_enumerate"
-dumb_in_dir_str = "./results/dumb_enumerate"
+dumb_out_dir_str = "./tables/" + folder
+dumb_in_dir_str = "./results/" + folder
 
 orig_out_dir_str = "./tables"
 orig_in_dir_str = "./bin/results"
@@ -25,8 +21,6 @@ failed_table_out_str = "./results/failed_table_" + folder + ".csv"
 
 label = "_" + folder
 label = label.replace("_", "\\_")
-dumb_out_dir_str += "_" + folder
-dumb_in_dir_str += "_" + folder
 
 # if ratio_mode:
 #     dumb_out_dir_str += "_ratios"
@@ -40,7 +34,9 @@ dumb_in_dir_str += "_" + folder
 
 subfolder_names = [
     "depth_bst", 
+    "depth_bst_5", 
     "depth_tree", 
+    "depth_tree_5", 
     "Dragen", 
     "LoadedDice", 
     "even_list", 
@@ -72,12 +68,17 @@ n_weights = {
     "unrolled/even_list":2, 
     "unrolled/rb_tree":20, 
     "unrolled/sized_list":2, 
+    "unrolled/depth_bst_5":6, 
+    "unrolled/depth_tree_5":6, 
+    "unrolled/sized_list_5":2, 
+    "unrolled/sized_list_10":2, 
     "unrolled_linear/depth_bst":12, 
     "unrolled_linear/depth_tree":12, 
     "LoadedDice":40,
     "Dragen":6, 
     }
 
+print(dumb_in_dir_str)
 in_dir = Path(dumb_in_dir_str)
 assert in_dir.is_dir()
 

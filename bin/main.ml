@@ -1,5 +1,6 @@
 open Search
 open Dumb_enumerate
+open Greedy_enumerate
 open Frequency_combinators
 open Feature_vectors
 
@@ -18,7 +19,7 @@ let speclist =
     ("-one", Arg.Set print_one, "print one in one file");
     ( "-s",
       Arg.String (fun s -> search_strat_str := s),
-      "Set search strategy: [e|er|ers|erw|sa]" );
+      "Set search strategy: [e|er|ers|erw|ge|sa]" );
   ]
 
 let pp_res fmt
@@ -161,6 +162,8 @@ let evaluate gen
     | "er" -> "dumb_enumerate_ratios/"
     | "ers" -> "dumb_enumerate_ratios_smaller/"
     | "erw" -> "dumb_enumerate_ratios_w2/"
+    | "ge" -> "greedy_enumerate/"
+    | "t" -> "test/"
     | _ -> failwith "invalid search stragtegy/")
     ^ gen_name
   in
@@ -209,6 +212,8 @@ let evaluate gen
           simulated_annealing
     | "e" -> dumb_enumerate oc g f goal_list true
     | "er" | "ers" | "erw" -> dumb_enumerate_ratios oc g f goal_list true
+    | "ge" -> greedy_enumerate oc g f goal_list true
+    | "t" -> test oc g f goal_list true
     | _ -> failwith "invalid search stragtegy"
   in
 
@@ -274,6 +279,10 @@ let ur_depthbst_gen = ("unrolled/depth_bst", depthbst_ur, 6, 1, 0)
 let ur_rbtree_gen = ("unrolled/rb_tree", rbtree_ur, 20, 2, 0)
 let ur_sizedlist_gen = ("unrolled/sized_list", sizedlist_ur, 4, 1, 0)
 let ur_evenlist_gen = ("unrolled/even_list", evenlist_ur, 4, 1, 0)
+let ur5_depthtree_gen = ("unrolled/depth_tree_5", depthtree_5_ur, 62, 1, 0)
+let ur5_depthbst_gen = ("unrolled/depth_bst_5", depthbst_5_ur, 62, 1, 0)
+let ur5_sizedlist_gen = ("unrolled/sized_list_5", sizedlist_5_ur, 10, 1, 0)
+let ur10_sizedlist_gen = ("unrolled/sized_list_10", sizedlist_10_ur, 20, 1, 0)
 
 let ur_lin_depthtree_gen =
   ("unrolled_linear/depth_tree", depthtree_ur_lin, 12, 1, 0)
@@ -309,9 +318,9 @@ let (sizedlist_tests :
       * float list)
       list) =
   [
-    (nil_list_fv, [ 0.1 ]);
+    (* (nil_list_fv, [ 0.1 ]); *)
     (* (min_nil_list_fv, [ 0.1 ]); *)
-    (len_list_fv, [ 5. ]);
+    (* (len_list_fv, [ 5. ]); *)
     (* (min_len_list_fv, [ 5. ]); *)
     (uni_len_list_fv, [ 0.; 1.; 2.; 3.; 4.; 5.; 6.; 7.; 8.; 9.; 10. ]);
   ]
@@ -362,14 +371,14 @@ let depthtree_tests =
 let depthbst_tests =
   [
     (height_tree_fv, [ 5. ]);
-    (* (h_balanced_tree_fv, [ 0.3 ]); *)
-    (* (h_balanced_tree_fv, [ 2. ]); *)
-    (* (stick_tree_fv, [ 0.8 ]); *)
-    (* (stick_tree_fv, [ 0.5 ]); *)
-    (* (stick_tree_fv, [ 0.1 ]); *)
+    (h_balanced_tree_fv, [ 0.3 ]);
+    (h_balanced_tree_fv, [ 2. ]);
+    (stick_tree_fv, [ 0.8 ]);
+    (stick_tree_fv, [ 0.5 ]);
+    (stick_tree_fv, [ 0.1 ]);
     (* (min_height_tree_fv, [ 3. ]); *)
     (* (min_stick_tree_fv, [ 0.1 ]); *)
-    (* (uni_height_tree_fv, [ 0.; 1.; 2.; 3.; 4.; 5. ]); *)
+    (uni_height_tree_fv, [ 0.; 1.; 2.; 3.; 4.; 5. ]);
   ]
 
 let dragen_tests =
@@ -455,6 +464,10 @@ let tests =
     ("ur_rb_tree", Rb_type (ur_rbtree_gen, rbtree_tests));
     ("ur_sized_list", List_type (ur_sizedlist_gen, sizedlist_tests));
     ("ur_even_list", List_type (ur_evenlist_gen, evenlist_tests));
+    ("ur5_depth_tree", Tree_type (ur5_depthtree_gen, depthtree_tests));
+    ("ur5_depth_bst", Tree_type (ur5_depthbst_gen, depthbst_tests));
+    ("ur5_sized_list", List_type (ur5_sizedlist_gen, sizedlist_tests));
+    ("ur10_sized_list", List_type (ur10_sizedlist_gen, sizedlist_tests));
     ("ur_lin_depth_tree", Tree_type (ur_lin_depthtree_gen, depthtree_tests));
     ("ur_lin_depth_bst", Tree_type (ur_depthbst_gen, depthbst_tests));
     ("rq3_p2_sized_list", List_type (sizedlist_para_2_gen, rq3_sizedlist_tests));

@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,greedy_enumerate/unrolled/depth_bst,uni_height,"(0.000, 1.000, 2.000, 3.000, 4.000, 5.000)","(462.000, 146.000, 88.000, 74.000, 53.000, 177.000)","(500, 500, 500, 500, 500, 500)", 692.708,678.641,0.000,0,0
+final,greedy_enumerate/unrolled/depth_bst,uni_height,"(0.000, 1.000, 2.000, 3.000, 4.000, 5.000)","(478.000, 140.000, 77.000, 66.000, 56.000, 183.000)","(50, 50, 50, 50, 50, 50)", 769.964,755.897,0.004,0,0

@@ -3,7 +3,7 @@ open Feature_vectors
 open Stdlib
 
 (* meta parameters *)
-let iterations = ref 2000
+let iterations = ref 20000
 let total_iterations = ref 0
 let total_restarts = ref 0
 let init_temp = 1000.

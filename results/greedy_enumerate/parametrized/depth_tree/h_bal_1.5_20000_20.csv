@@ -1,0 +1,3 @@
+version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
+initial,greedy_enumerate/parametrized/depth_tree,h_bal,1.500,0.911,"(500, 500, 500, 500)",,0.589,0.000,0,0
+final,greedy_enumerate/parametrized/depth_tree,h_bal,1.500,1.088,"(50, 50, 9, 90)",,0.412,0.006,0,0

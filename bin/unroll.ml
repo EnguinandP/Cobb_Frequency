@@ -1161,7 +1161,7 @@ let frequify_program (config : string) (source : string) =
             let u = unroll trans_body x name.x arg in
             unroll_n_times u (n - 1)
         in
-        let unrolled_body = unroll_n_times trans_body 9 in
+        let unrolled_body = unroll_n_times trans_body 4 in
         let unrolled_body = update_weights unrolled_body name.x in
         let new_code = final_program_to_string name if_rec unrolled_body in
 

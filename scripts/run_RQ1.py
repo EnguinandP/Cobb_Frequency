@@ -5,8 +5,8 @@ from pathlib import Path
 import argparse
 
 parser = argparse.ArgumentParser(description='Run tests')
-parser.add_argument("test", help="Specify which set of test to run [a|r].")
-parser.add_argument("strategy", help="Specify which strategy [sa|er|ew].")
+parser.add_argument("test", help="Specify which set of test to run [a|r|g].")
+parser.add_argument("strategy", help="Specify which strategy [sa|er|ew|ge].")
 args = parser.parse_args()
 
 test_choice = args.test
@@ -75,10 +75,42 @@ tests_dir = [
     # "ur_even_list"
 ]
 
+tests_ge = [
+    "sized_list",
+    "even_list",
+    "rb_tree",
+    "depth_tree",
+    "depth_bst",
+
+    # "dragen",
+    # "loaded_dice",
+    # "pe_sized_list_5",
+    # "pe_sized_list_10",
+
+    "p2_sized_list",
+    "p2_even_list",
+    "p2_depth_bst",
+    "p2_depth_tree",
+    "p2_rb_tree",
+
+    "ur_depth_tree",
+    "ur_depth_bst",
+    "ur_rb_tree",
+    "ur_sized_list",
+    "ur_even_list"
+
+    "ur5_depth_tree",
+    "ur5_depth_bst",
+    "ur5_sized_list",
+    "ur10_sized_list",
+]
+
 if test_choice == "a":
     test_set = tests_all
 elif test_choice == "r":
     test_set = tests_dir
+elif test_choice == "g":
+    test_set = tests_ge
 
 for test in test_set:
     # cmd = f"dune exec -- Cobb_Frequency {test}".split(" ")
