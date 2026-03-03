@@ -381,3 +381,46 @@ let random_restart (result_oc : out_channel) (gen : unit -> 'b)
   (best_weight, best_score, (best_dist, chi_buckets), end_time -. start_time)
 
 let () = QCheck_runner.set_seed 42
+
+(* helper functions for enumerate search functions *)
+let sample_weights gen score_func goal result_oc (w : int array) =
+  weights := w;
+
+  let collect_start_time = Unix.gettimeofday () in
+  let results = collect sample_size gen in
+  let collect_end_time = Unix.gettimeofday () in
+
+  let (dist, chi_buckets), cand_score = score_func goal results in
+
+  print_iterations result_oc "0" [| 0; 0 |] cand_score dist
+    (collect_end_time -. collect_start_time);
+
+  (cand_score, dist, chi_buckets)
+
+let min_score (score_a, dist_a, chi_buckets_a, weights_a)
+    (score_b, dist_b, chi_buckets_b, weights_b) =
+  if score_a < score_b then (score_a, dist_a, chi_buckets_a, weights_a)
+  else (score_b, dist_b, chi_buckets_b, weights_b)
+
+let test_weights (result_oc : out_channel) (gen : unit -> 'a) score_func
+    goal print_all =
+  let extra_oc = if print_all then Some result_oc else None in
+  print_header extra_oc;
+
+  let n_bool = Array.length !weights in
+
+  let buffer = Array.make n_bool 50 in
+
+  let buffer = [|50; 50; 66; 33; 75; 25; 80; 20; 83; 17; 86; 14; 87; 13; 89; 11; 90; 10; 91; 9|] in
+
+  let start_time = Unix.gettimeofday () in
+  let best_score, best_dist, best_chi_buckets = sample_weights gen score_func goal result_oc buffer 
+  in
+  let end_time = Unix.gettimeofday () in
+
+  let _ = print_solutions extra_oc !weights best_score in
+
+  ( !weights,
+    best_score,
+    (best_dist, best_chi_buckets),
+    end_time -. start_time )

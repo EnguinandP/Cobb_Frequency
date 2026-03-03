@@ -10,31 +10,11 @@ let dumb_enumerate (result_oc : out_channel) (gen : unit -> 'a) score_func goal
 
   let n_weights = Array.length !weights in
 
-  let sample_weights (w : int array) =
-    weights := w;
-
-    let collect_start_time = Unix.gettimeofday () in
-    let results = collect sample_size gen in
-    let collect_end_time = Unix.gettimeofday () in
-
-    let (dist, chi_buckets), cand_score = score_func goal results in
-
-    (* print_iterations result_oc "0" [| 0; 0 |] cand_score dist
-       (collect_end_time -. collect_start_time); *)
-    (cand_score, dist, chi_buckets)
-  in
-
-  let min_score (score_a, dist_a, chi_buckets_a, weights_a)
-      (score_b, dist_b, chi_buckets_b, weights_b) =
-    if score_a < score_b then (score_a, dist_a, chi_buckets_a, weights_a)
-    else (score_b, dist_b, chi_buckets_b, weights_b)
-  in
-
   let buffer = Array.make n_weights 0 in
 
   let rec iterate_list depth best =
     if depth = n_weights then
-      let score_b, dist_b, chi_buckets_b = sample_weights buffer in
+      let score_b, dist_b, chi_buckets_b = sample_weights gen score_func goal result_oc buffer in
       let w = Array.map (fun r -> r) buffer in
       min_score best (score_b, dist_b, chi_buckets_b, w)
     else
@@ -77,32 +57,11 @@ let dumb_enumerate_ratios (result_oc : out_channel) (gen : unit -> 'a) score_fun
 
   let n_bool = Array.length !weights in
 
-  let sample_weights (w : int array) =
-    weights := w;
-
-    let collect_start_time = Unix.gettimeofday () in
-    let results = collect sample_size gen in
-    let collect_end_time = Unix.gettimeofday () in
-
-    let (dist, chi_buckets), cand_score = score_func goal results in
-
-    print_iterations result_oc "0" [| 0; 0 |] cand_score dist
-      (collect_end_time -. collect_start_time);
-
-    (cand_score, dist, chi_buckets)
-  in
-
-  let min_score (score_a, dist_a, chi_buckets_a, weights_a)
-      (score_b, dist_b, chi_buckets_b, weights_b) =
-    if score_a < score_b then (score_a, dist_a, chi_buckets_a, weights_a)
-    else (score_b, dist_b, chi_buckets_b, weights_b)
-  in
-
   let buffer = Array.make n_bool 0 in
 
   let rec iterate_list depth best =
     if depth >= n_bool then
-      let score_b, dist_b, chi_buckets_b = sample_weights buffer in
+      let score_b, dist_b, chi_buckets_b = sample_weights gen score_func goal result_oc buffer in
       let w = Array.map (fun r -> r) buffer in
       min_score best (score_b, dist_b, chi_buckets_b, w)
     else

@@ -22,27 +22,6 @@ let greedy_enumerate (result_oc : out_channel) (gen : unit -> 'a) score_func
 
   let n_bool = Array.length !weights in
 
-  let sample_weights (w : int array) =
-    weights := w;
-
-    let collect_start_time = Unix.gettimeofday () in
-    let results = collect sample_size gen in
-    let collect_end_time = Unix.gettimeofday () in
-
-    let (dist, chi_buckets), cand_score = score_func goal results in
-
-    print_iterations result_oc "0" [| 0; 0 |] cand_score dist
-      (collect_end_time -. collect_start_time);
-
-    (cand_score, dist, chi_buckets)
-  in
-
-  let min_score (score_a, dist_a, chi_buckets_a, weights_a)
-      (score_b, dist_b, chi_buckets_b, weights_b) =
-    if score_a < score_b then (score_a, dist_a, chi_buckets_a, weights_a)
-    else (score_b, dist_b, chi_buckets_b, weights_b)
-  in
-
   let buffer = Array.make n_bool 50 in
 
   (* at each depth, enumerate weights for each ratio in list *)
@@ -65,7 +44,7 @@ let greedy_enumerate (result_oc : out_channel) (gen : unit -> 'a) score_func
             print_int_array w;
 
             (* calc score *)
-            let score_b, dist_b, chi_buckets_b = sample_weights w in
+            let score_b, dist_b, chi_buckets_b = sample_weights gen score_func goal result_oc w in
             let w = Array.map (fun r -> r) w in
             min_score acc (score_b, dist_b, chi_buckets_b, w))
           best ratios_list
@@ -95,7 +74,7 @@ let greedy_enumerate (result_oc : out_channel) (gen : unit -> 'a) score_func
             print_int_array w;
 
             (* calc score *)
-            let score_b, dist_b, chi_buckets_b = sample_weights w in
+            let score_b, dist_b, chi_buckets_b = sample_weights gen score_func goal result_oc w in
             let w = Array.map (fun r -> r) w in
             min_score acc (score_b, dist_b, chi_buckets_b, w))
           best ratios_list
@@ -130,48 +109,6 @@ let greedy_enumerate (result_oc : out_channel) (gen : unit -> 'a) score_func
     (best_dist, best_chi_buckets),
     end_time -. start_time )
 
-let test (result_oc : out_channel) (gen : unit -> 'a) score_func
-    goal print_all =
-  let extra_oc = if print_all then Some result_oc else None in
-  print_header extra_oc;
-
-  Printf.printf "start\n";
-
-  let ratios_list = [ 0.; 0.15; 0.3; 0.5; 0.9; 1.0 ] in
-
-  let n_bool = Array.length !weights in
-
-  let sample_weights (w : int array) =
-    weights := w;
-
-    let collect_start_time = Unix.gettimeofday () in
-    let results = collect sample_size gen in
-    let collect_end_time = Unix.gettimeofday () in
-
-    let (dist, chi_buckets), cand_score = score_func goal results in
-
-    print_iterations result_oc "0" [| 0; 0 |] cand_score dist
-      (collect_end_time -. collect_start_time);
-
-    (cand_score, dist, chi_buckets)
-  in
-
-  let buffer = Array.make n_bool 50 in
-
-  let buffer = [|50; 50; 66; 33; 75; 25; 80; 20; 83; 17; 86; 14; 87; 13; 89; 11; 90; 10; 91; 9|] in
-
-
-  let start_time = Unix.gettimeofday () in
-  let best_score, best_dist, best_chi_buckets = sample_weights buffer 
-  in
-  let end_time = Unix.gettimeofday () in
-
-  let _ = print_solutions extra_oc !weights best_score in
-
-  ( !weights,
-    best_score,
-    (best_dist, best_chi_buckets),
-    end_time -. start_time )
 
 
     

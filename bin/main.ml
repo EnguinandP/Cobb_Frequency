@@ -214,7 +214,7 @@ let evaluate gen
     | "e" -> dumb_enumerate oc g f goal_list true
     | "er" | "ers" | "erw" -> dumb_enumerate_ratios oc g f goal_list true
     | "ge" -> greedy_enumerate oc g f goal_list true
-    | "t" -> test oc g f goal_list true
+    | "t" -> test_weights oc g f goal_list true
     | _ -> failwith "invalid search stragtegy"
   in
 
