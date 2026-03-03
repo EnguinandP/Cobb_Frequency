@@ -53,7 +53,7 @@
 (library
  (name generator_thunks)
  (modules generator_thunks)
- (libraries generators LoadedDice Dragen Parametrized Parametrized_enumeration Unrolled Unrolled_linear Rerolled))
+ (libraries generators LoadedDice Dragen Parametrized Parametrized_enumeration Unrolled Unrolled_linear Rerolled_manual))
 
 (executable
  (public_name transformation)

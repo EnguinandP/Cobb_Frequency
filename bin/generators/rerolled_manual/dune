@@ -1,0 +1,4 @@
+(library
+ (name Rerolled_manual)
+ (libraries Cobb_PBT.combinators frequency_combinators)
+ (modules sizedlist_freq depthtree_freq))

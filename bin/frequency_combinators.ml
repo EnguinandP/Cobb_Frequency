@@ -1,13 +1,12 @@
 (* should figure out the best location for this *)
 (* let weights_f1 = ref (-400) *)
 let weights = ref [| 100; 500 |]
-
 let w_ = ref [| 0 |]
 
 (** accesing the weight at index i*)
 let get_weight_idx (i : int) = !weights.(i)
 
-let set_w_idx (i : int) (x :int) = !weights.(i) <- x
+let set_w_idx (i : int) (x : int) = !weights.(i) <- x
 
 type dragen_tree = LeafA | LeafB | LeafC | Node of dragen_tree * dragen_tree
 
@@ -62,36 +61,71 @@ let freq_para_1_gen size c base_case recursive_case =
     (QCheck_runner.random_state ())
 
 let freq_para_2_gen size c_b c_rec m_b m_rec =
-  let base_case = ((fst m_b * size) + c_b) in
-  let recursive_case = ((fst m_rec * size) + c_rec) in
-  
+  let base_case = (fst m_b * size) + c_b in
+  let recursive_case = (fst m_rec * size) + c_rec in
+
   if base_case < 0 || recursive_case < 0 then
     raise (Neg_Weight (Printf.sprintf "%d %d" base_case recursive_case))
   else
-
-  QCheck.Gen.frequency
-    [
-      (base_case, snd m_b);
-      (recursive_case, snd m_rec);
-    ]
-    (QCheck_runner.random_state ())
+    QCheck.Gen.frequency
+      [ (base_case, snd m_b); (recursive_case, snd m_rec) ]
+      (QCheck_runner.random_state ())
 
 let freq_harmonic size b_thunk rec_thunk =
   let base_case = int_of_float (1. /. (float_of_int size +. 1.) *. 1000.) in
-  let recursive_case = int_of_float ((1. -. 1. /. (float_of_int size +. 1.)) *. 1000.) in
+  let recursive_case =
+    int_of_float ((1. -. (1. /. (float_of_int size +. 1.))) *. 1000.)
+  in
 
   Printf.printf "%d %d %d\n" size base_case recursive_case;
-  
+
   if base_case < 0 || recursive_case < 0 then
     raise (Neg_Weight (Printf.sprintf "%d %d" base_case recursive_case))
   else
+    QCheck.Gen.frequency
+      [ (base_case, b_thunk); (recursive_case, rec_thunk) ]
+      (QCheck_runner.random_state ())
 
-  QCheck.Gen.frequency
-    [
-      (base_case, b_thunk);
-      (recursive_case, rec_thunk);
-    ]
-    (QCheck_runner.random_state ())
+let find_p n =
+  let p = Array.make n 0.0 in
+  p.(n - 1) <- 1.0;
+  p.(0) <- 1.0 /. Float.of_int n;
+
+  for i = 1 to n - 2 do
+    let g = Float.of_int (i + 1) /. Float.of_int n in
+
+    let target = ref g in
+    for j = 0 to i - 1 do
+      let pj = p.(j) in
+      let inner_sq = (!target -. pj) /. (1.0 -. pj) in
+      target := sqrt inner_sq
+    done;
+    p.(i) <- !target
+  done;
+  p
+
+let freq_tree size b_thunk rec_thunk =
+  (* need to remember total max bound *)
+  let bound = 2 in
+  (* let size = float_of_int size in
+  let base_case = (1. /. ( size +. 1.)) ** (1. /. 2. ** (bound -. size)) in *)
+  (* let base_case =
+    match size with 3 -> 0.25 | 2 -> 1. /. (3. ** 0.5) | 1 -> 0.75 | _ -> 0.5
+  in *)
+  let p = find_p (bound + 1) in
+  let base_case = p.(bound - size) in
+  let recursive_case = 1. -. base_case in
+  let base_case = int_of_float (base_case *. 1000.) in
+  let recursive_case = int_of_float (recursive_case *. 1000.) in
+
+  Printf.printf "%d %d %d\n" size base_case recursive_case;
+
+  if base_case < 0 || recursive_case < 0 then
+    raise (Neg_Weight (Printf.sprintf "%d %d" base_case recursive_case))
+  else
+    QCheck.Gen.frequency
+      [ (base_case, b_thunk); (recursive_case, rec_thunk) ]
+      (QCheck_runner.random_state ())
 
 let frequency_gen_n base_case recursive_case =
   QCheck.Gen.frequency
