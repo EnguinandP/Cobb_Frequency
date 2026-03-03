@@ -3,6 +3,7 @@ open Dumb_enumerate
 open Greedy_enumerate
 open Frequency_combinators
 open Feature_vectors
+open Generator_thunks
 
 let usage_msg =
   "Usage: dune exec Cobb_Frequency <data_type> [-i] [-r] [-one] [-s]"
