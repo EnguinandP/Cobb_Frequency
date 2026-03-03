@@ -106,7 +106,7 @@ let find_p n =
 
 let freq_tree size b_thunk rec_thunk =
   (* need to remember total max bound *)
-  let bound = 2 in
+  let bound = 8 in
   (* let size = float_of_int size in
   let base_case = (1. /. ( size +. 1.)) ** (1. /. 2. ** (bound -. size)) in *)
   (* let base_case =
@@ -117,8 +117,6 @@ let freq_tree size b_thunk rec_thunk =
   let recursive_case = 1. -. base_case in
   let base_case = int_of_float (base_case *. 1000.) in
   let recursive_case = int_of_float (recursive_case *. 1000.) in
-
-  Printf.printf "%d %d %d\n" size base_case recursive_case;
 
   if base_case < 0 || recursive_case < 0 then
     raise (Neg_Weight (Printf.sprintf "%d %d" base_case recursive_case))

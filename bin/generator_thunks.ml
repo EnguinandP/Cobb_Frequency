@@ -157,3 +157,7 @@ let sizedlist_rr () =
 let depthtree_rr () =
   let size = 2 in
   Rerolled_manual.Depthtree_freq.depth_tree_gen size
+
+let depthbst_rr () =
+  let size = 8 in
+  Rerolled_manual.Depthtree_freq.depth_tree_gen size
