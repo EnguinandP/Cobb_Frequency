@@ -48,12 +48,12 @@
 (library
  (name feature_vectors)
  (modules feature_vectors)
- (libraries generators LoadedDice Dragen Parametrized Parametrized_enumeration Unrolled Unrolled_linear))
+ (libraries generators frequency_combinators))
 
 (library
  (name generator_thunks)
  (modules generator_thunks)
- (libraries generators LoadedDice Dragen Parametrized Parametrized_enumeration Unrolled Unrolled_linear))
+ (libraries generators LoadedDice Dragen Parametrized Parametrized_enumeration Unrolled Unrolled_linear Rerolled))
 
 (executable
  (public_name transformation)

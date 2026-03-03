@@ -411,7 +411,7 @@ let test_weights (result_oc : out_channel) (gen : unit -> 'a) score_func
 
   let buffer = Array.make n_bool 50 in
 
-  let buffer = [|50; 50; 66; 33; 75; 25; 80; 20; 83; 17; 86; 14; 87; 13; 89; 11; 90; 10; 91; 9|] in
+  (* let buffer = [|50; 50; 66; 33; 75; 25; 80; 20; 83; 17; 86; 14; 87; 13; 89; 11; 90; 10; 91; 9|] in *)
 
   let start_time = Unix.gettimeofday () in
   let best_score, best_dist, best_chi_buckets = sample_weights gen score_func goal result_oc buffer 

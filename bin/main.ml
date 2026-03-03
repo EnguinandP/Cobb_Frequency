@@ -290,6 +290,8 @@ let ur_lin_depthtree_gen =
 
 let ur_lin_depthbst_gen =
   ("unrolled_linear/depth_bst", depthbst_ur_lin, 12, 1, 0)
+let rr_sizedlist_gen = ("rerolled/sized_list_10", sizedlist_rr, 0, 1, 0)
+
 
 (* feature vectors *)
 let nil_list_fv = ("nil", get_exact_score nil_fv)
@@ -319,9 +321,9 @@ let (sizedlist_tests :
       * float list)
       list) =
   [
-    (* (nil_list_fv, [ 0.1 ]); *)
+    (nil_list_fv, [ 0.1 ]); 
     (* (min_nil_list_fv, [ 0.1 ]); *)
-    (* (len_list_fv, [ 5. ]); *)
+    (len_list_fv, [ 5. ]);
     (* (min_len_list_fv, [ 5. ]); *)
     (uni_len_list_fv, [ 0.; 1.; 2.; 3.; 4.; 5.; 6.; 7.; 8.; 9.; 10. ]);
   ]
@@ -472,6 +474,7 @@ let tests =
     ("ur_lin_depth_tree", Tree_type (ur_lin_depthtree_gen, depthtree_tests));
     ("ur_lin_depth_bst", Tree_type (ur_depthbst_gen, depthbst_tests));
     ("rq3_p2_sized_list", List_type (sizedlist_para_2_gen, rq3_sizedlist_tests));
+    ("rr_sized_list", List_type (rr_sizedlist_gen, sizedlist_tests));
     (* ("rq3_ur_depth_tree", Tree_type (ur_depthtree_gen, rq3_depthtree_tests)); *)
   ]
 

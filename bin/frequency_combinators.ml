@@ -76,6 +76,23 @@ let freq_para_2_gen size c_b c_rec m_b m_rec =
     ]
     (QCheck_runner.random_state ())
 
+let freq_harmonic size b_thunk rec_thunk =
+  let base_case = int_of_float (1. /. (float_of_int size +. 1.) *. 1000.) in
+  let recursive_case = int_of_float ((1. -. 1. /. (float_of_int size +. 1.)) *. 1000.) in
+
+  Printf.printf "%d %d %d\n" size base_case recursive_case;
+  
+  if base_case < 0 || recursive_case < 0 then
+    raise (Neg_Weight (Printf.sprintf "%d %d" base_case recursive_case))
+  else
+
+  QCheck.Gen.frequency
+    [
+      (base_case, b_thunk);
+      (recursive_case, rec_thunk);
+    ]
+    (QCheck_runner.random_state ())
+
 let frequency_gen_n base_case recursive_case =
   QCheck.Gen.frequency
     [ (0, snd base_case); (1, snd recursive_case) ]

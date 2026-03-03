@@ -148,3 +148,8 @@ let depthbst_ur_lin () =
   let low = 0 in
   let high = 100 in
   Unrolled_linear.Depthbst_freq.size_bst_gen depth low high
+
+(* rerolled functions *)
+let sizedlist_rr () =
+  let size = 10 in
+  Rerolled.Sizedlist_freq.sized_list_gen size
