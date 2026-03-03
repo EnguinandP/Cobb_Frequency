@@ -1,3 +1,0 @@
-version,generator,fv,goal,dist,weights,chi,score,time,iterations,restarts
-initial,frequency/sized_list,len,5.000,0.963,"(500, 500)",,4.037,0.000,5000,10
-final,frequency/sized_list,len,5.000,4.997,"(156, 1032)",,0.003,1.394,5000,10
