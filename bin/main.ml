@@ -290,7 +290,7 @@ let ur_lin_depthtree_gen =
 
 let ur_lin_depthbst_gen =
   ("unrolled_linear/depth_bst", depthbst_ur_lin, 12, 1, 0)
-let rr_sizedlist_gen = ("rerolled/sized_list_10", sizedlist_rr, 0, 1, 0)
+let rr_sizedlist_gen = ("rerolled/sized_list_20", sizedlist_rr, 0, 1, 0)
 
 
 (* feature vectors *)
@@ -325,7 +325,8 @@ let (sizedlist_tests :
     (* (min_nil_list_fv, [ 0.1 ]); *)
     (len_list_fv, [ 5. ]);
     (* (min_len_list_fv, [ 5. ]); *)
-    (uni_len_list_fv, [ 0.; 1.; 2.; 3.; 4.; 5.; 6.; 7.; 8.; 9.; 10. ]);
+    (* (uni_len_list_fv, [ 0.; 1.; 2.; 3.; 4.; 5.; 6.; 7.; 8.; 9.; 10. ]); *)
+    (uni_len_list_fv, List.init 21 (fun x -> float_of_int x));
   ]
 
 let sizedlist_tests_2 =

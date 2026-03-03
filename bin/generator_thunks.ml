@@ -151,5 +151,5 @@ let depthbst_ur_lin () =
 
 (* rerolled functions *)
 let sizedlist_rr () =
-  let size = 10 in
+  let size = 20 in
   Rerolled.Sizedlist_freq.sized_list_gen size
