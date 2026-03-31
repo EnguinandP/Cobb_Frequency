@@ -4,6 +4,9 @@ open Greedy_enumerate
 open Frequency_combinators
 open Feature_vectors
 open Generator_thunks
+open Unix
+open Yojson.Basic
+open Yojson.Basic.Util
 
 let usage_msg =
   "Usage: dune exec Cobb_Frequency <data_type> [-i] [-r] [-one] [-s]"
@@ -12,8 +15,8 @@ let set_data_type d = data_type := d
 
 let speclist =
   [
-    ("-i", Arg.Int (fun s -> iterations := s), "Set iterations");
-    ("-r", Arg.Int (fun s -> n_reset := s), "Set random restarts");
+    ("-ni", Arg.Int (fun s -> iterations := s), "Set iterations");
+    ("-nr", Arg.Int (fun s -> n_reset := s), "Set random restarts");
     ( "-f",
       Arg.String (fun s -> feature_vector := s),
       "run with specified feature vector" );
@@ -21,6 +24,7 @@ let speclist =
     ( "-s",
       Arg.String (fun s -> search_strat_str := s),
       "Set search strategy: [e|er|ers|erw|ge|sa]" );
+    ("-r", Arg.Set use_regress, "use regression");
   ]
 
 let pp_res fmt
@@ -250,6 +254,129 @@ let evaluate gen
       fin_score );
   ()
 
+let print_int_list l ic oc =
+  List.iter (Printf.printf "%d ") l;
+  print_newline ()
+
+let call_python values =
+  let json = "[" ^ String.concat "," (List.map string_of_float values) ^ "]" in
+
+  let stdout_ic, stdin_oc, stderr_ic =
+    Unix.open_process_full "python3 bin/regression.py" (Unix.environment ())
+  in
+
+  (* send data to python *)
+  output_string stdin_oc json;
+  close_out stdin_oc;
+
+  (* read python result *)
+  let result = input_line stdout_ic in
+
+  let error = try Some (input_line stderr_ic) with End_of_file -> None in
+
+  close_in stdout_ic;
+  close_in stderr_ic;
+
+  match error with Some e -> failwith ("Python error: " ^ e) | None -> result
+
+let build_model json_string =
+  let json = Yojson.Basic.from_string json_string in
+
+  let model = json |> member "model" |> to_string in
+  let params = json |> member "params" |> to_list in
+
+  match (model, params) with
+  | "linear", [ a; b ] ->
+      let a = to_float a in
+      let b = to_float b in
+      fun x -> (a *. x) +. b
+  | "reciprocal", [ a; b ] ->
+      let a = to_float a in
+      let b = to_float b in
+      fun x -> 1.0 /. ((a *. x) +. b)
+  | "step", [ t; low; high ] ->
+      let t = to_int t in
+      let low = to_float low in
+      let high = to_float high in
+      fun x -> if x <= float_of_int t then low else high
+  | "zero_step", [ t; c ] ->
+      let t = to_int t in
+      let c = to_float c in
+      fun x -> if x <= float_of_int t then c else 0.0
+  | _ -> failwith "Unknown model"
+
+let search_regress gen
+    (fv : string * (float list -> 'a list -> (float * float list) * float))
+    (goal_list : float list) =
+  (* find csv file for gen + fv *)
+  let gen_name, g, n_weights, n_bool, n_nat = gen in
+  let fv_name, f = fv in
+
+  (* let gen_name = "dumb_enumerate_ratios/" ^ gen_name in *)
+  total_iterations := 0;
+  total_restarts := 0;
+
+  let gen_name =
+    (match !search_strat_str with
+    | "sa" -> ""
+    | "e" -> "dumb_enumerate_weights/"
+    | "er" -> "dumb_enumerate_ratios/"
+    | "ers" -> "dumb_enumerate_ratios_smaller/"
+    | "erw" -> "dumb_enumerate_ratios_w2/"
+    | "ge" -> "greedy_enumerate/"
+    | "t" -> "test/"
+    | _ -> failwith "invalid search stragtegy/")
+    ^ gen_name
+  in
+
+  let file_path =
+    Printf.sprintf "results/%s/%s_%s%d_%d.csv" gen_name fv_name
+      (List.fold_left (fun acc x -> acc ^ string_of_float x ^ "_") "" goal_list)
+      !iterations !n_reset
+  in
+
+  (* read csv and get weights *)
+  let rows = Csv.load file_path in
+  (* rows.(0) = header, rows.(1) = initial, rows.(2) = final *)
+  let final_row = List.nth rows 2 in
+  let weights_str = List.nth final_row 5 in
+  let weights_str = String.trim weights_str in
+  let weights_str =
+    if
+      String.length weights_str >= 2
+      && weights_str.[0] = '('
+      && weights_str.[String.length weights_str - 1] = ')'
+    then String.sub weights_str 1 (String.length weights_str - 2)
+    else weights_str
+  in
+  let raw_weights =
+    String.split_on_char ',' weights_str
+    |> List.map (fun s -> float_of_int (int_of_string (String.trim s)))
+  in
+  let rec pair_ratios = function
+    | w1 :: w2 :: rest -> (w1 /. (w1 +. w2)) :: pair_ratios rest
+    | _ -> []
+  in
+  let ratio_list = pair_ratios raw_weights in
+
+  let n = List.length ratio_list in
+  let sized_list = List.init n (fun x -> float_of_int x) in
+
+  (* call regression.py and get function *)
+  let result = call_python ratio_list in
+  let model = build_model result in
+
+  (* evaluate again with function and retruns results *)
+  let start_time = Unix.gettimeofday () in
+  let results = collect sample_size g in
+  let end_time = Unix.gettimeofday () in
+
+  ignore ratio_list;
+
+  List.iter (Printf.printf "%.4f ") ratio_list;
+  print_newline ();
+  ()
+
 (* generators *)
 let sortedlist_gen = ("frequency/sorted_list", sortedlist, 4, 0, 0)
 let uniquelist_gen = ("frequency/unique_list", uniquelist, 0, 0, 0)
@@ -290,10 +417,10 @@ let ur_lin_depthtree_gen =
 
 let ur_lin_depthbst_gen =
   ("unrolled_linear/depth_bst", depthbst_ur_lin, 12, 1, 0)
+
 let rr_sizedlist_gen = ("rerolled/sized_list", sizedlist_rr, 0, 1, 0)
 let rr_depthtree_gen = ("rerolled/depth_tree", depthtree_rr, 0, 1, 0)
 let rr_depthbst_gen = ("rerolled/depth_bst", depthbst_rr, 0, 1, 0)
-
 
 (* feature vectors *)
 let nil_list_fv = ("nil", get_exact_score nil_fv)
@@ -323,12 +450,12 @@ let (sizedlist_tests :
       * float list)
       list) =
   [
-    (nil_list_fv, [ 0.1 ]); 
+    (* (nil_list_fv, [ 0.1 ]); *)
     (* (min_nil_list_fv, [ 0.1 ]); *)
-    (len_list_fv, [ 5. ]);
+    (* (len_list_fv, [ 5. ]); *)
     (* (min_len_list_fv, [ 5. ]); *)
-    (* (uni_len_list_fv, [ 0.; 1.; 2.; 3.; 4.; 5.; 6.; 7.; 8.; 9.; 10. ]); *)
-    (uni_len_list_fv, List.init 21 (fun x -> float_of_int x));
+    (uni_len_list_fv, [ 0.; 1.; 2.; 3.; 4.; 5.; 6.; 7.; 8.; 9.; 10. ]);
+    (* (uni_len_list_fv, List.init 21 (fun x -> float_of_int x)); *)
   ]
 
 let sizedlist_tests_2 =
@@ -363,11 +490,11 @@ let rbtree_tests =
 let depthtree_tests =
   [
     (* (height_tree_fv, [ 3. ]);
-    (h_balanced_tree_fv, [ 1.5 ]);
-    (h_balanced_tree_fv, [ 0.3 ]);
-    (stick_tree_fv, [ 0.8 ]);
-    (stick_tree_fv, [ 0.5 ]);
-    (stick_tree_fv, [ 0.1 ]); *)
+       (h_balanced_tree_fv, [ 1.5 ]);
+       (h_balanced_tree_fv, [ 0.3 ]);
+       (stick_tree_fv, [ 0.8 ]);
+       (stick_tree_fv, [ 0.5 ]);
+       (stick_tree_fv, [ 0.1 ]); *)
     (* (min_height_tree_fv, [ 3. ]); *)
     (* (min_stick_tree_fv, [ 0.1 ]); *)
     (uni_height_tree_fv, [ 0.; 1.; 2.; 3.; 4.; 5.; 6.; 7.; 8. ]);
@@ -378,15 +505,16 @@ let depthtree_tests =
 let depthbst_tests =
   [
     (* (height_tree_fv, [ 5. ]);
-    (h_balanced_tree_fv, [ 0.3 ]);
+       (h_balanced_tree_fv, [ 0.3 ]); *)
     (h_balanced_tree_fv, [ 2. ]);
-    (stick_tree_fv, [ 0.8 ]);
-    (stick_tree_fv, [ 0.5 ]);
-    (stick_tree_fv, [ 0.1 ]); *)
+    (* (stick_tree_fv, [ 0.8 ]);
+       (stick_tree_fv, [ 0.5 ]);
+       (stick_tree_fv, [ 0.1 ]); *)
     (* (min_height_tree_fv, [ 3. ]); *)
     (* (min_stick_tree_fv, [ 0.1 ]); *)
     (* (uni_height_tree_fv, [ 0.; 1.; 2.; 3.; 4.; 5. ]); *)
-    (uni_height_tree_fv, [ 0.; 1.; 2.; 3.; 4.; 5.; 6.; 7.; 8. ]);
+    (* (uni_height_tree_fv, [ 0.; 1.; 2.; 3.; 4.; 5.; 6.; 7.; 8. ]); *)
+    (* need to change bound here, generator_thunks, and in frequency_combinators *)
   ]
 
 let dragen_tests =
@@ -480,8 +608,8 @@ let tests =
     ("ur_lin_depth_bst", Tree_type (ur_depthbst_gen, depthbst_tests));
     ("rq3_p2_sized_list", List_type (sizedlist_para_2_gen, rq3_sizedlist_tests));
     ("rr_sized_list", List_type (rr_sizedlist_gen, sizedlist_tests));
-    ("rr_depthtree_gen", Tree_type (rr_depthtree_gen, depthtree_tests));
-    ("rr_depthbst_gen", Tree_type (rr_depthbst_gen, depthbst_tests));
+    ("rr_depthtree", Tree_type (rr_depthtree_gen, depthtree_tests));
+    ("rr_depthbst", Tree_type (rr_depthbst_gen, depthbst_tests));
     (* ("rq3_ur_depth_tree", Tree_type (ur_depthtree_gen, rq3_depthtree_tests)); *)
   ]
 
@@ -491,31 +619,31 @@ let evaluate_test test_list =
       List.iter
         (fun x ->
           let fv, goal = x in
-          evaluate g fv goal)
+          if !use_regress then search_regress g fv goal else evaluate g fv goal)
         fvl
   | List_opt_type (g, fvl) ->
       List.iter
         (fun x ->
           let fv, goal = x in
-          evaluate g fv goal)
+          if !use_regress then search_regress g fv goal else evaluate g fv goal)
         fvl
   | Rb_type (g, fvl) ->
       List.iter
         (fun x ->
           let fv, goal = x in
-          evaluate g fv goal)
+          if !use_regress then search_regress g fv goal else evaluate g fv goal)
         fvl
   | Tree_type (g, fvl) ->
       List.iter
         (fun x ->
           let fv, goal = x in
-          evaluate g fv goal)
+          if !use_regress then search_regress g fv goal else evaluate g fv goal)
         fvl
   | Dragen_type (g, fvl) ->
       List.iter
         (fun x ->
           let fv, goal = x in
-          evaluate g fv goal)
+          if !use_regress then search_regress g fv goal else evaluate g fv goal)
         fvl
 
 let () =

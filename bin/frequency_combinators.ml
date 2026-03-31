@@ -77,28 +77,24 @@ let freq_harmonic size b_thunk rec_thunk =
     int_of_float ((1. -. (1. /. (float_of_int size +. 1.))) *. 1000.)
   in
 
-  Printf.printf "%d %d %d\n" size base_case recursive_case;
+  (* Printf.printf "%d %d %d\n" size base_case recursive_case; *)
 
   if base_case < 0 || recursive_case < 0 then
     raise (Neg_Weight (Printf.sprintf "%d %d" base_case recursive_case))
   else
     QCheck.Gen.frequency
       [ (base_case, b_thunk); (recursive_case, rec_thunk) ]
-      (QCheck_runner.random_state ())
+    (QCheck_runner.random_state ())
 
 let find_p n =
   let p = Array.make n 0.0 in
   p.(n - 1) <- 1.0;
   p.(0) <- 1.0 /. Float.of_int n;
-
   for i = 1 to n - 2 do
-    let g = Float.of_int (i + 1) /. Float.of_int n in
-
-    let target = ref g in
+    (* Peel off layers 0..i-1 from G(0,i) = (i+1)/n *)
+    let target = ref (Float.of_int (i + 1) /. Float.of_int n) in
     for j = 0 to i - 1 do
-      let pj = p.(j) in
-      let inner_sq = (!target -. pj) /. (1.0 -. pj) in
-      target := sqrt inner_sq
+      target := sqrt ((!target -. p.(j)) /. (1.0 -. p.(j)))
     done;
     p.(i) <- !target
   done;
@@ -112,7 +108,20 @@ let freq_tree size b_thunk rec_thunk =
   (* let base_case =
     match size with 3 -> 0.25 | 2 -> 1. /. (3. ** 0.5) | 1 -> 0.75 | _ -> 0.5
   in *)
+
+  (* Printf.printf "finding p"; *)
   let p = find_p (bound + 1) in
+
+  let print_int_list l =
+  Array.iter (Printf.printf "%f ") l;
+  print_newline () in
+
+  (* Format.printf "@[<hov 0>Int array: %a@]@."
+  (Format.pp_print_array Format.pp_print_float)
+  p; *)
+
+  print_int_list p;
+
   let base_case = p.(bound - size) in
   let recursive_case = 1. -. base_case in
   let base_case = int_of_float (base_case *. 1000.) in

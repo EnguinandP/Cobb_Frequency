@@ -22,6 +22,7 @@ let path = ref "./results/parametrized_enumeration/sized_list_10/output.csv"
 let top_oc = open_out !path
 let search_strat_str = ref "sa"
 let print_one = ref false
+let use_regress = ref false
 
 (** collects n values with gen *)
 let collect n gen = List.init n (fun _ -> gen ())

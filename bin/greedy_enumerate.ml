@@ -41,7 +41,7 @@ let greedy_enumerate (result_oc : out_channel) (gen : unit -> 'a) score_func
             w.(depth - 1) <- w1;
             w.(depth - 2) <- w2;
 
-            print_int_array w;
+            (* print_int_array w; *)
 
             (* calc score *)
             let score_b, dist_b, chi_buckets_b = sample_weights gen score_func goal result_oc w in
@@ -99,7 +99,7 @@ let greedy_enumerate_back (result_oc : out_channel) (gen : unit -> 'a) score_fun
             w.(depth - 1) <- w1;
             w.(depth - 2) <- w2;
 
-            print_int_array w;
+            (* print_int_array w; *)
 
             (* calc score *)
             let score_b, dist_b, chi_buckets_b = sample_weights gen score_func goal result_oc w in

@@ -3,6 +3,7 @@
  (name main)
  (modules main)
  (libraries
+  csv
   qcheck
   Cobb_Frequency
   underapproximation_type.preprocessing
